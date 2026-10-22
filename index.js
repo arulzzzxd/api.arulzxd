@@ -3182,7 +3182,10 @@ app.get(['/api/server-status', '/api/status-server'], async (req, res) => {
             { $project: { count: { $size: "$log" } } },
             { $group: { _id: null, total: { $sum: "$count" } } }
         ]);
-        totalRequests = reqAggregate[0]?.total || 0;
+        
+        // Base default 3000 request + jumlah dari database
+        const realTimeRequests = reqAggregate[0]?.total || 0;
+        totalRequests = 3000 + realTimeRequests;
     } catch (err) {
         console.error("Gagal memuat statistik server:", err.message);
     }
