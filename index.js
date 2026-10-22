@@ -1,0 +1,3316 @@
+import express from 'express';
+import fileUpload from 'express-fileupload';
+import session from 'express-session';
+import mongoose from 'mongoose';
+import cron from 'node-cron';
+import MongoStore from 'connect-mongo';
+import passport from 'passport';
+import { Strategy as LocalStrategy } from 'passport-local';
+import bcrypt from 'bcrypt';
+import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
+import jwt from 'jsonwebtoken';
+import path from 'path';
+import fs from 'fs';
+import axios from 'axios';
+import mime from 'mime-types';
+import multer from 'multer';
+import nodemailer from 'nodemailer';
+import crypto from 'crypto';
+import compression from 'compression';
+import os from 'os';
+import webpush from 'web-push';
+import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
+import { fileURLToPath, pathToFileURL } from 'url';
+
+// Pengganti __filename dan __dirname di ES Modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// ====================================================
+// 1. KONFIGURASI & ENVIRONMENT VARIABLES
+// ====================================================
+const MONGODB_URI = process.env.MONGODB_URI;
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-jwt-secret-key';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-session-secret-key';
+const STATIC_QRIS = process.env.STATIC_QRIS || "";
+
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
+    .split(',')
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean);
+
+// VAPID WebPush Configuration
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+const VAPID_MAILTO = process.env.VAPID_MAILTO || 'mailto:support@arulzzxd.my.id';
+
+try {
+    if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
+        webpush.setVapidDetails(VAPID_MAILTO, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+    }
+} catch (err) {
+    console.error("❌ Gagal setVapidDetails:", err.message);
+}
+
+// OAuth Credentials
+const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
+const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
+const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || "https://api.arulzzxd.my.id/auth/github/callback";
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "https://api.arulzzxd.my.id/auth/google/callback";
+
+// GitHub CDN Config
+const repoName = process.env.GITHUB_REPO || 'cdn';
+const githubToken = process.env.GITHUB_TOKEN || '';
+const owner = process.env.GITHUB_OWNER || 'arulzzzxd'; 
+const branch = process.env.GITHUB_BRANCH || 'main';
+
+// SMTP Transporter Helper
+const getSmtpTransporter = () => {
+    return nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true, 
+        auth: {
+            user: process.env.SMTP_USER || 'supportarulzxd@gmail.com',
+            pass: process.env.SMTP_PASS
+        },
+        tls: { rejectUnauthorized: false }
+    });
+};
+
+// ====================================================
+// 2. MONGOOSE DATABASE CONNECTION & SCHEMAS
+// ====================================================
+mongoose.set('bufferCommands', false);
+
+let isConnecting = false;
+
+async function connectToDatabase() {
+    if (mongoose.connection.readyState === 1) {
+        return mongoose.connection;
+    }
+
+    if (isConnecting) {
+        let attempts = 0;
+        while (isConnecting && attempts < 10) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            attempts++;
+            if (mongoose.connection.readyState === 1) return mongoose.connection;
+        }
+    }
+
+    try {
+        isConnecting = true;
+        await mongoose.connect(MONGODB_URI, {
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+            maxPoolSize: 10
+        });
+        console.log('📦 Berhasil terhubung ke MongoDB!');
+        return mongoose.connection;
+    } catch (err) {
+        console.error('❌ Gagal koneksi ke MongoDB:', err.message);
+        throw err;
+    } finally {
+        isConnecting = false;
+    }
+}
+
+connectToDatabase().catch(err => console.error("Initial DB connect error:", err.message));
+
+// Mongoose Schemas
+const userSchema = new mongoose.Schema({
+    username: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, trim: true, lowercase: true },
+    password: { type: String, default: null },
+    provider: { type: String, default: 'local' },
+    providerId: { type: String, default: null },
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    apikey: { type: String, required: true, unique: true },
+    role: { type: String, default: 'Free User' },
+    roleExpiresAt: { type: Date, default: null },
+    limit: { type: Number, default: 0 },
+    lastLimitReset: { type: Date, default: Date.now },
+    avatar: { type: String, default: 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png' }, 
+    createdAt: { type: Date, default: Date.now }
+});
+
+userSchema.pre('save', function() {
+    if (this.isModified('role')) {
+        const roleLower = (this.role || '').toLowerCase();
+        const safeUsername = (this.username || 'user').toLowerCase();
+
+        if (roleLower.includes('vip')) {
+            if (!this.apikey || this.apikey.startsWith('arulzxdfree-') || this.apikey.includes('prem-')) {
+                this.apikey = `${safeUsername}-custom-vip`;
+            }
+        } else if (roleLower.includes('premium')) {
+            if (!this.apikey || !this.apikey.includes('prem-')) {
+                this.apikey = generatePremiumApiKey(this.username);
+            }
+        } else {
+            if (!this.apikey || !this.apikey.startsWith('arulzxdfree-')) {
+                this.apikey = generateFreeApiKey();
+            }
+        }
+    }
+});
+
+const User = mongoose.models.User || mongoose.model('User', userSchema);
+
+const reviewSchema = new mongoose.Schema({
+    productId: { type: String, required: true, index: true },
+    userId: { type: String, default: null, index: true },
+    username: { type: String, required: true },
+    userAvatar: { type: String, default: 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png' },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    comment: { type: String, required: true, trim: true },
+    media: [{
+        type: { type: String, enum: ['image', 'video'] },
+        url: String
+    }],
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+reviewSchema.index({ productId: 1, userId: 1 }, { unique: true, sparse: true });
+const Review = mongoose.models.Review || mongoose.model('Review', reviewSchema);
+
+const cacheSchema = new mongoose.Schema({
+    key: { type: String, required: true, unique: true },
+    data: { type: mongoose.Schema.Types.Mixed, required: true },
+    createdAt: { type: Date, default: Date.now, expires: 60 } 
+});
+const CacheModel = mongoose.models.Cache || mongoose.model('Cache', cacheSchema);
+
+const voucherSchema = new mongoose.Schema({
+    code: { type: String, required: true, unique: true, uppercase: true },
+    discount: { type: Number, required: true },
+    type: { type: String, enum: ['percentage', 'fixed'], default: 'percentage' },
+    expiredAt: { type: Date, required: true },
+    usageLimit: { type: Number, default: 20 },
+    usedCount: { type: Number, default: 0 },
+    usedBy: [{ type: String }],
+    createdAt: { type: Date, default: Date.now }
+});
+const Voucher = mongoose.models.Voucher || mongoose.model('Voucher', voucherSchema);
+
+const productSchema = new mongoose.Schema({
+    Id: { type: String, required: true, unique: true, trim: true },
+    nama: { type: String, required: true, trim: true },
+    harga: { type: Number, required: true },
+    harga_diskon: { type: Number, default: null },
+    kategori: { type: String, required: true },
+    badge: { type: String, default: "" },
+    terjual: { type: Number, default: 0 },
+    stok: { type: Number, default: 0 },
+    gambar: { 
+        type: [String], 
+        default: ["https://cdn.arulzzxd.my.id/files/X1F0Cn.png"] 
+    },    
+    deskripsi: { type: String, default: "" },
+    link: { type: String, required: true },
+    purchasedBy: [{ type: String }],
+    createdAt: { type: Date, default: Date.now }
+});
+const Product = mongoose.models.Product || mongoose.model('Product', productSchema);
+
+const transactionSchema = new mongoose.Schema({
+    orderId: { type: String, required: true, unique: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    username: { type: String, required: true },
+    email: { type: String, required: true },
+    amount: { type: Number, required: true },
+    paymentNumber: { type: String, default: null }, 
+    paymentMethod: { type: String, default: "QRIS" },
+    status: { type: String, default: "pending" },
+    proofImage: { type: String, default: null },
+    itemDetails: {
+        nama: String,
+        harga: Number,
+        kategori: String,
+        qty: Number
+    },
+    createdAt: { type: Date, default: Date.now },
+    expiredAt: { type: Date, required: true },
+    updatedAt: { type: Date, default: Date.now }
+});
+const Transaction = mongoose.models.Transaction || mongoose.model('Transaction', transactionSchema);
+
+const pushSubscriptionSchema = new mongoose.Schema({
+    endpoint: { type: String, required: true, unique: true },
+    keys: {
+        p256dh: { type: String, required: true },
+        auth: { type: String, required: true }
+    },
+    email: { type: String, default: 'admin@arulzzxd.my.id' },
+    updatedAt: { type: Date, default: Date.now }
+});
+const PushSub = mongoose.models.PushSub || mongoose.model('PushSub', pushSubscriptionSchema);
+
+const apiLogSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+    apikey: { type: String, required: true },
+    username: { type: String, required: true },
+    email: { type: String, required: true },
+    log: [{
+        method: { type: String, required: true },
+        endpoint: { type: String, required: true },
+        status_code: { type: Number, required: true },
+        createdAt: { type: Date, default: Date.now }
+    }],
+    createdAt: { type: Date, default: Date.now, expires: '7d' } 
+});
+const ApiLog = mongoose.models.ApiLog || mongoose.model('ApiLog', apiLogSchema);
+
+// ====================================================
+// 3. MIDDLEWARE & SESSION SETUP
+// ====================================================
+app.use(compression());
+app.set('etag', false);
+app.set('trust proxy', 1);
+
+app.use(express.static(path.join(__dirname)));
+app.use(express.json({
+    limit: '10mb',
+    verify: (req, res, buf) => { req.rawBody = buf.toString('utf8'); }
+}));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(cookieParser());
+
+app.use(session({
+    secret: SESSION_SECRET, 
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: MONGODB_URI,
+        dbName: 'sessions',
+        ttl: 24 * 60 * 60
+    }),
+    cookie: { maxAge: 24 * 60 * 60 * 1000 } 
+}));
+
+app.use(async (req, res, next) => {
+    if (!req.path.startsWith('/og')) {
+        const userAgent = req.headers['user-agent'] || '';
+        const isMetaCrawler = userAgent.includes('facebookexternalhit') || 
+                              userAgent.includes('WhatsApp') || 
+                              userAgent.includes('Twitterbot') || 
+                              userAgent.includes('LinkedInBot');
+
+        if (isMetaCrawler) {
+            let pathKey = req.path.replace(/^\//, '').toLowerCase() || 'home';
+            let baseConfig = PAGE_CONFIGS[pathKey] || PAGE_CONFIGS.home;
+
+            let title = req.query.title || baseConfig.title;
+            let desc = req.query.desc || baseConfig.desc;
+            let ogImageUrl = `https://api.arulzzxd.my.id/og/${pathKey}`;
+
+            if (req.path === '/pastecode' && req.query.id) {
+                ogImageUrl = `https://api.arulzzxd.my.id/og/snippet?id=${req.query.id}`;
+                try {
+                    const dbRes = await axios.get("https://raw.githubusercontent.com/arulzzzxd/api-arulzxd/main/database/data.js", { timeout: 3000 });
+                    let jsonString = dbRes.data.replace(/^(let|const|var|window)\s+\w+\s*=\s*/, '').trim();
+                    if (jsonString.endsWith(';')) jsonString = jsonString.slice(0, -1);
+                    const pastes = JSON.parse(jsonString);
+                    const snippet = pastes.find(p => String(p.id) === String(req.query.id));
+
+                    if (snippet) {
+                        title = `${snippet.title} - Pastecode Snippet`;
+                        desc = snippet.desc || `Snippet kode ${snippet.language || 'JS'} oleh ${snippet.author || 'arulzxd'}`;
+                    }
+                } catch (e) {
+                    title = "Pastecode Snippet | ArulzXD API";
+                }
+            }
+
+            const fullUrl = `https://api.arulzzxd.my.id${req.originalUrl}`;
+
+            return res.send(`
+                <!DOCTYPE html>
+                <html lang="id">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${title} | ArulzXD API</title>
+                    <meta name="title" content="${title} | ArulzXD API" />
+                    <meta name="description" content="${desc}" />
+
+                    <meta property="og:type" content="website" />
+                    <meta property="og:url" content="${fullUrl}" />
+                    <meta property="og:site_name" content="ArulzXD API Gateway" />
+                    <meta property="og:title" content="${title}" />
+                    <meta property="og:description" content="${desc}" />
+                    <meta property="og:image" content="${ogImageUrl}" />
+                    <meta property="og:image:secure_url" content="${ogImageUrl}" />
+                    <meta property="og:image:type" content="image/png" />
+                    <meta property="og:image:width" content="1200" />
+                    <meta property="og:image:height" content="630" />
+
+                    <meta name="twitter:card" content="summary_large_image" />
+                    <meta name="twitter:url" content="${fullUrl}" />
+                    <meta name="twitter:title" content="${title}" />
+                    <meta name="twitter:description" content="${desc}" />
+                    <meta name="twitter:image" content="${ogImageUrl}" />
+                </head>
+                <body>
+                    <h1>${title}</h1>
+                    <p>${desc}</p>
+                </body>
+                </html>
+            `);
+        }
+    }
+
+    try {
+        if (mongoose.connection.readyState !== 1) {
+            await connectToDatabase();
+        }
+        next();
+    } catch (err) {
+        return res.status(500).json({ 
+            status: false, 
+            message: 'Gagal terhubung ke database server. Silakan coba lagi.' 
+        });
+    }
+});
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Middleware Cek Auth Session
+const checkAuthSession = async (req, res, next) => {
+    const token = req.cookies.auth_session;
+    if (!token) {
+        req.user = null;
+        return next();
+    }
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const freshUser = await User.findById(decoded.id || decoded._id).lean();
+        if (freshUser) {
+            req.user = { ...freshUser, id: freshUser._id };
+        } else {
+            req.user = null;
+        }
+        next();
+    } catch (err) {
+        res.clearCookie('auth_session');
+        req.user = null;
+        next();
+    }
+};
+
+app.use(checkAuthSession);
+
+// ====================================================
+// 4. HELPER FUNCTIONS
+// ====================================================
+function generateFreeApiKey() {
+    return 'arulzxdfree-' + crypto.randomBytes(3).toString('hex').slice(0, 5);
+}
+
+function generatePremiumApiKey(username) {
+    const cleanUsername = (username || 'user').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+    return `${cleanUsername}prem-` + crypto.randomBytes(3).toString('hex').slice(0, 6);
+}
+
+function generateId(length = 8) {
+  const alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const bytes = crypto.randomBytes(length);
+  let id = '';
+  for (let i = 0; i < length; i++) {
+    id += alphabet[bytes[i] % alphabet.length];
+  }
+  return id;
+}
+
+function calcCRC16(str) {
+    let crc = 0xFFFF;
+    for (let c = 0; c < str.length; c++) {
+        crc ^= str.charCodeAt(c) << 8;
+        for (let i = 0; i < 8; i++) {
+            if ((crc & 0x8000) !== 0) {
+                crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+            } else {
+                crc = (crc << 1) & 0xFFFF;
+            }
+        }
+    }
+    return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+}
+
+function convertStaticToDynamicQRIS(staticQris, amount) {
+    let qris = (staticQris || '').trim();
+    if (qris.startsWith('data:image') || qris.startsWith('http://') || qris.startsWith('https://')) {
+        return qris;
+    }
+
+    const crcIndex = qris.indexOf('6304');
+    if (crcIndex !== -1) {
+        qris = qris.substring(0, crcIndex);
+    }
+    qris = qris.replace('000201010211', '000201010212');
+    qris = qris.replace(/54\d{2}\d+5802ID/, '5802ID');
+
+    const amtStr = String(Math.round(amount));
+    const tag54 = '54' + String(amtStr.length).padStart(2, '0') + amtStr;
+
+    if (qris.includes('5802ID')) {
+        const parts = qris.split('5802ID');
+        qris = parts[0] + tag54 + '5802ID' + parts[1];
+    } else {
+        qris += tag54;
+    }
+
+    qris += '6304';
+    return qris + calcCRC16(qris);
+}
+
+function getUserIdentifier(req) {
+    if (req.user) {
+        return (req.user.email || req.user.username || req.user._id || "").toString().toLowerCase().trim();
+    }
+    const bodyIdentifier = req.body?.username || req.body?.email || req.body?.userIdentifier;
+    if (bodyIdentifier) {
+        return bodyIdentifier.toString().toLowerCase().trim();
+    }
+    return req.ip; 
+}
+
+async function setCache(key, data) {
+    try {
+        await CacheModel.findOneAndUpdate({ key }, { data, createdAt: new Date() }, { upsert: true, returnDocument: 'after' });
+    } catch (e) {
+        console.error("Gagal simpan cache MongoDB:", e.message);
+    }
+}
+
+async function getCache(key) {
+    try {
+        const cached = await CacheModel.findOne({ key });
+        return cached ? cached.data : null;
+    } catch (e) { return null; }
+}
+
+async function deleteCache(key) {
+    try { await CacheModel.deleteOne({ key }); } catch (e) {}
+}
+
+async function recordProductBuyer(productName, userIdentifier) {
+    if (!productName || !userIdentifier) return;
+    try {
+        await Product.findOneAndUpdate(
+            { nama: { $regex: new RegExp(`^${productName.trim()}$`, 'i') } },
+            { $addToSet: { purchasedBy: userIdentifier.toString().toLowerCase().trim() } }
+        );
+    } catch (err) {
+        console.error("❌ Gagal mencatat pembeli produk:", err.message);
+    }
+}
+
+async function updateProductStockAndSold(productName, qtyChange = 1, isRollback = false) {
+    try {
+        if (!productName) return null;
+        const product = await Product.findOne({ nama: { $regex: new RegExp(`^${productName.trim()}$`, 'i') } });
+        if (product) {
+            if (isRollback) {
+                product.stok = (product.stok || 0) + qtyChange;
+                product.terjual = Math.max(0, (product.terjual || 0) - qtyChange);
+            } else {
+                product.stok = Math.max(0, (product.stok || 0) - qtyChange);
+                product.terjual = (product.terjual || 0) + qtyChange;
+            }
+            await product.save();
+            return product;
+        }
+    } catch (err) {
+        console.error("❌ Gagal meng-update stok produk:", err.message);
+    }
+    return null;
+}
+
+function sendSweetAlert(res, icon, title, text, redirectUrl) {
+    return res.send(`
+        <!DOCTYPE html>
+        <html lang="id">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Notification</title>
+            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+            <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+            <style>
+                body { background-color: #FAF7EF; font-family: 'Plus Jakarta Sans', sans-serif; }
+                .swal2-popup { background: #FFFDF8 !important; border: 2px solid #121212 !important; border-radius: 16px !important; }
+                .swal2-title { color: #121212 !important; font-weight: 700 !important; }
+                .swal2-confirm { background: #fde047 !important; color: #121212 !important; font-weight: 700 !important; border: 2px solid #121212 !important; border-radius: 12px !important; padding: 10px 24px !important; }
+            </style>
+        </head>
+        <body>
+            <script>
+                Swal.fire({
+                    icon: '${icon}', title: '${title}', text: '${text}', confirmButtonText: 'OKE', scrollbarPadding: false
+                }).then(() => { window.location = '${redirectUrl}'; });
+            </script>
+        </body>
+        </html>
+    `);
+}
+
+// ====================================================
+// 5. PASSPORT STRATEGY & OAUTH AUTHENTICATION
+// ====================================================
+
+passport.serializeUser((user, done) => done(null, user.id));
+passport.deserializeUser(async (id, done) => {
+    try {
+        const user = await User.findById(id);
+        done(null, user);
+    } catch (err) {
+        done(err, null);
+    }
+});
+
+passport.use(new LocalStrategy({ usernameField: 'username', passwordField: 'password' }, 
+    async (usernameOrEmail, password, done) => {
+        try {
+            const user = await User.findOne({
+                $or: [
+                    { username: usernameOrEmail }, 
+                    { email: usernameOrEmail.toLowerCase() }
+                ]
+            });
+
+            if (!user) return done(null, false, { message: 'Username atau Email tidak ditemukan.' });
+
+            if (!user.password || user.provider !== 'local') {
+                return done(null, false, { 
+                    message: `Akun ini terdaftar via ${user.provider.toUpperCase()}. Silakan masuk dengan tombol ${user.provider.toUpperCase()}.` 
+                });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) return done(null, false, { message: 'Kata sandi salah.' });
+
+            return done(null, user);
+        } catch (err) {
+            return done(err);
+        }
+    }
+));
+
+// --- LOGIN LOCAL ---
+app.post('/auth/login', (req, res, next) => {
+    passport.authenticate('local', async (err, user, info) => { 
+        if (err) return next(err);
+
+        if (!user) {
+            const pesanGagal = info && info.message ? info.message : 'Username atau password salah.';
+            return sendSweetAlert(res, 'error', 'Gagal Masuk', pesanGagal, '/login');
+        }
+
+        req.logIn(user, async (err) => { 
+            if (err) return next(err);
+
+            try {
+                let needSave = false;
+                const roleLower = (user.role || '').toLowerCase();
+
+                if (roleLower.includes('vip')) {
+                    if (!user.apikey) {
+                        user.apikey = `${user.username.toLowerCase()}-custom-vip`;
+                        needSave = true;
+                    }
+                } else if (roleLower.includes('premium')) {
+                    if (!user.apikey || !user.apikey.includes('prem-')) {
+                        user.apikey = generatePremiumApiKey(user.username);
+                        needSave = true;
+                    }
+                } else {
+                    if (!user.apikey || !user.apikey.startsWith('arulzxdfree-')) {
+                        user.apikey = generateFreeApiKey();
+                        needSave = true;
+                    }
+                }
+
+                if (needSave) {
+                    await user.save();
+                }
+
+                const userPayload = {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    name: user.username,
+                    avatar: user.avatar || 'https://arulz-xd.my.id/files/X1F0Cn.png',
+                    role: user.role,     
+                    apikey: user.apikey   
+                };
+
+                const token = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '7d' });
+
+                res.cookie('auth_session', token, {
+                    maxAge: 7 * 24 * 60 * 60 * 1000, 
+                    httpOnly: true,
+                    secure: true, 
+                    sameSite: 'lax'
+                });
+
+                return res.redirect('/api');
+
+            } catch (error) {
+                console.error("Gagal sinkronisasi data saat login:", error);
+                return next(error);
+            }
+        });
+    })(req, res, next);
+});
+
+// --- REGISTER LOCAL ---
+app.post('/auth/register', async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+        if (!username || !email || !password) {
+            return sendSweetAlert(res, 'error', 'Pendaftaran Gagal', 'Semua data wajib diisi!', '/login');
+        }
+
+        const cleanUsername = username.trim();
+        const cleanEmail = email.toLowerCase().trim();
+
+        const existingUser = await User.findOne({ $or: [{ username: cleanUsername }, { email: cleanEmail }] });
+        if (existingUser) {
+            return sendSweetAlert(res, 'warning', 'Sudah Terdaftar', 'Username atau Email sudah terdaftar!', '/login');
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const defaultAvatar = 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png';
+
+        const newUser = new User({
+            username: cleanUsername,
+            email: cleanEmail,
+            password: hashedPassword,
+            provider: 'local',
+            role: 'Free User',
+            apikey: generateFreeApiKey(),
+            avatar: defaultAvatar
+        });
+        await newUser.save();
+
+        const token = jwt.sign({
+            id: newUser._id, username: newUser.username, name: newUser.username, avatar: defaultAvatar, role: newUser.role, apikey: newUser.apikey
+        }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
+
+        req.logIn(newUser, (err) => {
+            if (err) return res.redirect('/login');
+            return sendSweetAlert(res, 'success', 'Berhasil!', 'Pendaftaran berhasil! Selamat datang.', '/api');
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Terjadi error internal saat pendaftaran.');
+    }
+});
+
+// --- OAUTH GITHUB ---
+app.get('/auth/github', (req, res) => {
+    const url = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${GITHUB_CALLBACK_URL}&scope=user:email`;
+    res.redirect(url);
+});
+
+app.get('/auth/github/callback', async (req, res) => {
+    const { code } = req.query;
+    if (!code) return res.send('Authentication failed: No code provided');
+
+    try {
+        const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
+            client_id: GITHUB_CLIENT_ID, client_secret: GITHUB_CLIENT_SECRET, code
+        }, { headers: { accept: 'application/json' } });
+
+        const accessToken = tokenResponse.data.access_token;
+        if (!accessToken) return res.send('Authentication failed: Invalid access token');
+
+        const userResponse = await axios.get('https://api.github.com/user', {
+            headers: { Authorization: `token ${accessToken}` }
+        });
+
+        const userData = userResponse.data;
+        let userEmail = userData.email;
+
+        if (!userEmail) {
+            try {
+                const emailsResponse = await axios.get('https://api.github.com/user/emails', {
+                    headers: { Authorization: `token ${accessToken}` }
+                });
+                const primaryEmailObj = emailsResponse.data.find(e => e.primary && e.verified) || emailsResponse.data[0];
+                if (primaryEmailObj) userEmail = primaryEmailObj.email;
+            } catch (emailErr) {
+                console.error('Gagal mengambil private email:', emailErr.message);
+            }
+        }
+
+        const finalEmail = (userEmail || `${userData.login}@github.com`).toLowerCase().trim();
+        const currentUsername = (userData.login || finalEmail.split('@')[0]).toLowerCase().trim();
+
+        let dbUser = await User.findOne({ email: finalEmail });
+
+        if (!dbUser) {
+            dbUser = new User({
+                username: currentUsername,
+                email: finalEmail,
+                provider: 'github',
+                providerId: String(userData.id),
+                apikey: generateFreeApiKey(),
+                role: 'Free User',
+                avatar: userData.avatar_url || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png'
+            });
+            await dbUser.save();
+        } else if (userData.avatar_url && dbUser.avatar !== userData.avatar_url) {
+            dbUser.avatar = userData.avatar_url;
+            await dbUser.save();
+        }
+
+        const token = jwt.sign({
+            id: dbUser._id, username: dbUser.username, email: dbUser.email, name: userData.name || dbUser.username, avatar: dbUser.avatar, role: dbUser.role, apikey: dbUser.apikey
+        }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
+        res.redirect('/profile');
+    } catch (error) {
+        console.error(error);
+        res.send('Login Error: ' + error.message);
+    }
+});
+
+// --- OAUTH GOOGLE ---
+app.get('/auth/google', (req, res) => {
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${GOOGLE_CALLBACK_URL}&response_type=code&scope=profile email`;
+    res.redirect(url);
+});
+
+app.get('/auth/google/callback', async (req, res) => {
+    const { code } = req.query;
+    if (!code) return res.send('Authentication failed: No code provided');
+
+    try {
+        const params = new URLSearchParams({
+            client_id: GOOGLE_CLIENT_ID,
+            client_secret: GOOGLE_CLIENT_SECRET,
+            code: code,
+            grant_type: 'authorization_code',
+            redirect_uri: GOOGLE_CALLBACK_URL
+        });
+
+        const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', params.toString(), {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+
+        const accessToken = tokenResponse.data.access_token;
+        const userResponse = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        const userData = userResponse.data;
+        const email = userData.email.toLowerCase().trim();
+        const currentUsername = (userData.login || email.split('@')[0]).toLowerCase().trim();
+
+        let dbUser = await User.findOne({ email });
+
+        if (!dbUser) {
+            dbUser = new User({
+                username: currentUsername,
+                email: email,
+                provider: 'google',
+                providerId: String(userData.id),
+                apikey: generateFreeApiKey(),
+                role: 'Free User',
+                avatar: userData.picture || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png'
+            });
+            await dbUser.save();
+        } else if (userData.picture && dbUser.avatar !== userData.picture) {
+            dbUser.avatar = userData.picture;
+            await dbUser.save();
+        }
+
+        const token = jwt.sign({
+            id: dbUser._id, username: dbUser.username, email: dbUser.email, name: userData.name || dbUser.username, avatar: dbUser.avatar, role: dbUser.role, apikey: dbUser.apikey
+        }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
+        res.redirect('/profile');
+    } catch (error) {
+        console.error('Google Auth Callback Error:', error.response?.data || error.message);
+        res.send('Login Error: ' + (error.response?.data?.error_description || error.message));
+    }
+});
+
+// --- LUPA & RESET PASSWORD ---
+app.post('/auth/forgot-password', async (req, res) => {
+    try {
+        const email = req.body.email;
+        if (!email) {
+            return sendSweetAlert(res, 'error', 'Wajib Diisi', 'Email wajib diisi!', '/login');
+        }
+
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
+        if (!user) {
+            return sendSweetAlert(res, 'error', 'Tidak Ditemukan', 'Email tersebut tidak terdaftar di sistem kami.', '/login');
+        }
+
+        if (user.provider !== 'local') {
+            return sendSweetAlert(res, 'error', 'Metode Login OAuth', `Akun ini mendaftar via ${user.provider.toUpperCase()}, tidak memerlukan reset password.`, '/login');
+        }
+
+        const resetToken = crypto.randomBytes(20).toString('hex');
+
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = Date.now() + 3600000; 
+        await user.save();
+
+        const transporter = getSmtpTransporter();
+        const host = req.get('host');
+        const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+        const resetUrl = `${protocol}://${host}/reset-password/${resetToken}`;
+
+        const mailOptions = {
+            from: `"Support ArulzXD" <${process.env.SMTP_USER || 'supportarulzxd@gmail.com'}>`,
+            to: user.email,
+            subject: 'Permintaan Reset Kata Sandi',
+            html: `
+<div style="background-color: #f8fafc; padding: 40px 20px; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100%;">
+    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 550px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);">
+        <tr>
+            <td style="padding: 32px 32px 24px 32px; text-align: center;">
+                <h1 style="margin: 0; color: #0f172a; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">
+                    Arulz<span style="color: #0284c7;">XD</span> API
+                </h1>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 0 32px 24px 32px;">
+                <div style="height: 1px; background: linear-gradient(to right, transparent, rgba(2, 132, 199, 0.2), transparent);"></div>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 0 32px 32px 32px; color: #475569; font-size: 14px; line-height: 24px;">
+                <p style="margin: 0 0 16px 0; color: #0f172a; font-size: 16px; font-weight: 600;">Halo ${user.username},</p>
+                <p style="margin: 0 0 16px 0;">Kami menerima permintaan untuk mengatur ulang kata sandi akun ArulzXD API Anda.</p>
+                <p style="margin: 0 0 24px 0;">Silakan klik tombol di bawah ini untuk membuat kata sandi baru:</p>
+                
+                <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                    <tr>
+                        <td align="center" bgcolor="#0284c7" style="border-radius: 12px;">
+                            <a href="${resetUrl}" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 14px; font-weight: 700; color: #ffffff; text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em;">Reset Kata Sandi</a>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 0 32px 32px 32px; color: #64748b; font-size: 12px; line-height: 20px;">
+                <p style="margin: 0 0 12px 0; padding-top: 16px; border-top: 1px solid #f1f5f9;">
+                    <strong style="color: #dc2626;">Penting:</strong> Link ini hanya berlaku selama <span style="color: #334155; font-weight: 600;">1 jam</span> demi keamanan akun Anda.
+                </p>
+                <p style="margin: 0;">Jika Anda tidak merasa meminta reset password ini, Anda dapat mengabaikan email ini dengan aman.</p>
+            </td>
+        </tr>
+    </table>
+</div>
+`
+        };
+
+        await transporter.sendMail(mailOptions);
+        return sendSweetAlert(res, 'success', 'Sukses!', 'Link reset password telah dikirim ke email Anda.', '/login');
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Gagal memproses lupa password.');
+    }
+});
+
+app.get('/reset-password/:token', async (req, res) => {
+    try {
+        const user = await User.findOne({ 
+            resetPasswordToken: req.params.token, 
+            resetPasswordExpires: { $gt: Date.now() } 
+        });
+
+        if (!user) {
+            return sendSweetAlert(res, 'error', 'Link Kadaluwarsa', 'Link reset password tidak valid atau sudah kedaluwarsa. Silakan minta link baru.', '/login');
+        }
+
+        res.send(`
+    <!DOCTYPE html>
+    <html lang="id">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Buat Password Baru - ArulzXD REST API</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <style>
+            body { background-color: #f8fafc; }
+            .solid-card { background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+        </style>
+    </head>
+    <body class="flex flex-col items-center justify-center min-h-screen p-4 antialiased text-slate-800">
+        <div class="solid-card p-8 rounded-2xl w-full max-w-md relative overflow-hidden">
+            <div class="text-center mb-6 relative z-10">
+                <h1 class="text-xl font-extrabold tracking-tight text-slate-900 mb-1">
+                    Atur Ulang <span class="text-sky-600">Kata Sandi</span>
+                </h1>
+                <p class="text-xs text-slate-500 font-medium">Silakan masukkan kata sandi baru Anda yang aman.</p>
+            </div>
+
+            <form action="/reset-password/${req.params.token}" method="POST" class="space-y-4 relative z-10">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Password Baru</label>
+                    <input id="new-password" type="password" name="password" required placeholder="••••••••" 
+                        class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:bg-white font-medium transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Konfirmasi Password Baru</label>
+                    <input id="confirm-password" type="password" name="confirmPassword" required placeholder="••••••••" 
+                        class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:bg-white font-medium transition">
+                </div>
+
+                <button type="submit" class="w-full mt-2 bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl text-sm tracking-wide uppercase transition shadow-sm">Simpan Password Baru</button>
+            </form>
+        </div>
+    </body>
+    </html>
+`);
+
+    } catch (err) {
+        res.status(500).send("Error server.");
+    }
+});
+
+app.post('/reset-password/:token', async (req, res) => {
+    try {
+        const { password, confirmPassword } = req.body;
+
+        if (password !== confirmPassword) {
+            return sendSweetAlert(res, 'warning', 'Tidak Cocok', 'Password dan konfirmasi password tidak cocok!', '/login');
+        }
+
+        const user = await User.findOne({ 
+            resetPasswordToken: req.params.token, 
+            resetPasswordExpires: { $gt: Date.now() } 
+        });
+
+        if (!user) {
+            return sendSweetAlert(res, 'error', 'Gagal', 'Link reset password tidak valid atau sudah kedaluwarsa.', '/login');
+        }
+
+        user.password = await bcrypt.hash(password, 10);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        return sendSweetAlert(res, 'success', 'Berhasil!', 'Password berhasil diubah! Silakan login dengan password baru Anda.', '/login');
+    } catch (err) {
+        res.status(500).send("Gagal menyimpan password baru.");
+    }
+});
+
+// --- USER STATUS & LOGOUT ---
+app.get('/api/user-status', checkAuthSession, async (req, res) => {
+    if (!req.user) {
+        return res.json({ loggedIn: false });
+    }
+
+    try {
+        const freshUser = await User.findById(req.user.id || req.user._id).select('-password').lean();
+        const activeUser = freshUser || req.user;
+
+        return res.json({
+            loggedIn: true,
+            user: {
+                id: activeUser._id || activeUser.id,
+                name: activeUser.username,
+                username: activeUser.username,
+                email: activeUser.email,
+                avatar: activeUser.avatar || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png',
+                apikey: activeUser.apikey,
+                role: activeUser.role,
+                roleExpiresAt: activeUser.roleExpiresAt || null,
+                provider: activeUser.provider || 'local'
+            }
+        });
+    } catch (err) {
+        return res.json({
+            loggedIn: true,
+            user: {
+                id: req.user.id || req.user._id,
+                name: req.user.username,
+                username: req.user.username,
+                email: req.user.email,
+                avatar: req.user.avatar || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png',
+                apikey: req.user.apikey,
+                role: req.user.role,
+                roleExpiresAt: req.user.roleExpiresAt || null,
+                provider: req.user.provider || 'local'
+            }
+        });
+    }
+});
+
+app.get('/auth/logout', (req, res, next) => {
+    res.clearCookie('auth_session');
+    req.logout((err) => {
+        if (err) return next(err);
+        res.redirect('/login');
+    });
+});
+
+// ====================================================
+// 6. USER PROFILE & API KEY CUSTOM ENDPOINTS
+// ====================================================
+
+const uploadAvatar = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 4 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) cb(null, true);
+        else cb(new Error('File harus berupa gambar!'));
+    }
+});
+
+app.post('/api/user/update-avatar', checkAuthSession, (req, res, next) => {
+    uploadAvatar.single('avatar')(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({ status: false, message: 'File terlalu besar! Maksimal 4MB.' });
+        }
+        next();
+    });
+}, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ status: false, message: 'Anda belum login!' });
+        if (!req.file) return res.status(400).json({ status: false, message: 'Tidak ada file avatar yang diunggah!' });
+
+        const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id || req.user._id,
+            { $set: { avatar: base64Image } },
+            { returnDocument: 'after', runValidators: true }
+        );
+
+        const token = jwt.sign({
+            id: updatedUser._id,
+            username: updatedUser.username,
+            email: updatedUser.email,
+            avatar: updatedUser.avatar,
+            role: updatedUser.role,
+            apikey: updatedUser.apikey
+        }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
+
+        return res.json({ status: true, message: 'Foto profil berhasil diperbarui!', avatar: updatedUser.avatar });
+    } catch (error) {
+        console.error("Gagal update avatar:", error);
+        return res.status(500).json({ status: false, message: 'Gagal memproses unggah avatar di server.' });
+    }
+});
+
+app.post('/api/user/custom-apikey', checkAuthSession, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ status: false, message: 'Anda harus login terlebih dahulu!' });
+
+        const user = await User.findById(req.user.id || req.user._id);
+        if (!user) return res.status(404).json({ status: false, message: 'User tidak ditemukan!' });
+
+        if (!(user.role || '').toLowerCase().includes('vip')) {
+            return res.status(403).json({ status: false, message: 'Fitur Custom API Key hanya diperuntukkan untuk VIP User!' });
+        }
+
+        const { customKey } = req.body;
+        if (!customKey || !customKey.trim()) return res.status(400).json({ status: false, message: 'API Key kustom tidak boleh kosong!' });
+
+        const cleanKey = customKey.trim();
+        if (cleanKey.length < 4 || cleanKey.length > 30) {
+            return res.status(400).json({ status: false, message: 'API Key kustom harus memiliki panjang 4 - 30 karakter!' });
+        }
+
+        const existingKey = await User.findOne({ apikey: cleanKey, _id: { $ne: user._id } });
+        if (existingKey) {
+            return res.status(400).json({ status: false, message: 'API Key tersebut sudah digunakan oleh user lain!' });
+        }
+
+        user.apikey = cleanKey;
+        await user.save();
+
+        const token = jwt.sign({
+            id: user._id, username: user.username, email: user.email, name: user.username, avatar: user.avatar, role: user.role, apikey: user.apikey
+        }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
+        return res.json({ status: true, message: 'API Key berhasil diperbarui!', apikey: user.apikey });
+    } catch (error) {
+        console.error("Gagal custom apikey:", error);
+        return res.status(500).json({ status: false, message: 'Terjadi kesalahan server saat memperbarui API Key.' });
+    }
+});
+
+app.post('/api/user/update-profile', checkAuthSession, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ status: false, message: 'Anda belum login!' });
+
+        const { username, email } = req.body;
+        if (!username || !email) {
+            return res.status(400).json({ status: false, message: 'Username dan Email wajib diisi!' });
+        }
+
+        const cleanUsername = username.trim();
+        const cleanEmail = email.toLowerCase().trim();
+
+        const existingEmail = await User.findOne({
+            _id: { $ne: req.user.id || req.user._id },
+            email: cleanEmail
+        });
+
+        if (existingEmail) {
+            return res.status(400).json({ 
+                status: false, 
+                message: 'Email sudah terdaftar di database, harap gunakan email lain!' 
+            });
+        }
+
+        const existingUsername = await User.findOne({
+            _id: { $ne: req.user.id || req.user._id },
+            username: cleanUsername
+        });
+
+        if (existingUsername) {
+            return res.status(400).json({ 
+                status: false, 
+                message: 'Username sudah digunakan akun lain, harap gunakan username lain!' 
+            });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id || req.user._id,
+            { $set: { username: cleanUsername, email: cleanEmail } },
+            { new: true, runValidators: true }
+        );
+
+        const token = jwt.sign({
+            id: updatedUser._id,
+            username: updatedUser.username,
+            email: updatedUser.email,
+            name: updatedUser.username,
+            avatar: updatedUser.avatar,
+            role: updatedUser.role,
+            apikey: updatedUser.apikey
+        }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
+
+        return res.json({ status: true, message: 'Profil berhasil diperbarui!', user: updatedUser });
+    } catch (error) {
+        console.error("Gagal update profile:", error);
+        return res.status(500).json({ status: false, message: 'Terjadi kesalahan pada server saat memperbarui profil.' });
+    }
+});
+
+app.post('/api/user/delete-account', checkAuthSession, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ status: false, message: 'Anda belum login!' });
+
+        const userId = req.user.id || req.user._id;
+
+        await User.findByIdAndDelete(userId);
+        await ApiLog.deleteMany({ userId });
+
+        res.clearCookie('auth_session');
+
+        return res.json({ status: true, message: 'Akun Anda telah berhasil dihapus secara permanen.' });
+    } catch (error) {
+        console.error("Gagal hapus akun:", error);
+        return res.status(500).json({ status: false, message: 'Terjadi kesalahan pada server saat menghapus akun.' });
+    }
+});
+
+// ====================================================
+// 7. ADMIN MIDDLEWARE & ADMIN ENDPOINTS
+// ====================================================
+let adminSseClients = [];
+
+function notifyAdminSse(data) {
+    adminSseClients.forEach(client => {
+        try { client.res.write(`data: ${JSON.stringify(data)}\n\n`); } catch (e) {}
+    });
+}
+
+setInterval(() => {
+    adminSseClients.forEach(client => {
+        try { client.res.write(': ping\n\n'); } catch (e) {}
+    });
+}, 15000);
+
+const checkAdminAccess = (req, res, next) => {
+    if (!req.user) {
+        if (req.path === '/admin') return res.redirect('/login');
+        return res.status(401).json({ status: false, message: "Anda harus login terlebih dahulu!" });
+    }
+
+    const userEmail = (req.user.email || '').toLowerCase().trim();
+    if (!ADMIN_EMAILS.includes(userEmail)) {
+        if (req.path === '/admin') {
+            return res.status(403).send(`
+                <!DOCTYPE html><html><head><script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script></head>
+                <body style="background:#FAF7EF;">
+                    <script>
+                        Swal.fire({ icon: 'error', title: 'AKSES DITOLAK', text: 'Email Anda bukan Admin!', confirmButtonText: 'Kembali ke Docs' })
+                        .then(() => { window.location.href = '/api'; });
+                    </script>
+                </body></html>
+            `);
+        }
+        return res.status(403).json({ status: false, message: "Akses ditolak! Email Anda bukan Admin." });
+    }
+    next();
+};
+
+async function sendBackgroundPushNotification(payload) {
+    try {
+        const pushPayload = JSON.stringify(payload);
+        const subscriptions = await PushSub.find({});
+
+        if (!subscriptions || subscriptions.length === 0) {
+            console.log("⚠️ Tidak ada perangkat admin yang terdaftar untuk Web Push.");
+            return;
+        }
+
+        const pushPromises = subscriptions.map(async (sub) => {
+            try {
+                await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, pushPayload);
+            } catch (err) {
+                if (err.statusCode === 410 || err.statusCode === 404) {
+                    await PushSub.deleteOne({ endpoint: sub.endpoint });
+                }
+            }
+        });
+
+        await Promise.all(pushPromises);
+    } catch (err) {
+        console.error("❌ Error mengirim background push notification:", err.message);
+    }
+}
+
+app.get('/api/admin/vapid-public-key', checkAdminAccess, (req, res) => {
+    res.json({ publicKey: VAPID_PUBLIC_KEY });
+});
+
+app.post('/api/admin/subscribe-push', checkAdminAccess, async (req, res) => {
+    try {
+        const subscription = req.body;
+        if (!subscription || !subscription.endpoint || !subscription.keys) {
+            return res.status(400).json({ status: false, message: 'Data subscription tidak valid!' });
+        }
+
+        await PushSub.findOneAndUpdate(
+            { endpoint: subscription.endpoint },
+            { endpoint: subscription.endpoint, keys: subscription.keys, email: req.user ? req.user.email : (ADMIN_EMAILS[0] || ''), updatedAt: new Date() },
+            { upsert: true, returnDocument: 'after' }
+        );
+
+        return res.status(201).json({ status: true, message: 'Push subscription berhasil tersimpan di MongoDB.' });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: 'Gagal menyimpan subscription.' });
+    }
+});
+
+app.post('/api/admin/test-push', checkAdminAccess, async (req, res) => {
+    try {
+        await sendBackgroundPushNotification({
+            title: '🔔 TES NOTIFIKASI WEB PUSH',
+            body: 'Notifikasi latar belakang berhasil dikonfigurasi!',
+            icon: 'https://cdn.arulzzxd.my.id/files/1wh5do.png',
+            orderId: 'TRX-TEST-' + Math.floor(1000 + Math.random() * 9000)
+        });
+        return res.json({ status: true, message: 'Push notification tes berhasil dikirim!' });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: err.message });
+    }
+});
+
+app.get('/api/admin/transactions', checkAdminAccess, async (req, res) => {
+    try {
+        const transactions = await Transaction.find({}).sort({ createdAt: -1 }).limit(100);
+        return res.json({ status: true, data: transactions });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: "Gagal memuat transaksi admin." });
+    }
+});
+
+app.post('/api/admin/transactions/:orderId/approve', checkAdminAccess, async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const trx = await Transaction.findOne({ orderId });
+        if (!trx) return res.status(404).json({ status: false, message: "Transaksi tidak ditemukan" });
+
+        trx.status = "success";
+        trx.updatedAt = new Date();
+        await trx.save();
+
+        const targetUser = await User.findById(trx.userId) || await User.findOne({ username: trx.username });
+        const buyerAvatar = targetUser?.avatar || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png';
+
+        if (targetUser) {
+            const daysToAdd = Number(trx.itemDetails?.qty) || 3;
+            const isVip = (trx.itemDetails?.nama || '').toLowerCase().includes("vip");
+            const targetRole = isVip ? "VIP User" : "Premium User";
+
+            let currentExpiry = (targetUser.roleExpiresAt && new Date(targetUser.roleExpiresAt) > new Date())
+                ? new Date(targetUser.roleExpiresAt)
+                : new Date();
+
+            currentExpiry.setDate(currentExpiry.getDate() + daysToAdd);
+            targetUser.role = targetRole;
+            targetUser.roleExpiresAt = currentExpiry;
+
+            if (targetRole === "Premium User") {
+                targetUser.apikey = generatePremiumApiKey(targetUser.username);
+            } else if (targetRole === "VIP User" && (!targetUser.apikey || targetUser.apikey.startsWith('arulzxdfree-'))) {
+                targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
+            }
+
+            await targetUser.save();
+        }
+
+        sendBackgroundPushNotification({
+            title: '✅ TRANSAKSI LUNAS!',
+            body: `Order: ${trx.orderId}\nUser: ${trx.username}\nRole berhasil diperbarui!`,
+            icon: buyerAvatar,
+            orderId: trx.orderId
+        });
+
+        return res.json({ status: true, message: "Transaksi berhasil dikonfirmasi LUNAS!" });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: "Gagal memproses konfirmasi." });
+    }
+});
+
+app.post('/api/admin/transactions/:orderId/reject', checkAdminAccess, async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const trx = await Transaction.findOne({ orderId });
+        if (trx) {
+            trx.status = "rejected";
+            trx.updatedAt = new Date();
+            await trx.save();
+        }
+        return res.json({ status: true, message: "Transaksi ditolak." });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: "Gagal menolak transaksi." });
+    }
+});
+
+app.get('/api/admin/events', checkAdminAccess, (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (res.flushHeaders) res.flushHeaders();
+
+    const clientId = Date.now();
+    adminSseClients.push({ id: clientId, res });
+
+    res.write(`data: ${JSON.stringify({ type: "CONNECTED" })}\n\n`);
+    req.on('close', () => {
+        adminSseClients = adminSseClients.filter(c => c.id !== clientId);
+    });
+});
+
+// ====================================================
+// 8. STORE, REVIEWS & VOUCHERS ENDPOINTS
+// ====================================================
+const uploadReviewMedia = multer({
+    limits: { fileSize: 10 * 1024 * 1024 }, 
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) cb(null, true);
+        else cb(new Error('File harus berupa gambar atau video!'));
+    }
+});
+
+app.post('/api/reviews', checkAuthSession, (req, res) => {
+    uploadReviewMedia.array('mediaFiles', 5)(req, res, async (err) => {
+        if (err) return res.status(400).json({ status: false, message: err.message || 'Gagal mengunggah berkas.' });
+
+        try {
+            const { productId, rating, comment } = req.body;
+            if (!productId) return res.status(400).json({ status: false, message: 'Product ID wajib diisi!' });
+            if (!rating || Number(rating) < 1 || Number(rating) > 5) return res.status(400).json({ status: false, message: 'Rating bintang wajib diisi (1-5)!' });
+            if (!comment || !comment.trim()) return res.status(400).json({ status: false, message: 'Anda diwajibkan menuliskan ulasan/penilaian!' });
+
+            let username = 'Anonim';
+            let userAvatar = 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png';
+            let userId = getUserIdentifier(req);
+
+            if (req.user) {
+                username = req.user.username || req.user.name;
+                userAvatar = req.user.avatar || userAvatar;
+                userId = (req.user.id || req.user._id || req.user.email || req.user.username).toString();
+            }
+
+            const mediaList = [];
+            if (req.files && req.files.length > 0) {
+                for (const file of req.files) {
+                    const mimeType = file.mimetype || mime.lookup(file.originalname) || '';
+                    const isVideo = mimeType.startsWith('video/');
+                    const base64 = file.buffer.toString('base64');
+                    mediaList.push({ type: isVideo ? 'video' : 'image', url: `data:${mimeType};base64,${base64}` });
+                }
+            }
+
+            let existingReview = await Review.findOne({ productId, userId });
+            if (existingReview) {
+                existingReview.rating = Number(rating);
+                existingReview.comment = comment.trim();
+                if (mediaList.length > 0) existingReview.media = mediaList; 
+                existingReview.updatedAt = new Date();
+                await existingReview.save();
+                return res.json({ status: true, message: 'Penilaian produk Anda berhasil diperbarui!', data: existingReview });
+            } else {
+                const newReview = new Review({ productId, userId, username, userAvatar, rating: Number(rating), comment: comment.trim(), media: mediaList });
+                await newReview.save();
+                return res.json({ status: true, message: 'Penilaian produk berhasil dikirim!', data: newReview });
+            }
+        } catch (error) {
+            console.error("Error submit review:", error);
+            return res.status(500).json({ status: false, message: 'Terjadi kesalahan server saat menyimpan ulasan.' });
+        }
+    });
+});
+
+app.get('/api/reviews/:productId', async (req, res) => {
+    try {
+        const { productId } = req.params;
+        const reviews = await Review.find({ productId }).sort({ createdAt: -1 });
+
+        let averageRating = 0;
+        if (reviews.length > 0) {
+            const totalRating = reviews.reduce((sum, item) => sum + item.rating, 0);
+            averageRating = Number((totalRating / reviews.length).toFixed(1));
+        }
+
+        return res.json({ status: true, totalReviews: reviews.length, averageRating, reviews });
+    } catch (error) {
+        return res.status(500).json({ status: false, message: 'Gagal mengambil ulasan produk.' });
+    }
+});
+
+app.delete('/api/reviews/:reviewId', checkAuthSession, async (req, res) => {
+    try {
+        const { reviewId } = req.params;
+        if (!mongoose.Types.ObjectId.isValid(reviewId)) return res.status(400).json({ status: false, message: 'ID ulasan tidak valid!' });
+
+        const review = await Review.findById(reviewId);
+        if (!review) return res.status(404).json({ status: false, message: 'Ulasan tidak ditemukan!' });
+
+        let currentUserId = getUserIdentifier(req);
+        if (req.user) currentUserId = (req.user.id || req.user._id || req.user.email || req.user.username).toString();
+
+        const currentUsername = req.user ? req.user.username : null;
+        const isOwner = (review.userId && review.userId.toString() === currentUserId.toString()) ||
+                        (currentUsername && review.username.toLowerCase() === currentUsername.toLowerCase());
+
+        if (!isOwner) return res.status(403).json({ status: false, message: 'Anda tidak memiliki hak akses untuk menghapus ulasan ini!' });
+
+        await Review.findByIdAndDelete(reviewId);
+        return res.json({ status: true, message: 'Ulasan berhasil dihapus!' });
+    } catch (error) {
+        return res.status(500).json({ status: false, message: 'Terjadi kesalahan server saat menghapus ulasan.' });
+    }
+});
+
+app.post('/api/vouchers/claim', async (req, res) => {
+    try {
+        const code = req.body.code;
+        if (!code) return res.status(400).json({ status: false, message: 'Kode voucher wajib diisi!' });
+
+        const cleanCode = code.trim().toUpperCase();
+        const userIdentifier = getUserIdentifier(req);
+        const voucher = await Voucher.findOne({ code: cleanCode });
+
+        if (!voucher) return res.status(404).json({ status: false, message: 'Kode voucher tidak ditemukan!' });
+        if (voucher.usageLimit <= 0) return res.status(400).json({ status: false, reason: 'limit_reached', message: 'Kuota voucher telah habis!' });
+        if (voucher.usedBy && voucher.usedBy.includes(userIdentifier)) return res.status(400).json({ status: false, reason: 'already_used', message: 'Anda sudah pernah klaim voucher ini!' });
+        if (new Date() > new Date(voucher.expiredAt)) return res.status(400).json({ status: false, reason: 'expired', message: 'Voucher telah kedaluwarsa!' });
+
+        voucher.usedCount += 1;
+        voucher.usageLimit = Math.max(0, voucher.usageLimit - 1);
+        if (!voucher.usedBy) voucher.usedBy = [];
+        voucher.usedBy.push(userIdentifier);
+        await voucher.save();
+
+        return res.json({
+            status: true, message: 'Voucher berhasil diklaim!',
+            voucher: { code: voucher.code, discount: voucher.discount, type: voucher.type },
+            data: { code: voucher.code, discount: voucher.discount, type: voucher.type }
+        });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: 'Terjadi kesalahan pada server.' });
+    }
+});
+
+app.get('/api/vouchers/:code', async (req, res) => {
+    try {
+        const code = req.query.code || req.params.code;
+        if (!code) return res.status(400).json({ status: false, message: 'Kode voucher wajib diisi!' });
+
+        const userIdentifier = getUserIdentifier(req);
+        const voucher = await Voucher.findOne({ code: code.trim().toUpperCase() });
+        if (!voucher) return res.status(404).json({ status: false, message: 'Kode voucher tidak ditemukan!' });
+        if (voucher.usageLimit <= 0) return res.status(400).json({ status: false, reason: 'limit_reached', message: 'Kuota voucher telah habis!' });
+        if (voucher.usedBy && voucher.usedBy.includes(userIdentifier)) return res.status(400).json({ status: false, reason: 'already_used', message: 'Anda sudah pernah menggunakan voucher ini!' });
+        if (new Date() > new Date(voucher.expiredAt)) return res.status(400).json({ status: false, reason: 'expired', message: 'Voucher telah kedaluwarsa!' });
+
+        return res.json({ status: true, message: 'Voucher ditemukan!', data: { code: voucher.code, discount: voucher.discount, type: voucher.type } });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: 'Terjadi kesalahan pada server.' });
+    }
+});
+
+app.post('/api/store/manual-order', async (req, res) => {
+    try {
+        const { productName, qty } = req.body;
+        const buyQty = Number(qty) || 1;
+        if (!productName) return res.status(400).json({ status: false, message: "Nama produk wajib diisi!" });
+
+        const updatedProduct = await updateProductStockAndSold(productName, buyQty);
+        if (!updatedProduct) return res.status(404).json({ status: false, message: "Produk tidak ditemukan." });
+
+        return res.json({ status: true, message: "Stok & jumlah terjual diperbarui!", data: updatedProduct });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: "Terjadi kesalahan server." });
+    }
+});
+
+app.get('/database/produk', async (req, res) => {
+    try {
+        const produk = await Product.find({}).sort({ createdAt: -1 });
+        res.json(produk);
+    } catch (err) {
+        res.status(500).json({ error: "Gagal memuat data produk" });
+    }
+});
+
+// ====================================================
+// 9. TRANSACTIONS & PAYMENT GATEWAY (QRIS / WEBHOOK)
+// ====================================================
+app.post('/transactions', async (req, res) => {
+    try {
+        let { orderId, amount, itemDetails, qty } = req.body;
+        const buyQty = Number(qty) || 1;
+        const inputAmount = Number(amount);
+
+        if (!inputAmount || isNaN(inputAmount)) return res.status(400).json({ status: false, message: "Nominal pembayaran tidak valid!" });
+
+        const userId = req.user ? (req.user.id || req.user._id) : null;
+        const username = req.user ? req.user.username : "Guest_Customer";
+        const email = req.user ? req.user.email : "guest@arulzzxd.my.id";
+
+        if (!orderId) orderId = `TRX-${Date.now()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        const existingTrx = await Transaction.findOne({ orderId });
+        if (existingTrx) orderId = `TRX-${Date.now()}-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        const dynamicQris = convertStaticToDynamicQRIS(STATIC_QRIS, inputAmount);
+        const expiredAt = new Date(Date.now() + 15 * 60 * 1000);
+
+        const newTransaction = new Transaction({
+            orderId, userId, username, email, amount: inputAmount,
+            paymentNumber: dynamicQris, paymentMethod: "QRIS",
+            status: "pending", itemDetails: { ...itemDetails, qty: buyQty }, expiredAt
+        });
+
+        await newTransaction.save();
+        return res.json({ status: true, message: "QRIS berhasil dibuat", data: newTransaction });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({ status: false, message: "ID Transaksi bentrok. Silakan coba lagi." });
+        }
+        return res.status(500).json({ status: false, message: "Terjadi kesalahan server saat membuat QRIS." });
+    }
+});
+
+app.post('/api/transactions/upload-proof', async (req, res) => {
+    try {
+        const { orderId, proofImage } = req.body;
+        if (!orderId || !proofImage) return res.status(400).json({ status: false, message: "OrderId dan bukti wajib diisi!" });
+
+        const trx = await Transaction.findOne({ orderId });
+        if (!trx) return res.status(404).json({ status: false, message: "Transaksi tidak ditemukan!" });
+
+        trx.proofImage = proofImage;
+        trx.status = "waiting_confirmation";
+        trx.updatedAt = new Date();
+        await trx.save();
+
+        const buyer = await User.findOne({ $or: [{ email: trx.email }, { username: trx.username }] });
+        const buyerAvatar = buyer?.avatar || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png';
+
+        sendBackgroundPushNotification({
+            title: '⚡ BUKTI TRANSAKSI BARU!',
+            body: `Order: ${trx.orderId}\nUser: ${trx.username}\nTotal: Rp ${trx.amount.toLocaleString('id-ID')}`,
+            icon: buyerAvatar,
+            orderId: trx.orderId
+        });
+
+        return res.json({ status: true, message: "Bukti pembayaran berhasil diunggah!" });
+    } catch (error) {
+        return res.status(500).json({ status: false, message: "Terjadi kesalahan server." });
+    }
+});
+
+app.get('/transactions/:orderId', async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const trx = await Transaction.findOne({ orderId });
+        if (!trx) return res.status(404).json({ status: false, message: "Transaksi tidak ditemukan" });
+
+        if (trx.status === "pending" && new Date() > new Date(trx.expiredAt)) {
+            trx.status = "cancelled";
+            await trx.save();
+        }
+        return res.json({ data: trx });
+    } catch (error) {
+        return res.status(500).json({ status: false, message: "Gagal memuat transaksi" });
+    }
+});
+
+app.post('/transactions/:orderId/cancel', async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const trx = await Transaction.findOne({ orderId });
+        if (trx) {
+            trx.status = "cancelled";
+            await trx.save();
+        }
+        return res.json({ status: true, message: "Transaksi dibatalkan" });
+    } catch (e) {
+        return res.status(500).json({ status: false, message: "Gagal membatalkan" });
+    }
+});
+
+app.post('/webhook', async (req, res) => {
+    try {
+        const payload = req.body;
+        const payloadData = payload?.data || payload;
+        const orderId = payloadData?.orderId || payload?.order_id || payload?.trx_id;
+        const status = payloadData?.status ? payloadData.status.toLowerCase() : (payload?.status || "").toLowerCase();
+
+        if (!orderId) return res.status(400).json({ status: false, message: "Missing orderId" });
+
+        let localTrx = await Transaction.findOne({ orderId });
+        if (localTrx) {
+            const prevStatus = localTrx.status.toLowerCase();
+            const isPaidEvent = ["paid", "settlement", "success", "paid_successful"].includes(status);
+            const isCancelEvent = ["cancelled", "failed", "expire", "rejected"].includes(status);
+
+            if (isPaidEvent && !["paid", "settlement", "success"].includes(prevStatus)) {
+                localTrx.status = "success";
+                localTrx.updatedAt = new Date();
+
+                if (localTrx.itemDetails && localTrx.itemDetails.nama && !localTrx.itemDetails.nama.includes("Upgrade Role")) {
+                    await updateProductStockAndSold(localTrx.itemDetails.nama, localTrx.itemDetails.qty || 1, false);
+                    await recordProductBuyer(localTrx.itemDetails.nama, localTrx.email || localTrx.username);
+                }
+
+                if (localTrx.itemDetails && localTrx.itemDetails.nama && localTrx.itemDetails.nama.includes("Upgrade Role")) {
+                    const daysToAdd = Number(localTrx.itemDetails.qty) || 3;
+                    const isVip = localTrx.itemDetails.nama.toLowerCase().includes("vip");
+                    const targetRole = isVip ? "VIP User" : "Premium User";
+
+                    let targetUser = await User.findOne({ $or: [{ email: localTrx.email }, { username: localTrx.username }] });
+                    if (targetUser) {
+                        let currentExpiry = (targetUser.roleExpiresAt && new Date(targetUser.roleExpiresAt) > new Date())
+                            ? new Date(targetUser.roleExpiresAt) : new Date();
+
+                        currentExpiry.setDate(currentExpiry.getDate() + daysToAdd);
+                        targetUser.role = targetRole;
+                        targetUser.roleExpiresAt = currentExpiry;
+
+                        if (targetRole === "Premium User") targetUser.apikey = generatePremiumApiKey(targetUser.username);
+                        else if (targetRole === "VIP User" && (!targetUser.apikey || targetUser.apikey.startsWith('arulzxdfree-'))) {
+                            targetUser.apikey = `${targetUser.username.toLowerCase()}-custom-vip`;
+                        }
+                        await targetUser.save();
+                    }
+                }
+            } else if (isCancelEvent) {
+                localTrx.status = status;
+                localTrx.updatedAt = new Date();
+            }
+
+            await localTrx.save();
+            await deleteCache(`trx_${orderId}`);
+        }
+
+        return res.status(200).json({ status: true, message: "Webhook berhasil diproses", orderId });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: "Error internal webhook" });
+    }
+});
+
+// ====================================================
+// 10. FILE UPLOADER & GITHUB CDN PROXY
+// ====================================================
+
+const uploadHistorySchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    username: { type: String, required: true },
+    fileName: { type: String, required: true },
+    url: { type: String, required: true },
+    contentType: { type: String, default: 'application/octet-stream' },
+    folder: { type: String, default: 'file' },
+    size: { type: Number, default: 0 },
+    createdAt: { type: Date, default: Date.now }
+});
+const UploadHistory = mongoose.models.UploadHistory || mongoose.model('UploadHistory', uploadHistorySchema);
+
+const localFileUploader = fileUpload({
+    createParentPath: true,
+    limits: { fileSize: 4.5 * 1024 * 1024 },
+    limitHandler: (req, res) => {
+        return res.status(400).json({ 
+            status: false, 
+            message: 'Ukuran file melebihi batas maksimal 4.5MB!' 
+        });
+    }
+});
+
+function getCdnFolder(mimetype, ext) {
+    const cleanExt = (ext || '').toLowerCase().replace(/^\./, '');
+    const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tiff', 'heic'];
+    const videoExts = ['mp4', 'mkv', 'avi', 'mov', 'webm', 'flv', '3gp', 'm4v'];
+
+    if (mimetype?.startsWith('image/') || imageExts.includes(cleanExt)) {
+        return 'foto';
+    }
+    if (mimetype?.startsWith('video/') || videoExts.includes(cleanExt)) {
+        return 'video';
+    }
+    return 'file';
+}
+
+function getRandomIdLength() {
+    const lengths = [4, 6, 8, 10];
+    return lengths[Math.floor(Math.random() * lengths.length)];
+}
+
+app.get(/\/files\/(.*)/, async (req, res) => {
+  const requestedPath = req.params[0];
+  if (!requestedPath) return res.status(400).send('Missing file path');
+
+  const ext = path.extname(requestedPath);
+  const detectedMime = mime.lookup(requestedPath) || 'application/octet-stream';
+  const primaryFolder = getCdnFolder(detectedMime, ext);
+
+  let pathsToTry = [];
+  if (requestedPath.includes('/')) {
+    pathsToTry.push(requestedPath);
+  } else {
+    pathsToTry.push(`${primaryFolder}/${requestedPath}`);
+    const fallbackFolders = ['foto', 'file', 'video', 'uploads'];
+    fallbackFolders.forEach(f => {
+      if (f !== primaryFolder) pathsToTry.push(`${f}/${requestedPath}`);
+    });
+  }
+
+  for (const gitPath of pathsToTry) {
+    try {
+      const resp = await axios.get(`https://api.github.com/repos/${owner}/${repoName}/contents/${gitPath}?ref=${branch}`, {
+        headers: { Authorization: `Bearer ${githubToken}`, Accept: 'application/vnd.github.v3.raw' },
+        responseType: 'arraybuffer',
+        validateStatus: status => status < 500
+      });
+
+      if (resp.status === 200) {
+        const contentType = mime.lookup(requestedPath) || 'application/octet-stream';
+        res.set('Content-Type', contentType);
+        res.set('Cache-Control', 'public, max-age=3600');
+        return res.send(Buffer.from(resp.data));
+      }
+    } catch (error) {
+      console.error(`Gagal cek ${gitPath} di repo ${repoName}:`, error.message);
+    }
+  }
+
+  return res.status(404).send('File tidak ditemukan');
+});
+
+app.post('/uploadfile', localFileUploader, async (req, res) => {
+  if (!req.files || Object.keys(req.files).length === 0) {
+    return res.status(400).json({ status: false, message: 'Tidak ada file yang diunggah.' });
+  }
+
+  let uploadedFile = req.files.file;
+
+  const MAX_SIZE = 4.5 * 1024 * 1024;
+  if (uploadedFile.size > MAX_SIZE) {
+    return res.status(400).json({ 
+      status: false, 
+      message: 'Ukuran file melebihi batas maksimal 4.5MB!' 
+    });
+  }
+
+  const originalName = uploadedFile.name || 'file';
+  const origExt = path.extname(originalName);
+
+  let extension = origExt ? origExt.replace(/^\./, '') : (mime.extension(uploadedFile.mimetype) || 'bin');
+
+  let randomLength = getRandomIdLength();
+  let id = generateId(randomLength);
+
+  let fileName = origExt ? `${id}${origExt}` : `${id}.${extension}`;
+
+  let folder = getCdnFolder(uploadedFile.mimetype, extension);
+  let gitPath = `${folder}/${fileName}`;
+  let base64Content = Buffer.from(uploadedFile.data).toString('base64');
+
+  try {
+    await axios.put(`https://api.github.com/repos/${owner}/${repoName}/contents/${gitPath}`, {
+      message: `Upload file ${fileName} ke folder ${folder}`,
+      content: base64Content,
+      branch
+    }, {
+      headers: { Authorization: `Bearer ${githubToken}`, 'Content-Type': 'application/json' }
+    });
+
+    if (req.user) {
+        try {
+            await UploadHistory.create({
+                userId: req.user.id || req.user._id,
+                username: req.user.username,
+                fileName: fileName,
+                url: `https://cdn.arulzzxd.my.id/files/${fileName}`,
+                contentType: uploadedFile.mimetype || mime.lookup(originalName) || 'application/octet-stream',
+                folder: folder,
+                size: uploadedFile.size
+            });
+        } catch (dbErr) {
+            console.error("Gagal menyimpan riwayat ke MongoDB:", dbErr.message);
+        }
+    }
+
+    return res.json({
+      status: true,
+      message: 'Unggahan Berhasil!',
+      url: `https://cdn.arulzzxd.my.id/files/${fileName}`,
+      fileName,
+      folder,
+      size: uploadedFile.size
+    });
+  } catch (error) {
+    console.error("Gagal upload file ke GitHub CDN:", error.response?.data || error.message);
+    return res.status(500).json({ status: false, message: 'Gagal mengunggah file ke server.' });
+  }
+});
+
+app.get('/api/user/upload-history', checkAuthSession, async (req, res) => {
+    if (!req.user) {
+        return res.json({ status: false, loggedIn: false, message: "Anda belum login." });
+    }
+    try {
+        const history = await UploadHistory.find({ userId: req.user.id || req.user._id })
+            .sort({ createdAt: -1 })
+            .limit(30)
+            .lean();
+        return res.json({ status: true, loggedIn: true, data: history });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: "Gagal mengambil riwayat unggahan." });
+    }
+});
+
+app.get('/database/download', async (req, res) => {
+    const imageUrl = req.query.url || "https://arulz-uploader.vercel.app/files/CVmlrD.jpg";
+    try {
+        const response = await axios({ method: 'get', url: imageUrl, responseType: 'stream' });
+        res.setHeader('Content-Type', response.headers['content-type'] || 'image/jpeg');
+        res.setHeader('Content-Disposition', 'attachment; filename="QRIS_Arulz_XD.jpg"');
+        res.setHeader('Access-Control-Allow-Origin', '*'); 
+        response.data.pipe(res);
+    } catch (error) {
+        res.status(500).json({ error: "Gagal memproses unduhan otomatis." });
+    }
+});
+
+// ====================================================
+// 11. DYNAMIC API ROUTER & RATE LIMITER MIDDLEWARE
+// ====================================================
+function getApiKeyType(user) {
+    if (!user || !user.role) return 'free';
+    const role = user.role.toLowerCase();
+    if (role.includes('vip')) return 'vip';
+    if (role.includes('premium')) return 'premium';
+    return 'free';
+}
+
+function getUserMaxLimit(keyType) {
+    if (keyType === 'vip') return Infinity;
+    if (keyType === 'premium') return 800;
+    return 100;
+}
+
+async function getOrResetUserLimit(user) {
+    if (!user) return { limitUsed: 0, maxLimit: 100, keyType: 'free' };
+
+    if (user.role && user.role !== 'Free User' && user.roleExpiresAt) {
+        if (new Date() > new Date(user.roleExpiresAt)) {
+            user.role = 'Free User';
+            user.roleExpiresAt = null;
+            user.apikey = generateFreeApiKey();
+            await user.save();
+        }
+    }
+
+    const keyType = getApiKeyType(user);
+    const maxLimit = getUserMaxLimit(keyType);
+    if (keyType === 'vip') return { limitUsed: 0, maxLimit: "Unlimited", keyType };
+
+    const now = new Date();
+    const lastReset = user.lastLimitReset ? new Date(user.lastLimitReset) : new Date(0);
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    const lastResetStr = lastReset.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+
+    if (todayStr !== lastResetStr) {
+        user.limit = 0;
+        user.lastLimitReset = now;
+        await User.findByIdAndUpdate(user._id, { $set: { limit: 0, lastLimitReset: now } });
+    }
+
+    return { limitUsed: user.limit || 0, maxLimit, keyType };
+}
+
+const getLimitMessage = (keyType, limitCount) => {
+    if (keyType === 'premium') {
+        return `Limit API Key Premium Anda telah habis (Maks ${limitCount} req/hari). Silakan upgrade ke VIP!`;
+    }
+    return `Limit API Key Free Anda telah habis (Maks ${limitCount} req/hari). Silakan upgrade ke Premium/VIP!`;
+};
+
+const apiKeyUserCache = new Map();
+const routeModuleCache = new Map();
+
+const validateApiKey = async (req, res, next) => {
+    const systemExemptions = [
+        '/', '/api', '/api/',
+        '/apilist', '/api/apilist',
+        '/og', '/api/og',
+        '/server-status', '/api/server-status',
+        '/status-server', '/api/status-server',
+        '/user-limit', '/api/user-limit',
+        '/user-activity', '/api/user-activity',
+        '/user-status', '/api/user-status'
+    ];
+
+    const fullPath = req.originalUrl ? req.originalUrl.split('?')[0] : req.path;
+    if (systemExemptions.some(endpoint => req.path === endpoint || fullPath === endpoint || fullPath.startsWith(endpoint))) {
+        return next();
+    }
+
+    let userKey = req.query.apikey || req.body?.apikey || req.files?.apikey || req.file?.apikey || req.headers['x-api-key'];
+    if (!userKey && req.user && req.user.apikey) userKey = req.user.apikey;
+
+    if (!userKey) {
+        return res.status(403).json({ status: false, creator: "Arulz-XD", message: "API Key mana? masukkan parameter ?apikey=MasukkanApiKey" });
+    }
+
+    let callerUser = null;
+    const cachedUser = apiKeyUserCache.get(userKey);
+    if (cachedUser && (Date.now() - cachedUser.timestamp < 300000)) { 
+        callerUser = cachedUser.data;
+    } else {
+        try {
+            callerUser = await User.findOne({ apikey: userKey }).lean();
+            if (callerUser) apiKeyUserCache.set(userKey, { data: callerUser, timestamp: Date.now() });
+        } catch (dbErr) {
+            return res.status(500).json({ status: false, message: "Internal server error." });
+        }
+    }
+
+    if (!callerUser) {
+        return res.status(403).json({ status: false, creator: "Arulz-XD", message: "API Key salah atau tidak terdaftar!" });
+    }
+
+    const keyRole = (callerUser.role || '').toLowerCase();
+    const isPremiumOrVipKey = keyRole.includes('premium') || keyRole.includes('vip');
+    const isWebUI = req.headers.referer && req.headers.referer.includes('/api');
+
+    if (isPremiumOrVipKey && isWebUI) {
+        const reqUserId = req.user ? (req.user._id || req.user.id).toString() : null;
+        const ownerId = (callerUser._id || callerUser.id).toString();
+
+        if (!reqUserId || reqUserId !== ownerId) {
+            return res.status(403).json({ 
+                status: false, 
+                creator: "Arulz-XD", 
+                message: "API Key Premium/VIP ini milik akun lain dan tidak dapat digunakan oleh pengguna lain di Web UI! Gunakan di bot atau aplikasi eksternal Anda." 
+            });
+        }
+    }
+
+    req.user = callerUser;
+    req.activeApiKey = userKey;
+
+    let finalRole = (callerUser.role || 'Free User').toLowerCase();
+    const pathParts = req.path.split('/');
+    const routeKey = `${pathParts[1]}/${pathParts[2]}`;
+    const routeModule = routeModuleCache.get(routeKey);
+
+    if (routeModule) {
+        if (routeModule.status === "error" || routeModule.status === "perbaikan") {
+            return res.status(503).json({ status: false, creator: "Arulz-XD", message: "Fitur ini sedang dalam perbaikan / maintenance!" });
+        }
+        if (routeModule.type === "premium" && !finalRole.includes("premium") && !finalRole.includes("vip")) {
+            return res.status(403).json({ status: false, creator: "Arulz-XD", message: "Endpoint ini khusus pengguna Premium!" });
+        }
+        if (routeModule.type === "vip" && !finalRole.includes("vip")) {
+            return res.status(403).json({ status: false, creator: "Arulz-XD", message: "Endpoint eksklusif ini khusus pengguna VIP!" });
+        }
+    }
+    next();
+};
+
+const trackAndEnforceLimit = async (req, res, next) => {
+    const systemEndpoints = [
+        '/', '/api', '/api/',
+        '/apilist', '/api/apilist',
+        '/user-limit', '/api/user-limit',
+        '/user-activity', '/api/user-activity',
+        '/user-status', '/api/user-status',
+        '/server-status', '/api/server-status',
+        '/status-server', '/api/status-server'
+    ];
+
+    const fullPath = req.originalUrl ? req.originalUrl.split('?')[0] : req.path;
+    if (systemEndpoints.some(endpoint => req.path === endpoint || fullPath === endpoint || fullPath.startsWith(endpoint))) {
+        return next();
+    }
+
+    const userKey = req.activeApiKey || req.query.apikey || req.body?.apikey || req.headers['x-api-key'];
+    if (!userKey) return next();
+
+    try {
+        const user = await User.findOne({ apikey: userKey });
+        if (!user) return next();
+
+        const { limitUsed, maxLimit, keyType } = await getOrResetUserLimit(user);
+        if (keyType === 'vip') return next();
+
+        if (limitUsed >= maxLimit) {
+            return res.status(429).json({ status: false, creator: "ArulzXD", message: getLimitMessage(keyType, maxLimit) });
+        }
+
+        await User.findByIdAndUpdate(user._id, { $inc: { limit: 1 } });
+        next();
+    } catch (err) {
+        next();
+    }
+};
+
+const apiKeyLimiter = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000, 
+    keyGenerator: (req) => req.activeApiKey || req.query.apikey || req.body?.apikey || req.headers['x-api-key'] || req.ip,
+    validate: { keyGeneratorIpFallback: false },
+    skip: (req) => {
+        if (getApiKeyType(req.user) === 'vip') return true;
+        const systemEndpoints = ['/', '/api', '/api/', '/apilist', '/api/apilist', '/user-limit', '/api/user-limit', '/user-activity', '/api/user-activity', '/user-status', '/api/user-status', '/server-status', '/api/server-status', '/status-server', '/api/status-server'];
+        const fullPath = req.originalUrl ? req.originalUrl.split('?')[0] : req.path;
+        return systemEndpoints.some(endpoint => req.path === endpoint || fullPath === endpoint || fullPath.startsWith(endpoint));
+    },
+    max: (req) => getApiKeyType(req.user) === 'premium' ? 800 : 100,
+    handler: (req, res) => {
+        const keyType = getApiKeyType(req.user);
+        res.status(429).json({ status: false, creator: "ArulzXD", message: getLimitMessage(keyType, keyType === 'premium' ? 800 : 100) });
+    },
+    standardHeaders: true, legacyHeaders: false
+});
+
+const logApiActivity = async (req, res, next) => {
+    res.on('finish', async () => {
+        const userKey = req.activeApiKey || req.query?.apikey || req.body?.apikey || req.headers['x-api-key'] || (req.user ? req.user.apikey : null);
+        const fullEndpoint = req.originalUrl ? req.originalUrl.split('?')[0] : req.path;
+
+        const excludedEndpoints = [
+            '/',
+            '/api',
+            '/api/',
+            '/apilist',
+            '/api/apilist',
+            '/api/user-activity',
+            '/api/user-limit',
+            '/api/server-status',
+            '/api/status-server',
+            '/api/user-status'
+        ];
+
+        if (
+            userKey && 
+            fullEndpoint.startsWith('/api') && 
+            !excludedEndpoints.includes(fullEndpoint)
+        ) {
+            try {
+                let targetUser = req.user || await User.findOne({ apikey: userKey.trim() }).lean();
+                if (!targetUser) return;
+
+                await ApiLog.findOneAndUpdate(
+                    { userId: targetUser._id || targetUser.id },
+                    { 
+                        $set: { 
+                            apikey: userKey.trim(), 
+                            username: targetUser.username || 'User', 
+                            email: targetUser.email || '' 
+                        },
+                        $push: { 
+                            log: { 
+                                $each: [{ method: req.method, endpoint: fullEndpoint, status_code: res.statusCode, createdAt: new Date() }],
+                                $position: 0 
+                            } 
+                        }
+                    },
+                    { upsert: true, returnDocument: 'after' }
+                );
+            } catch (err) {
+                console.error("❌ Gagal simpan log ke MongoDB:", err.message);
+            }
+        }
+    });
+    next();
+};
+
+// ====================================================
+// AUTO LOAD API ENDPOINTS
+// ====================================================
+const router = express.Router();
+const apiPath = path.join(__dirname, 'api');
+router.use(validateApiKey);
+
+function formatEndpointTitle(filename) {
+    return filename.replace(/\.js$/, "").replace(/[-_]/g, " ")
+        .split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
+async function getEndpointsFromRouter(category, file) {
+    const endpoints = [];
+    const routePath = path.join(apiPath, category, file);
+    let routeModule;
+    try { 
+        routeModule = await import(pathToFileURL(routePath).href); 
+    } catch (e) { 
+        console.error(`❌ Gagal import file route [${category}/${file}]:`, e.message);
+        return endpoints; 
+    }
+
+    const route = routeModule.default || routeModule;
+    const subRouter = route.stack ? route : route.router || route;
+    if (!subRouter || !subRouter.stack) return endpoints;
+
+    const endpointTitle = route.title || (route.name && route.name !== 'router' ? route.name : formatEndpointTitle(file));
+    const routeDesc = route.desc || subRouter.desc || `/${category}/${file.replace(/\.js$/, "")}`;
+
+    subRouter.stack.forEach(layer => {
+        if (layer.route) {
+            const methods = Object.keys(layer.route.methods).map(m => m.toUpperCase());
+            let params = { apikey: "" }; 
+
+            if (route.paramsConfig) params = { apikey: "", ...route.paramsConfig };
+            else if (layer.route.stack && layer.route.stack.length) {
+                layer.route.stack.forEach(mw => {
+                    if (!mw.handle) return;
+                    const fnString = mw.handle.toString();
+                    [...fnString.matchAll(/req\.query\.([a-zA-Z0-9_]+)/g)].forEach(m => { params[m[1]] = ""; });
+                    [...fnString.matchAll(/req\.body\.([a-zA-Z0-9_]+)/g)].forEach(m => { params[m[1]] = ""; });
+                });
+            }
+
+            if (methods.some(m => ["POST", "PUT", "PATCH"].includes(m)) && Object.keys(params).length <= 1) {
+                params.fileToUpload = "file";
+            }
+
+            endpoints.push({
+                name: endpointTitle, 
+                path: `/api/${category}/${file.replace(/\.js$/, "")}`,
+                desc: routeDesc, 
+                status: route.status || "ready", 
+                type: route.type || "free", 
+                params, 
+                methods
+            });
+        }
+    });
+    return endpoints;
+}
+
+if (fs.existsSync(apiPath)) {
+    const endpointDirs = fs.readdirSync(apiPath).filter(f => fs.statSync(path.join(apiPath, f)).isDirectory());
+
+    for (const category of endpointDirs) {
+        const categoryPath = path.join(apiPath, category);
+        const files = fs.readdirSync(categoryPath).filter(f => f.endsWith('.js'));
+        for (const file of files) {
+            const routeName = path.basename(file, '.js');
+            const routeFilePath = path.join(categoryPath, file);
+            try {
+                const routeModule = await import(pathToFileURL(routeFilePath).href);
+                const route = routeModule.default || routeModule;
+                if (route) {
+                    routeModuleCache.set(`${category}/${routeName}`, route);
+                    router.use(`/${category}/${routeName}`, route);
+                }
+            } catch (err) {
+                console.error(`❌ Gagal memuat router ${category}/${routeName}:`, err.message);
+            }
+        }
+    }
+}
+
+router.get('/apilist', async (req, res) => {
+    try {
+        const categories = [];
+
+        if (fs.existsSync(apiPath)) {
+            const endpointDirs = fs.readdirSync(apiPath)
+                .filter(f => fs.statSync(path.join(apiPath, f)).isDirectory());
+
+            for (const category of endpointDirs) {
+                const categoryPath = path.join(apiPath, category);
+                const files = fs.readdirSync(categoryPath).filter(f => f.endsWith('.js'));
+                const endpoints = [];
+
+                for (const file of files) {
+                    try {
+                        const parsedEndpoints = await getEndpointsFromRouter(category, file);
+                        if (Array.isArray(parsedEndpoints)) {
+                            endpoints.push(...parsedEndpoints);
+                        }
+                    } catch (fileErr) {
+                        console.error(`❌ Gagal memuat API file [${category}/${file}]:`, fileErr.message);
+                    }
+                }
+
+                if (endpoints.length > 0) {
+                    categories.push({ 
+                        name: category.toUpperCase(), 
+                        items: endpoints 
+                    });
+                }
+            }
+        }
+
+        categories.push({ 
+            name: "OTHER", 
+            items: [{ 
+                name: "/apilist", 
+                path: "/api/apilist", 
+                desc: "/apilist", 
+                status: "ready", 
+                type: "free", 
+                params: { apikey: "" }, 
+                methods: ["GET"] 
+            }] 
+        });
+
+        return res.json({ categories });
+    } catch (err) {
+        console.error("❌ Error pada /apilist route:", err.message);
+        return res.status(500).json({ error: "Failed to load API list", details: err.message });
+    }
+});
+
+// ====================================================
+// INITIALIZATION FONT
+// ====================================================
+let isFontLoaded = false;
+
+async function initCustomFont() {
+    if (isFontLoaded) return true;
+    try {
+        const response = await axios.get('https://cdn.jsdelivr.net/fontsource/fonts/plus-jakarta-sans@latest/latin-700-normal.ttf', { 
+            responseType: 'arraybuffer',
+            timeout: 10000 
+        });
+
+        GlobalFonts.register(Buffer.from(response.data), 'Plus Jakarta Sans');
+        isFontLoaded = true;
+        console.log('✅ Font "Plus Jakarta Sans" berhasil dimuat!');
+        return true;
+    } catch (e) {
+        console.warn('⚠️ Gagal memuat font kustom (timeout/network), menggunakan fallback ke sans-serif bawaan sistem.');
+        isFontLoaded = false;
+        return false;
+    }
+}
+
+initCustomFont().catch(err => console.error("Font init non-critical error:", err.message));
+
+// Konfigurasi Metadata Halaman Publik
+const PAGE_CONFIGS = {
+    home: {
+        title: "ArulzXD API - Core REST Gateway",
+        desc: "Layanan REST API resmi untuk dokumentasi dan integrasi pengembang aplikasi secara cepat dan andal.",
+        badge: "CORE REST GATEWAY",
+        accent: "#fde047"
+    },
+    docs: {
+        title: "ArulzXD API - Dokumentasi REST API",
+        desc: "Jelajahi dokumentasi endpoint REST API lengkap dengan fitur pengujian langsung dan respons terstruktur.",
+        badge: "API DOCUMENTATION",
+        accent: "#fde047"
+    },
+    login: {
+        title: "ArulzXD API - Portal Autentikasi",
+        desc: "Masuk atau buat akun baru untuk mengakses kredensial API Key, kuota limit, dan fitur premium.",
+        badge: "PORTAL AUTENTIKASI",
+        accent: "#fde047"
+    },
+    uploader: {
+        title: "ArulzXD API - File & Media Uploader",
+        desc: "Layanan unggah berkas media instan berbasis CDN publik dengan akses cepat dan penyimpanan aman.",
+        badge: "FILE & MEDIA UPLOADER",
+        accent: "#fde047"
+    },
+    status: {
+        title: "ArulzXD API - Server & System Status",
+        desc: "Pantau ketersediaan sistem, penggunaan memori, performa CPU, dan status kesehatan server secara real-time.",
+        badge: "SERVER MONITORING",
+        accent: "#fde047"
+    },
+    privacy: {
+        title: "ArulzXD API - Kebijakan Privasi",
+        desc: "Informasi mengenai perlindungan data pribadi, penggunaan sesi, dan keamanan transaksi pengguna.",
+        badge: "KEBIJAKAN PRIVASI",
+        accent: "#fde047"
+    },
+    pastecode: {
+        title: "ArulzXD API - Pastecode Snippet",
+        desc: "Layanan paste code snippet REST API resmi untuk dokumentasi dan integrasi pengembang aplikasi.",
+        badge: "PASTECODE SNIPPET",
+        accent: "#fde047"
+    },
+    feedback: {
+        title: "ArulzXD API - Feedback & Support",
+        desc: "Layanan bantuan REST API resmi untuk dokumentasi, laporan bug, dan request fitur.",
+        badge: "FEEDBACK & LAPORAN",
+        accent: "#fde047"
+    },
+    profile: {
+        title: "ArulzXD API - Profil & Settings",
+        desc: "Kelola informasi pengguna, kredensial API Key, kuota limit, dan riwayat aktivitas.",
+        badge: "USER PROFILE & API KEY",
+        accent: "#fde047"
+    },
+    store: {
+        title: "ArulzXD Store - Marketplace & Layanan Digital",
+        desc: "Penyedia Source Code, Script, & Layanan Digital Premium Terpercaya dengan Akses Super Cepat.",
+        badge: "MARKETPLACE & STORE",
+        accent: "#fde047"
+    },
+    support: {
+        title: "Dukung ArulzXD — Support & Donasi",
+        desc: "Dukungan seikhlasnya dari kamu adalah bahan bakar utama untuk menjaga platform tetap zero-downtime.",
+        badge: "SUPPORT & DONASI",
+        accent: "#fde047"
+    },
+    upgrade: {
+        title: "ArulzXD API - Upgrade Apikey VIP",
+        desc: "Tingkatkan limit request harian dan buka akses fitur VIP / Premium REST API ArulzXD.",
+        badge: "UPGRADE APIKEY VIP",
+        accent: "#fde047"
+    }
+};
+
+// Endpoint OpenGraph Khusus Snippet Pastecode
+app.get('/og/snippet', async (req, res) => {
+    try {
+        await initCustomFont();
+
+        const snippetId = req.query.id;
+        let snippetData = {
+            title: req.query.title || "Aio-Download",
+            author: req.query.author || "arulzxd",
+            language: req.query.lang || "scrape",
+            date: req.query.date || "29 Jun 2026",
+            code: req.query.code || "const axios = require('axios');\n\nasync function aioDownloader(targetUrl) {\n  const apiUrl = 'https://api-arulzxd-"
+        };
+
+        if (snippetId) {
+            try {
+                const dbRes = await axios.get("https://raw.githubusercontent.com/arulzzzxd/api-arulzxd/main/database/data.js", { timeout: 4000 });
+                let jsonString = dbRes.data.replace(/^(let|const|var|window)\s+\w+\s*=\s*/, '').trim();
+                if (jsonString.endsWith(';')) jsonString = jsonString.slice(0, -1);
+                const pastes = JSON.parse(jsonString);
+                const found = pastes.find(p => String(p.id) === String(snippetId));
+
+                if (found) {
+                    snippetData = {
+                        title: found.title || snippetData.title,
+                        author: found.author || "arulzxd",
+                        language: found.language || "javascript",
+                        date: found.date || snippetData.date,
+                        code: found.content || snippetData.code
+                    };
+                }
+            } catch (err) {
+                console.error("Gagal mengambil snippet data untuk OG:", err.message);
+            }
+        }
+
+        const width = 1200;
+        const height = 630;
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#FAF7EF';
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = 'rgba(18, 18, 18, 0.08)';
+        for (let x = 0; x < width; x += 24) {
+            for (let y = 0; y < height; y += 24) {
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        const windowX = 40;
+        const windowY = 35;
+        const windowW = 1120;
+        const windowH = 560;
+
+        ctx.fillStyle = '#121212';
+        ctx.beginPath();
+        ctx.roundRect(windowX + 12, windowY + 12, windowW, windowH, 28);
+        ctx.fill();
+
+        ctx.fillStyle = '#FFFDF8';
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#EAB308';
+        ctx.beginPath();
+        ctx.roundRect(windowX, windowY, windowW, windowH, 28);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(windowX, windowY + 80);
+        ctx.lineTo(windowX + windowW, windowY + 80);
+        ctx.strokeStyle = '#EAB308';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        const dots = ['#EF4444', '#F59E0B', '#10B981'];
+        dots.forEach((color, i) => {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(windowX + 45 + (i * 30), windowY + 40, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#121212';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        });
+
+        const langText = String(snippetData.language).toLowerCase();
+        const langBadgeW = Math.max(120, ctx.measureText(langText).width + 50);
+        const langBadgeX = windowX + windowW - langBadgeW - 35;
+        const langBadgeY = windowY + 20;
+
+        ctx.fillStyle = '#CCFBF1';
+        ctx.beginPath();
+        ctx.roundRect(langBadgeX, langBadgeY, langBadgeW, 40, 12);
+        ctx.fill();
+        ctx.strokeStyle = '#121212';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#121212';
+        ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(langText, langBadgeX + (langBadgeW / 2), langBadgeY + 27);
+        ctx.textAlign = 'left';
+
+        ctx.fillStyle = '#121212';
+        ctx.font = 'bold 44px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText(snippetData.title, windowX + 50, windowY + 150);
+
+        ctx.fillStyle = '#52525B';
+        ctx.font = 'bold 24px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText(`By ${snippetData.author}`, windowX + 50, windowY + 195);
+
+        const codeX = windowX + 50;
+        const codeY = windowY + 230;
+        const codeW = windowW - 100;
+        const codeH = 220;
+
+        ctx.fillStyle = '#121212';
+        ctx.beginPath();
+        ctx.roundRect(codeX, codeY, codeW, codeH, 20);
+        ctx.fill();
+        ctx.strokeStyle = '#EAB308';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        ctx.fillStyle = '#38BDF8';
+        ctx.font = 'bold 22px "JetBrains Mono", monospace';
+
+        const codeLines = snippetData.code.split('\n').slice(0, 4);
+        codeLines.forEach((line, idx) => {
+            let truncatedLine = line.length > 55 ? line.substring(0, 52) + '...' : line;
+            ctx.fillText(truncatedLine, codeX + 35, codeY + 55 + (idx * 42));
+        });
+
+        const footerY = windowY + windowH - 45;
+
+        ctx.fillStyle = '#121212';
+        ctx.font = 'bold 22px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText(`📅  ${snippetData.date}`, codeX, footerY);
+
+        const rawW = 120;
+        const rawH = 48;
+        const rawX = codeX + codeW - rawW;
+        const rawY = footerY - 34;
+
+        ctx.fillStyle = '#121212';
+        ctx.beginPath();
+        ctx.roundRect(rawX, rawY, rawW, rawH, 14);
+        ctx.fill();
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('RAW', rawX + (rawW / 2), rawY + 31);
+        ctx.textAlign = 'left';
+
+        const buffer = await canvas.encode('png');
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Length', buffer.length);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.status(200).send(buffer);
+
+    } catch (error) {
+        console.error('Error generating Pastecode OG Image:', error);
+        return res.status(500).send('Error generating OG Image');
+    }
+});
+
+app.get(['/og', '/og/:page'], async (req, res) => {
+    try {
+        await initCustomFont();
+
+        const pageKey = (req.params.page || req.query.page || 'home').toLowerCase();
+        const baseConfig = PAGE_CONFIGS[pageKey] || PAGE_CONFIGS.home;
+
+        const config = {
+            title: req.query.title || baseConfig.title,
+            desc: req.query.desc || baseConfig.desc,
+            badge: req.query.badge || baseConfig.badge,
+            accent: req.query.accent || baseConfig.accent || '#FACC15'
+        };
+
+        const customImageUrl = req.query.img || 'https://cdn.arulzzxd.my.id/files/1wh5do.png';
+        const displayPath = pageKey === 'home' ? '' : `/${pageKey}`;
+        const pageUrl = `api.arulzzxd.my.id${displayPath}`;
+
+        const width = 1200;
+        const height = 630;
+        const canvas = createCanvas(width, height);
+        const ctx = canvas.getContext('2d');
+
+        function drawPetirIcon(x, y, scale = 1, fill = '#121212') {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+            ctx.beginPath();
+            ctx.moveTo(13, 2);
+            ctx.lineTo(3, 14);
+            ctx.lineTo(12, 14);
+            ctx.lineTo(11, 22);
+            ctx.lineTo(21, 10);
+            ctx.lineTo(12, 10);
+            ctx.lineTo(13, 2);
+            ctx.closePath();
+            ctx.fillStyle = fill;
+            ctx.fill();
+            ctx.restore();
+        }
+
+        ctx.fillStyle = '#FAF7EF';
+        ctx.fillRect(0, 0, width, height);
+
+        ctx.fillStyle = 'rgba(18, 18, 18, 0.09)';
+        for (let x = 0; x < width; x += 24) {
+            for (let y = 0; y < height; y += 24) {
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        const glowGradient = ctx.createRadialGradient(width / 2, height / 2, 50, width / 2, height / 2, 550);
+        glowGradient.addColorStop(0, config.accent + '44');
+        glowGradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = glowGradient;
+        ctx.fillRect(0, 0, width, height);
+
+        const windowX = 28;
+        const windowY = 24;
+        const windowW = 1144;
+        const windowH = 582;
+
+        ctx.fillStyle = '#121212';
+        ctx.beginPath();
+        ctx.roundRect(windowX + 16, windowY + 16, windowW, windowH, 28);
+        ctx.fill();
+
+        ctx.fillStyle = '#FFFDF8';
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#121212';
+        ctx.beginPath();
+        ctx.roundRect(windowX, windowY, windowW, windowH, 28);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#F4EFE6';
+        ctx.beginPath();
+        ctx.roundRect(windowX, windowY, windowW, 82, [28, 28, 0, 0]);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(windowX, windowY + 82);
+        ctx.lineTo(windowX + windowW, windowY + 82);
+        ctx.strokeStyle = '#121212';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+
+        const dots = ['#EF4444', '#F59E0B', '#10B981'];
+        dots.forEach((color, i) => {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(windowX + 38 + (i * 28), windowY + 41, 9, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#121212';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        });
+
+        drawPetirIcon(windowX + 130, windowY + 22, 1.6, '#121212');
+
+        ctx.fillStyle = '#121212';
+        ctx.font = 'bold 26px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('ArulzXD API', windowX + 175, windowY + 50);
+
+        ctx.fillStyle = '#FAF7EF';
+        ctx.beginPath();
+        ctx.roundRect(windowX + 340, windowY + 20, 440, 42, 21);
+        ctx.fill();
+        ctx.strokeStyle = '#121212';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#27272A';
+        ctx.font = 'bold 19px monospace';
+        ctx.fillText(`https://${pageUrl}`, windowX + 360, windowY + 47);
+
+        ctx.fillStyle = '#DCFCE7';
+        ctx.beginPath();
+        ctx.roundRect(windowX + windowW - 245, windowY + 20, 215, 42, 21);
+        ctx.fill();
+        ctx.strokeStyle = '#16A34A';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = '#22C55E';
+        ctx.beginPath();
+        ctx.arc(windowX + windowW - 225, windowY + 41, 7.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#15803D';
+        ctx.font = 'bold 16px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('ALL SYSTEMS 100%', windowX + windowW - 206, windowY + 47);
+
+        const contentX = windowX + 44;
+
+        ctx.fillStyle = config.accent;
+        ctx.beginPath();
+        ctx.roundRect(contentX, windowY + 112, 330, 46, 12);
+        ctx.fill();
+        ctx.strokeStyle = '#121212';
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+
+        drawPetirIcon(contentX + 14, windowY + 117, 1.1, '#121212');
+
+        ctx.fillStyle = '#121212';
+        ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText(config.badge.toUpperCase(), contentX + 50, windowY + 142);
+
+        const leftWidth = 630;
+        ctx.fillStyle = '#121212';
+        ctx.font = 'bold 42px "Plus Jakarta Sans", sans-serif';
+
+        const titleWords = config.title.split(' ');
+        let titleLine = '';
+        let titleY = windowY + 215;
+        for (let n = 0; n < titleWords.length; n++) {
+            const testLine = titleLine + titleWords[n] + ' ';
+            if (ctx.measureText(testLine).width > leftWidth && n > 0) {
+                ctx.fillText(titleLine, contentX, titleY);
+                titleLine = titleWords[n] + ' ';
+                titleY += 50;
+            } else {
+                titleLine = testLine;
+            }
+        }
+        ctx.fillText(titleLine, contentX, titleY);
+
+        ctx.fillStyle = '#27272A';
+        ctx.font = 'bold 22px "Plus Jakarta Sans", sans-serif';
+        const descWords = config.desc.split(' ');
+        let descLine = '';
+        let descY = titleY + 42;
+
+        for (let n = 0; n < descWords.length; n++) {
+            const testLine = descLine + descWords[n] + ' ';
+            if (ctx.measureText(testLine).width > leftWidth && n > 0) {
+                ctx.fillText(descLine, contentX, descY);
+                descLine = descWords[n] + ' ';
+                descY += 32;
+            } else {
+                descLine = testLine;
+            }
+        }
+        ctx.fillText(descLine, contentX, descY);
+
+        const rightX = windowX + 710;
+        const rightY = windowY + 112;
+        const rightW = 390;
+        const rightH = 320;
+
+        ctx.fillStyle = '#121212';
+        ctx.beginPath();
+        ctx.roundRect(rightX + 8, rightY + 8, rightW, rightH, 20);
+        ctx.fill();
+
+        ctx.fillStyle = '#FAF7EF';
+        ctx.beginPath();
+        ctx.roundRect(rightX, rightY, rightW, rightH, 20);
+        ctx.fill();
+        ctx.strokeStyle = '#121212';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        const imgSize = 130;
+        const imgX = rightX + (rightW - imgSize) / 2;
+        const imgY = rightY + 20;
+
+        ctx.fillStyle = '#FFFDF8';
+        ctx.beginPath();
+        ctx.roundRect(imgX, imgY, imgSize, imgSize, 16);
+        ctx.fill();
+        ctx.strokeStyle = '#121212';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        try {
+            const sideImg = await loadImage(customImageUrl);
+            ctx.save();
+            ctx.beginPath();
+            ctx.roundRect(imgX + 6, imgY + 6, imgSize - 12, imgSize - 12, 12);
+            ctx.clip();
+            ctx.drawImage(sideImg, imgX + 6, imgY + 6, imgSize - 12, imgSize - 12);
+            ctx.restore();
+        } catch (e) {
+            drawPetirIcon(imgX + 30, imgY + 25, 3.5, '#121212');
+        }
+
+        const statBoxes = [
+            { label: 'ACTIVE ENDPOINTS', val: '210+ REST API', bg: '#FDE047' },
+            { label: 'SERVER RESPONSE', val: 'FAST < 120ms', bg: '#BAE6FD' }
+        ];
+
+        statBoxes.forEach((s, idx) => {
+            const sbY = rightY + 165 + (idx * 68);
+            const sbX = rightX + 20;
+            const sbW = rightW - 40;
+            const sbH = 56;
+
+            ctx.fillStyle = s.bg;
+            ctx.beginPath();
+            ctx.roundRect(sbX, sbY, sbW, sbH, 12);
+            ctx.fill();
+            ctx.strokeStyle = '#121212';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            ctx.fillStyle = '#121212';
+            ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+            ctx.fillText(s.label, sbX + 16, sbY + 22);
+
+            ctx.font = 'black 17px "Plus Jakarta Sans", sans-serif';
+            ctx.fillText(s.val, sbX + 16, sbY + 44);
+        });
+
+        const featureY = windowY + windowH - 105;
+        const miniW = 340;
+        const miniH = 82;
+        const miniGap = 20;
+
+        const miniFeatures = [
+            { type: 'bolt', title: '210+ Endpoints', sub: 'Production Ready API', bg: '#FEF08A' },
+            { type: 'download', title: 'Media Downloader', sub: 'TikTok, IG, YT, FB', bg: '#BAE6FD' },
+            { type: 'maker', title: 'Maker & Tools', sub: 'Canvas, Edit, Meme', bg: '#E9D5FF' }
+        ];
+
+        miniFeatures.forEach((feat, i) => {
+            const mX = contentX + (i * (miniW + miniGap));
+
+            ctx.fillStyle = '#121212';
+            ctx.beginPath();
+            ctx.roundRect(mX + 5, featureY + 5, miniW, miniH, 16);
+            ctx.fill();
+
+            ctx.fillStyle = feat.bg;
+            ctx.beginPath();
+            ctx.roundRect(mX, featureY, miniW, miniH, 16);
+            ctx.fill();
+            ctx.strokeStyle = '#121212';
+            ctx.lineWidth = 3.5;
+            ctx.stroke();
+
+            ctx.fillStyle = '#FFFDF8';
+            ctx.beginPath();
+            ctx.arc(mX + 40, featureY + 41, 23, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#121212';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            if (feat.type === 'bolt') {
+                drawPetirIcon(mX + 28, featureY + 24, 1.3, '#121212');
+            } else if (feat.type === 'download') {
+                ctx.save();
+                ctx.strokeStyle = '#121212';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(mX + 40, featureY + 27);
+                ctx.lineTo(mX + 40, featureY + 47);
+                ctx.lineTo(mX + 33, featureY + 40);
+                ctx.moveTo(mX + 40, featureY + 47);
+                ctx.lineTo(mX + 47, featureY + 40);
+                ctx.moveTo(mX + 28, featureY + 54);
+                ctx.lineTo(mX + 52, featureY + 54);
+                ctx.stroke();
+                ctx.restore();
+            } else if (feat.type === 'maker') {
+                ctx.save();
+                ctx.strokeStyle = '#121212';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(mX + 40, featureY + 41, 13, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.fillStyle = '#121212';
+                ctx.beginPath();
+                ctx.arc(mX + 35, featureY + 36, 2.5, 0, Math.PI * 2);
+                ctx.arc(mX + 45, featureY + 36, 2.5, 0, Math.PI * 2);
+                ctx.arc(mX + 33, featureY + 44, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            ctx.fillStyle = '#121212';
+            ctx.font = 'bold 19px "Plus Jakarta Sans", sans-serif';
+            ctx.fillText(feat.title, mX + 74, featureY + 36);
+
+            ctx.fillStyle = '#3F3F46';
+            ctx.font = 'bold 14px "Plus Jakarta Sans", sans-serif';
+            ctx.fillText(feat.sub, mX + 74, featureY + 58);
+        });
+
+        const buffer = await canvas.encode('png');
+        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Length', buffer.length);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.status(200).send(buffer);
+
+    } catch (error) {
+        console.error('Error generating OG Image:', error);
+        res.status(500).send('Error generating OG Image');
+    }
+});
+
+app.use('/api', validateApiKey, trackAndEnforceLimit, apiKeyLimiter, logApiActivity, router);
+
+app.get('/api/user-limit', checkAuthSession, async (req, res) => {
+    let userKey = req.query.apikey || req.headers['x-api-key'] || (req.user ? req.user.apikey : null);
+    if (!userKey) return res.json({ loggedIn: false, limitUsed: 0, maxLimit: 100, type: 'free', roleExpiresAt: null });
+
+    try {
+        const user = await User.findOne({ apikey: userKey });
+        if (!user) return res.json({ loggedIn: false, limitUsed: 0, maxLimit: 100, type: 'free', roleExpiresAt: null });
+
+        const { limitUsed, maxLimit, keyType } = await getOrResetUserLimit(user);
+        return res.json({ 
+            loggedIn: !!req.user, 
+            limitUsed, 
+            maxLimit: maxLimit === Infinity ? "Unlimited" : maxLimit, 
+            type: keyType,
+            roleExpiresAt: user.roleExpiresAt || null
+        });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: "Server Error" });
+    }
+});
+
+app.get('/api/user-activity', async (req, res) => {
+    try {
+        let userId = req.user ? (req.user._id || req.user.id) : null;
+        if (!userId) {
+            const userKey = req.query?.apikey || req.headers['x-api-key'];
+            if (userKey) {
+                const foundUser = await User.findOne({ apikey: userKey.trim() }).lean();
+                if (foundUser) userId = foundUser._id;
+            }
+        }
+
+        if (!userId) return res.json({ status: true, data: [], logs: [] });
+
+        const userLogDoc = await ApiLog.findOne({ userId }).lean();
+        if (!userLogDoc || !userLogDoc.log || userLogDoc.log.length === 0) {
+            return res.json({ status: true, data: [], logs: [] });
+        }
+
+        const excludedEndpoints = [
+            '/',
+            '/api',
+            '/api/',
+            '/apilist',
+            '/api/apilist',
+            '/api/server-status',
+            '/api/status-server',
+            '/api/user-activity',
+            '/api/user-limit',
+            '/api/user-status'
+        ];
+
+        const filteredLogs = userLogDoc.log
+             .filter(item => item.endpoint && !excludedEndpoints.includes(item.endpoint))
+             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        const formattedLogs = filteredLogs.map(item => {
+            const timeStr = new Date(item.createdAt || Date.now()).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Jakarta' });
+            const statusStr = item.status_code >= 200 && item.status_code < 300 ? 'OK' : 'ERR';
+            return `[${timeStr}] [${statusStr}] [${item.method}] : ${item.endpoint}`;
+        });
+
+        const structuredLogs = filteredLogs.map(item => {
+            const dateObj = new Date(item.createdAt || Date.now());
+            const dateStr = dateObj.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                timeZone: 'Asia/Jakarta'
+            });
+            const timeStr = dateObj.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: 'Asia/Jakarta'
+            });
+
+            return {
+                method: item.method || 'GET',
+                endpoint: item.endpoint,
+                status_code: item.status_code || 200,
+                date: dateStr,
+                time: timeStr,
+                fullDate: `${dateStr}, ${timeStr}`
+            };
+        });
+
+        return res.json({ status: true, data: formattedLogs, logs: structuredLogs });
+    } catch (err) {
+        return res.status(500).json({ status: false, data: [], logs: [] });
+    }
+});
+
+app.delete('/api/user-activity', checkAuthSession, async (req, res) => {
+    try {
+        let userId = req.user ? (req.user._id || req.user.id) : null;
+        if (!userId) {
+            const userKey = req.query?.apikey || req.headers['x-api-key'];
+            if (userKey) {
+                const foundUser = await User.findOne({ apikey: userKey.trim() }).lean();
+                if (foundUser) userId = foundUser._id;
+            }
+        }
+
+        if (!userId) {
+            return res.status(401).json({ status: false, message: "Anda belum login!" });
+        }
+
+        await ApiLog.findOneAndUpdate(
+            { userId },
+            { $set: { log: [] } }
+        );
+
+        return res.json({ status: true, message: "Riwayat request berhasil dihapus!" });
+    } catch (err) {
+        return res.status(500).json({ status: false, message: "Gagal menghapus riwayat request." });
+    }
+});
+
+// ====================================================
+// 12. GENERAL SYSTEM & SERVICE WORKER API
+// ====================================================
+app.get('/sw.js', (req, res) => {
+    res.setHeader('Content-Type', 'application/javascript');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.send(`
+        self.addEventListener('install', (event) => { self.skipWaiting(); });
+        self.addEventListener('activate', (event) => { event.waitUntil(clients.claim()); });
+
+        self.addEventListener('push', function(event) {
+            let data = {};
+            if (event.data) { 
+                try { data = event.data.json(); } 
+                catch (e) { data = { title: 'Notifikasi', body: event.data.text() }; } 
+            }
+
+            const title = data.title || '⚡ NOTIFIKASI TRANSAKSI';
+            const userAvatar = data.icon || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png';
+
+            const options = {
+                body: data.body || 'Ada transaksi baru atau pembaruan status.',
+                icon: userAvatar,
+                badge: userAvatar,
+                vibrate: [500, 150, 500, 150, 500],
+                tag: 'trx-' + (data.orderId || Date.now()),
+                renotify: true,
+                requireInteraction: true,
+                data: { orderId: data.orderId },
+                actions: [
+                    { action: 'approve', title: '⚡ KONFIRMASI LUNAS' }
+                ]
+            };
+
+            event.waitUntil(
+                self.registration.showNotification(title, options)
+            );
+        });
+
+        self.addEventListener('notificationclick', function(event) {
+            event.notification.close();
+            const data = event.notification.data || {};
+
+            if (event.action === 'approve' && data.orderId) {
+                event.waitUntil(
+                    fetch('/api/admin/transactions/' + data.orderId + '/approve', { method: 'POST' })
+                        .then(res => res.json())
+                        .then(() => {
+                            self.registration.showNotification('✅ TRANSAKSI LUNAS!', {
+                                body: 'Order ' + data.orderId + ' berhasil dikonfirmasi LUNAS!',
+                                icon: event.notification.icon || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png'
+                            });
+                        })
+                );
+            } else {
+                event.waitUntil(clients.matchAll({ type: 'window' }).then(clientList => {
+                    for (let client of clientList) { 
+                        if (client.url.includes('/admin') && 'focus' in client) return client.focus(); 
+                    }
+                    if (clients.openWindow) return clients.openWindow('/admin');
+                }));
+            }
+        });
+    `);
+});
+
+app.post('/api/feedback', async (req, res) => {
+    const { email, type, message } = req.body;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ status: false, message: "Format email tidak valid!" });
+    if (!type || !message) return res.status(400).json({ status: false, message: "Tipe & isi pesan wajib diisi!" });
+
+    try {
+        const transporter = getSmtpTransporter();
+
+        await Promise.all([
+            transporter.sendMail({
+                from: `"${email}" <${process.env.SMTP_USER || 'supportarulzxd@gmail.com'}>`, 
+                to: process.env.SMTP_USER || 'supportarulzxd@gmail.com', 
+                replyTo: email,
+                subject: `[${type.toUpperCase()}] Feedback Baru`,
+                html: `<p>Feedback dari ${email}:</p><p>${message}</p>`
+            }),
+            transporter.sendMail({
+                from: `"Support ArulzXD" <${process.env.SMTP_USER || 'supportarulzxd@gmail.com'}>`, 
+                to: email,
+                subject: `Terima Kasih atas Feedback Anda`,
+                html: `<p>Halo, feedback Anda telah kami terima.</p>`
+            })
+        ]);
+
+        return res.json({ status: true, message: "Feedback berhasil dikirim!" });
+    } catch (error) {
+        return res.status(500).json({ status: false, message: "Gagal mengirim email feedback." });
+    }
+});
+
+app.get(['/api/server-status', '/api/status-server'], async (req, res) => {
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+
+    let totalUsers = 0;
+    let totalRequests = 0;
+
+    try {
+        totalUsers = await User.countDocuments();
+        const reqAggregate = await ApiLog.aggregate([
+            { $project: { count: { $size: "$log" } } },
+            { $group: { _id: null, total: { $sum: "$count" } } }
+        ]);
+        totalRequests = reqAggregate[0]?.total || 0;
+    } catch (err) {
+        console.error("Gagal memuat statistik server:", err.message);
+    }
+
+    res.json({
+        totalUsers,
+        totalRequests,
+        platform: os.platform(),
+        architecture: os.arch(),
+        uptime: os.uptime(),
+        totalMemory: (totalMem / (1024 ** 3)).toFixed(2) + " GB",
+        usedMemory: (usedMem / (1024 ** 3)).toFixed(2) + " GB",
+        freeMemory: (freeMem / (1024 ** 3)).toFixed(2) + " GB",
+        memoryUsagePercent: ((usedMem / totalMem) * 100).toFixed(2),
+        cpuModel: os.cpus()[0].model,
+        cpuSpeed: os.cpus()[0].speed + " MHz",
+        cpuCores: os.cpus().length,
+        loadAverage: os.loadavg()
+    });
+});
+
+// ====================================================
+// 13. CRON JOBS & SERVER LISTEN
+// ====================================================
+cron.schedule('0 * * * *', async () => {
+    try {
+        const now = new Date();
+        const expiredUsers = await User.find({ 
+            role: { $ne: 'Free User' }, 
+            roleExpiresAt: { $lte: now } 
+        });
+
+        for (const user of expiredUsers) {
+            user.role = 'Free User';
+            user.roleExpiresAt = null;
+            user.apikey = generateFreeApiKey();
+            await user.save();
+            console.log(`📉 [EXPIRED] Role & API Key untuk ${user.username} dikembalikan ke Free User.`);
+        }
+    } catch (err) {
+        console.error('❌ [CRON] Error saat reset role expired:', err.message);
+    }
+}, { scheduled: true, timezone: "Asia/Jakarta" });
+
+mongoose.connection.once('open', async () => {
+    try {
+        await mongoose.connection.db.collection('transactions').dropIndex('transactionId_1');
+        console.log('🧹 Berhasil menghapus index lama transactionId_1');
+    } catch (e) {}
+});
+
+// ====================================================
+// 14. PAGE ROUTES
+// ====================================================
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'home.html')));
+app.get('/login', (req, res) => {
+    if (req.user) return res.redirect('/api');
+
+    const loginFilePath = path.join(__dirname, 'public', 'login.html');
+    return res.sendFile(loginFilePath, (err) => {
+        if (err) {
+            console.error("Gagal mengirim berkas login.html:", err.message);
+            if (!res.headersSent) {
+                return res.status(500).send("Gagal memuat halaman login di server.");
+            }
+        }
+    });
+});
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
+app.get('/uploader', (req, res) => res.sendFile(path.join(__dirname, 'public', 'uploader.html')));
+app.get('/feedback', (req, res) => res.sendFile(path.join(__dirname, 'public', 'feedback.html')));
+app.get('/pastecode', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pastecode.html')));
+app.get('/privacy', (req, res) => res.sendFile(path.join(__dirname, 'public', 'privacy.html')));
+app.get('/profile', (req, res) => req.user ? res.sendFile(path.join(__dirname, 'public', 'profile.html')) : res.redirect('/login'));
+app.get('/support', (req, res) => res.sendFile(path.join(__dirname, 'public', 'support.html')));
+app.get('/status', (req, res) => res.sendFile(path.join(__dirname, 'public', 'status.html')));
+app.get('/upgrade-apikey', (req, res) => res.sendFile(path.join(__dirname, 'public', 'upgrade-apikey.html')));
+app.get('/store', (req, res) => res.sendFile(path.join(__dirname, 'public', 'store.html')));
+
+app.get('/store/:productId', async (req, res) => {
+    try {
+        const product = await Product.findOne({ Id: req.params.productId });
+        let htmlContent = fs.readFileSync(path.join(__dirname, 'public', 'store.html'), 'utf8');
+
+        if (product) {
+            const hargaFormatted = product.harga_diskon ? `Rp ${product.harga_diskon.toLocaleString('id-ID')}` : `Rp ${product.harga.toLocaleString('id-ID')}`;
+            const metaTags = `
+                <meta property="og:title" content="${product.nama} - ArulzXD Store" />
+                <meta property="og:description" content="${product.deskripsi ? product.deskripsi.slice(0, 150) : ''}... | Harga: ${hargaFormatted}" />
+                <meta property="og:image" content="${product.gambar}" />
+                <meta property="og:url" content="https://api.arulzzxd.my.id/store/${product.Id}" />
+            `;
+            htmlContent = htmlContent.replace('<head>', `<head>${metaTags}`);
+        }
+        res.send(htmlContent);
+    } catch (error) {
+        res.sendFile(path.join(__dirname, 'public', 'store.html'));
+    }
+});
+
+app.get('/api/script.js', (req, res) => res.sendFile(path.join(__dirname, 'script.js')));
+app.get('/api/styles.css', (req, res) => res.sendFile(path.join(__dirname, 'styles.css')));
+
+app.get(['/api', '/api/'], async (req, res) => {
+    let activeUser = req.user;
+
+    if (req.user) {
+        try {
+            const freshUser = await User.findById(req.user.id || req.user._id).lean();
+            if (freshUser) activeUser = freshUser;
+        } catch (e) {}
+    }
+
+    const currentApiKey = activeUser ? activeUser.apikey : 'Silakan Login';
+
+    try {
+        let htmlContent = fs.readFileSync(path.join(__dirname, 'public', 'api.html'), 'utf8');
+        htmlContent = htmlContent.replace(/\${currentApiKey}/g, currentApiKey);
+        res.send(htmlContent);
+    } catch (err) {
+        res.sendFile(path.join(__dirname, 'public', 'api.html'));
+    }
+});
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
