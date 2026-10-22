@@ -307,6 +307,21 @@
             box-shadow: 0 2px 0px rgba(18, 18, 18, 0.05) !important;
         }
         .dropdown-nav-card:active { transform: translateY(1px) !important; background-color: #FAF7EF !important; }
+
+        /* CUSTOM NO-CONTROL VIDEO STYLING UTK LIGHTBOX MEDIA */
+        #lightboxVideo::-webkit-media-controls-panel,
+        #lightboxVideo::-webkit-media-controls-timeline,
+        #lightboxVideo::-webkit-media-controls-current-time-display,
+        #lightboxVideo::-webkit-media-controls-time-remaining-display,
+        #lightboxVideo::-webkit-media-controls-mute-button,
+        #lightboxVideo::-webkit-media-controls-toggle-closed-captions-button,
+        #lightboxVideo::-webkit-media-controls-volume-slider,
+        #lightboxVideo::-webkit-media-controls-fullscreen-button,
+        #lightboxVideo::-internal-media-controls-overflow-button,
+        #lightboxVideo::-webkit-media-controls-play-button {
+            display: none !important;
+            -webkit-appearance: none !important;
+        }
     </style>
 </head>
 <body class="font-sans antialiased text-zinc-900 min-h-screen pb-12">
@@ -715,25 +730,20 @@
         </div>
 
         <div class="relative flex-1 flex items-center justify-center overflow-hidden my-2" id="lightboxSwipeArea" onclick="event.stopPropagation()">
-            <button onclick="navigateMediaHorizontal(-1)" class="absolute left-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/60 border border-white/20 text-white hover:text-amber-400 flex items-center justify-center transition hover:scale-110">
-                <i class="fa-solid fa-chevron-left text-base"></i>
-            </button>
-            <button onclick="navigateMediaHorizontal(1)" class="absolute right-2 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-black/60 border border-white/20 text-white hover:text-amber-400 flex items-center justify-center transition hover:scale-110">
-                <i class="fa-solid fa-chevron-right text-base"></i>
-            </button>
-
-            <div class="max-w-4xl max-h-[75vh] w-full flex items-center justify-center p-2">
+            <!-- Gambar / Video Kontainer -->
+            <div class="max-w-4xl max-h-[75vh] w-full flex items-center justify-center p-2 relative">
                 <img id="lightboxImage" src="" class="hidden max-w-full max-h-[75vh] rounded-2xl object-contain border-2 border-white/20 shadow-2xl transition-all duration-200">
-                <video id="lightboxVideo" controls loop class="hidden max-w-full max-h-[75vh] rounded-2xl object-contain border-2 border-white/20 shadow-2xl transition-all duration-200"></video>
-
+                
+                <!-- Video Dengan Area Sentuh Play/Pause Bening & Kontrol Tersembunyi -->
+                <div id="lightboxVideoWrapper" class="hidden relative max-w-full max-h-[75vh] flex items-center justify-center cursor-pointer" onclick="toggleLightboxVideoPlay()">
+                    <video id="lightboxVideo" playsinline webkit-playsinline class="max-w-full max-h-[75vh] rounded-2xl object-contain border-2 border-white/20 shadow-2xl transition-all duration-200"></video>
+                    <div id="lightboxVideoPlayOverlay" class="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none transition-opacity duration-200">
+                        <div class="w-12 h-12 rounded-full bg-black/50 border border-white/40 flex items-center justify-center text-white backdrop-blur-xs">
+                            <i id="lightboxVideoPlayIcon" class="fa-solid fa-play text-lg ml-1"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <button onclick="navigateUserVertical(-1)" class="absolute top-2 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full bg-black/60 border border-white/20 text-xs text-zinc-300 hover:text-amber-400 flex items-center gap-1 transition">
-                <i class="fa-solid fa-chevron-up"></i> Ulasan SBLM
-            </button>
-            <button onclick="navigateUserVertical(1)" class="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full bg-black/60 border border-white/20 text-xs text-zinc-300 hover:text-amber-400 flex items-center gap-1 transition">
-                Ulasan SELANJUTNYA <i class="fa-solid fa-chevron-down"></i>
-            </button>
         </div>
 
         <div class="bg-zinc-900/90 border border-zinc-700 p-3 rounded-2xl max-w-2xl mx-auto w-full z-20 space-y-1.5 text-white" onclick="event.stopPropagation()">
@@ -1069,34 +1079,31 @@
 
         // FUNGSI PEMUTAR VIDEO OTOMATIS KHUSUS BANNER SIDEBAR
         function playBannerVideo() {
-    const mainVideo = document.getElementById('mainBannerVideo');
-    const sidebarVideo = document.getElementById('sidebarBannerVideo');
+            const mainVideo = document.getElementById('mainBannerVideo');
+            const sidebarVideo = document.getElementById('sidebarBannerVideo');
 
-    // 1. Pengaturan untuk Video Utama (Main Banner)
-    if (mainVideo) {
-        // Ubah ke false jika ingin video utama ada suaranya (tidak muted)
-        mainVideo.muted = false; 
-        mainVideo.playsInline = true;
-        mainVideo.setAttribute('playsinline', '');
-        
-        if (mainVideo.paused || mainVideo.currentTime === 0) {
-            mainVideo.play().catch(e => console.log("Gagal memutar video utama:", e));
-        }
-    }
+            if (mainVideo) {
+                mainVideo.muted = false; 
+                mainVideo.playsInline = true;
+                mainVideo.setAttribute('playsinline', '');
+                
+                if (mainVideo.paused || mainVideo.currentTime === 0) {
+                    mainVideo.play().catch(e => console.log("Gagal memutar video utama:", e));
+                }
+            }
 
-    // 2. Pengaturan untuk Video Sidebar / Biodropdown (Tetap auto play + muted)
-    if (sidebarVideo) {
-        sidebarVideo.muted = true;
-        sidebarVideo.defaultMuted = true;
-        sidebarVideo.playsInline = true;
-        sidebarVideo.setAttribute('muted', '');
-        sidebarVideo.setAttribute('playsinline', '');
-        
-        if (sidebarVideo.paused || sidebarVideo.currentTime === 0) {
-            sidebarVideo.play().catch(e => console.log("Gagal memutar video sidebar:", e));
+            if (sidebarVideo) {
+                sidebarVideo.muted = true;
+                sidebarVideo.defaultMuted = true;
+                sidebarVideo.playsInline = true;
+                sidebarVideo.setAttribute('muted', '');
+                sidebarVideo.setAttribute('playsinline', '');
+                
+                if (sidebarVideo.paused || sidebarVideo.currentTime === 0) {
+                    sidebarVideo.play().catch(e => console.log("Gagal memutar video sidebar:", e));
+                }
+            }
         }
-    }
-}
 
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', playBannerVideo);
@@ -1540,21 +1547,52 @@
             document.getElementById('lightboxUserComment').innerText = userReview.comment || '';
 
             const img = document.getElementById('lightboxImage');
+            const videoWrapper = document.getElementById('lightboxVideoWrapper');
             const video = document.getElementById('lightboxVideo');
+            const overlay = document.getElementById('lightboxVideoPlayOverlay');
+            const icon = document.getElementById('lightboxVideoPlayIcon');
 
             if (currentMedia.type === 'video') {
                 img.classList.add('hidden');
-                video.src = currentMedia.url;
-                video.classList.remove('hidden');
-            } else {
                 video.pause();
-                video.classList.add('hidden');
+                video.src = currentMedia.url;
+                videoWrapper.classList.remove('hidden');
+
+                // Auto play video saat dibuka
+                video.play().then(() => {
+                    overlay.style.opacity = '0';
+                    icon.className = 'fa-solid fa-pause text-lg';
+                }).catch(() => {
+                    overlay.style.opacity = '1';
+                    icon.className = 'fa-solid fa-play text-lg ml-1';
+                });
+            } else {
+                if (video) video.pause();
+                videoWrapper.classList.add('hidden');
                 img.src = currentMedia.url;
                 img.classList.remove('hidden');
             }
 
             document.getElementById('lightboxMediaCounter').innerText = `Media ${activeMediaItemIndex + 1} dari ${userReview.media.length}`;
             document.getElementById('lightboxUserCounter').innerText = `Ulasan ${activeUserReviewIndex + 1} dari ${currentReviewsListWithMedia.length}`;
+        }
+
+        function toggleLightboxVideoPlay() {
+            const video = document.getElementById('lightboxVideo');
+            const overlay = document.getElementById('lightboxVideoPlayOverlay');
+            const icon = document.getElementById('lightboxVideoPlayIcon');
+
+            if (!video) return;
+
+            if (video.paused) {
+                video.play();
+                overlay.style.opacity = '0';
+                icon.className = 'fa-solid fa-pause text-lg';
+            } else {
+                video.pause();
+                overlay.style.opacity = '1';
+                icon.className = 'fa-solid fa-play text-lg ml-1';
+            }
         }
 
         function navigateMediaHorizontal(dir) {
@@ -1890,7 +1928,6 @@
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
         }
 
-        // AMBIL DATA PRODUK & RENDER INSTAN TANPA MENUNGGU ULASAN
         async function fetchProduk() {
             const statusElem = document.getElementById('serverStatus');
             try {
@@ -1905,9 +1942,8 @@
                 }
 
                 generateKategoriButtons();
-                renderProduk(); // RENDER PRODUK DENGAN INSTAN
+                renderProduk();
 
-                // Async fetch ulasan secara background untuk mengisi statistik rating
                 fetchAsyncRatings();
 
             } catch (error) {
@@ -1925,7 +1961,6 @@
             }
         }
 
-        // FUNGSI UNTUK MEMUAT BINTANG/RATING SECARA BACKGROUND
         async function fetchAsyncRatings() {
             let updatedAny = false;
             await Promise.all(DATA_PRODUK.map(async (produk) => {
