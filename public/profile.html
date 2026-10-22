@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="id" class="notranslate" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
+    <!-- Mencegah zoom & auto-scaling berlebih di layar HP -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://api.arulzzxd.my.id/profile" />
+    <meta property="og:title" content="ArulzXD API - Profil & Settings" />
+    <meta property="og:description" content="Kelola informasi pengguna, kredensial API Key, kuota limit, dan riwayat aktivitas." />
+    <meta property="og:image" content="https://api.arulzzxd.my.id/og/profile" />
+    <meta property="og:image:secure_url" content="https://api.arulzzxd.my.id/og/profile" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="600" />
+    <meta property="og:image:height" content="300" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:url" content="https://api.arulzzxd.my.id/profile" />
+    <meta name="twitter:title" content="ArulzXD API - Profil & Settings" />
+    <meta name="twitter:description" content="Kelola informasi pengguna, kredensial API Key, kuota limit, dan riwayat aktivitas." />
+    <meta name="twitter:image" content="https://api.arulzzxd.my.id/og/profile" />
+
+    <title>Arulz-XD API - PROFIL & SETTINGS</title>
+    <link rel="icon" href="https://cdn.arulzzxd.my.id/files/1wh5do.png" type="image/png">
+
+    <!-- Tailwind CSS, SweetAlert2, Google Fonts & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-cream: #FAF7EF;
+            --card-bg: #FFFDF8;
+            --theme-border: #18181b;
+            --theme-accent: #fde047;
+            --theme-text: #121212;
+            --theme-light: #fef9c3;
+            --rgb-angle: 0deg;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        html, body {
+            width: 100%;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            touch-action: pan-x pan-y;
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            -webkit-user-select: none;
+            user-select: none;
+            background-color: var(--bg-cream) !important;
+            color: #121212 !important;
+            background-image: radial-gradient(rgba(0, 0, 0, 0.12) 1.2px, transparent 1.2px) !important;
+            background-size: 16px 16px !important;
+            overflow-x: hidden;
+        }
+
+        .code-font { font-family: 'JetBrains Mono', monospace !important; }
+
+        /* HEADER: SAAT PALING ATAS = SOLID, SAAT SCROLL = TRANSPARAN BENING */
+        header.header-translucent {
+            background-color: rgba(250, 247, 239, 1) !important;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            transition: background-color 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        header.header-scrolled {
+            background-color: rgba(250, 247, 239, 0.25) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        /* AKURASI UKURAN DROPDOWN BIODROPDOWN (AGAR TETAP SAMA DALAM BERBAGAI DPI) */
+        #bioDropdown {
+            width: 310px !important;
+            max-width: 85vw !important;
+            font-size: 14px !important;
+            -webkit-text-size-adjust: none !important;
+        }
+
+        /* Neubrutalism Borders & Shadows */
+        .brutal-border,
+        .light-card,
+        .light-card-box,
+        .dropdown-nav-card,
+        header,
+        #bioDropdown,
+        #themeMenuDropdown,
+        .cyber-loader-box,
+        .cyber-bar {
+            border-color: var(--theme-border) !important;
+            transition: border-color 0.15s ease;
+        }
+
+        .theme-bg-accent {
+            background-color: var(--theme-accent) !important;
+            color: var(--theme-text) !important;
+            border-color: var(--theme-border) !important;
+            transition: all 0.15s ease;
+        }
+
+        .theme-text-accent {
+            color: var(--theme-border) !important;
+            transition: color 0.15s ease;
+        }
+
+        .theme-light-bg {
+            background-color: var(--theme-light) !important;
+            border-color: var(--theme-border) !important;
+            transition: all 0.15s ease;
+        }
+
+        .light-card {
+            background-color: var(--card-bg) !important;
+            border: 2.5px solid var(--theme-border) !important;
+            border-radius: 20px !important;
+            box-shadow: 4px 4px 0px rgba(18, 18, 18, 0.08) !important;
+        }
+
+        .light-card-box {
+            background-color: #FFFDF8 !important;
+            border: 2px solid var(--theme-border) !important;
+            border-radius: 18px !important;
+        }
+
+        .light-pill-capsule {
+            background-color: var(--card-bg) !important;
+            border: 2px solid var(--theme-border) !important;
+            border-radius: 9999px !important;
+            color: #121212 !important;
+            font-weight: 800 !important;
+        }
+
+        .dropdown-nav-card {
+            background-color: #FFFDF8 !important;
+            border: 2px solid var(--theme-border) !important;
+            border-radius: 14px !important;
+            padding: 10px 14px !important;
+            font-weight: 800 !important;
+            font-size: 11px !important;
+            color: #121212 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            text-transform: uppercase !important;
+            transition: all 0.15s ease !important;
+            box-shadow: 0 2px 0px rgba(18, 18, 18, 0.05) !important;
+        }
+        .dropdown-nav-card:active {
+            transform: translateY(1px) !important;
+            background-color: #FAF7EF !important;
+        }
+
+        /* MODE RGB DYNAMIC ROTATING BORDER */
+        .rgb-mode-active .light-card,
+        .rgb-mode-active .light-card-box,
+        .rgb-mode-active .dropdown-nav-card,
+        .rgb-mode-active #themeMenuDropdown,
+        .rgb-mode-active .cyber-loader-box,
+        .rgb-mode-active .cyber-bar {
+            border-color: transparent !important;
+            background-image: linear-gradient(var(--card-bg), var(--card-bg)), 
+                              conic-gradient(from var(--rgb-angle), #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
+            background-origin: border-box !important;
+            background-clip: padding-box, border-box !important;
+        }
+
+        .rgb-mode-active .theme-bg-accent {
+            border-color: transparent !important;
+            background-image: linear-gradient(var(--theme-accent), var(--theme-accent)), 
+                              conic-gradient(from var(--rgb-angle), #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
+            background-origin: border-box !important;
+            background-clip: padding-box, border-box !important;
+            color: var(--theme-text) !important;
+        }
+
+        .rgb-mode-active header.header-translucent {
+            border-color: var(--theme-border) !important;
+            background-color: rgba(250, 247, 239, 1) !important;
+            background-image: none !important;
+        }
+
+        .rgb-mode-active header.header-scrolled {
+            border-color: var(--theme-border) !important;
+            background-color: rgba(250, 247, 239, 0.25) !important;
+            background-image: none !important;
+        }
+
+        .rgb-mode-active #bioDropdown {
+            border-color: transparent !important;
+            background-image: linear-gradient(var(--bg-cream), var(--bg-cream)), 
+                              conic-gradient(from var(--rgb-angle), #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
+            background-origin: border-box !important;
+            background-clip: padding-box, border-box !important;
+        }
+
+        /* CYBER LOADER OVERLAY */
+        #cyber-loader-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background-color: var(--bg-cream);
+            background-image: radial-gradient(rgba(0, 0, 0, 0.12) 1.5px, transparent 1.5px) !important;
+            background-size: 16px 16px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        #cyber-loader-overlay.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .cyber-loader-box {
+            background: var(--card-bg);
+            border: 2.5px solid var(--theme-border);
+            box-shadow: 6px 6px 0px rgba(18, 18, 18, 0.15);
+            border-radius: 24px;
+            padding: 32px 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            width: min(320px, 90vw);
+        }
+
+        .cyber-avatar-wrap {
+            position: relative;
+            width: 76px;
+            height: 76px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cyber-ring {
+            position: absolute;
+            inset: -6px;
+            border: 3.5px solid #e4e4e7;
+            border-top-color: var(--theme-border);
+            border-right-color: #3b82f6;
+            border-radius: 50%;
+            animation: spinCyber 1s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+        }
+
+        @keyframes spinCyber {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .cyber-text-glitch {
+            color: #121212;
+            font-weight: 900;
+            font-size: 13px;
+            letter-spacing: 2px;
+        }
+
+        .cyber-bar {
+            width: 100%;
+            height: 10px;
+            background: #e4e4e7;
+            border: 2px solid var(--theme-border);
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .cyber-bar-fill {
+            height: 100%;
+            background: var(--theme-border);
+            width: 0%;
+            transition: width 0.15s ease;
+            border-radius: 9999px;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="min-h-screen relative flex flex-col justify-between antialiased">
+
+    <!-- Loader Overlay Cyberpunk Light Style -->
+    <div id="cyber-loader-overlay">
+        <div class="cyber-loader-box">
+            <div class="cyber-avatar-wrap mb-4">
+                <div class="cyber-ring"></div>
+                <img src="https://cdn.arulzzxd.my.id/files/1wh5do.png" alt="Logo" class="w-14 h-14 rounded-full object-cover border-2 border-zinc-900 shadow-sm">
+            </div>
+            <div class="text-center">
+                <div id="loader-title-text" class="cyber-text-glitch uppercase mb-0.5">
+                    INITIALIZING PROFILE...
+                </div>
+                <div class="text-[9px] font-mono text-zinc-600 font-bold uppercase tracking-widest">
+                    ARULZ-XD API REST CORE
+                </div>
+            </div>
+            <div class="w-full mt-5">
+                <div class="flex items-center justify-between text-[10px] font-mono mb-1.5 text-zinc-800 font-bold">
+                    <span>USER DATA SYNC</span>
+                    <span id="loader-percentage" class="font-black">0%</span>
+                </div>
+                <div class="cyber-bar">
+                    <div id="loader-progress-fill" class="cyber-bar-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header Top Bar (Paling Atas = Solid 100%, Scroll = Transparan) -->
+    <header id="mainHeader" class="fixed top-0 left-0 right-0 w-full header-translucent border-b-2 brutal-border z-30">
+        <div class="max-w-2xl mx-auto px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2.5 sm:gap-3">
+                <a href="/api" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 brutal-border bg-black flex items-center justify-center shadow-sm active:scale-95 transition-transform shrink-0">
+                    <img src="https://cdn.arulzzxd.my.id/files/1wh5do.png" alt="Logo" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover">
+                </a>
+                <div>
+                    <span class="text-sm sm:text-base font-black text-zinc-900 tracking-tight block leading-none">Arulzxd API</span>
+                    <span class="text-[9px] sm:text-[10px] font-mono font-bold text-zinc-600 uppercase">PROFIL &amp; SETTINGS</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 sm:gap-2 relative">
+                <!-- Tombol Switcher Style Warna -->
+                <button id="themePickerBtn" title="Ubah Style Warna" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 theme-bg-accent flex items-center justify-center active:scale-95 shadow-sm transition-all">
+                    <svg class="w-4 h-4 sm:w-5 sm:h-5 fill-current" viewBox="0 0 24 24">
+                        <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61.43.53 1.03.89 1.7.89h1.83c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-1 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-4.97-4.03-9-9-9zm-6.5 9c-.83 0-1.5-.67-1.5-1.5S4.67 9 5.5 9s1.5.67 1.5 1.5S6.33 12 5.5 12zm3-4C7.67 8 7 7.33 7 6.5S7.67 5 8.5 5s1.5.67 1.5 1.5S9.33 8 8.5 8zm7 0c-.83 0-1.5-.67-1.5-1.5S14.67 5 15.5 5s1.5.67 1.5 1.5S16.33 8 15.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+                    </svg>
+                </button>
+
+                <!-- Tombol Menu Sidebar -->
+                <button id="bioMenuBtn" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 brutal-border bg-[#FAF7EF] flex items-center justify-center text-zinc-900 active:scale-95 shadow-sm">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                    </svg>
+                </button>
+
+                <!-- Dropdown Pilihan Tema Warna -->
+                <div id="themeMenuDropdown" class="hidden absolute top-12 right-0 w-44 bg-[#FFFDF8] border-2 brutal-border rounded-xl p-2 shadow-2xl z-50 flex flex-col gap-1.5">
+                    <div class="text-[9px] font-black code-font uppercase text-zinc-500 px-2 py-0.5 border-b border-zinc-200">PILIH TEMA STYLE</div>
+                    <button onclick="setAppTheme('yellow')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-amber-600 bg-yellow-300 text-[11px] font-black text-zinc-900 active:scale-95"><span>YELLOW</span><span class="w-3.5 h-3.5 rounded-full bg-yellow-400 border border-amber-700"></span></button>
+                    <button onclick="setAppTheme('red')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-red-700 bg-red-500 text-[11px] font-black text-white active:scale-95"><span>RED</span><span class="w-3.5 h-3.5 rounded-full bg-red-600 border border-red-800"></span></button>
+                    <button onclick="setAppTheme('blue')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-blue-700 bg-blue-500 text-[11px] font-black text-white active:scale-95"><span>BLUE</span><span class="w-3.5 h-3.5 rounded-full bg-blue-600 border border-blue-800"></span></button>
+                    <button onclick="setAppTheme('cyan')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-cyan-700 bg-cyan-400 text-[11px] font-black text-zinc-900 active:scale-95"><span>CYAN</span><span class="w-3.5 h-3.5 rounded-full bg-cyan-500 border border-cyan-800"></span></button>
+                    <button onclick="setAppTheme('purple')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-purple-700 bg-purple-500 text-[11px] font-black text-white active:scale-95"><span>PURPLE</span><span class="w-3.5 h-3.5 rounded-full bg-purple-600 border border-purple-800"></span></button>
+                    <button onclick="setAppTheme('green')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-emerald-700 bg-emerald-400 text-[11px] font-black text-zinc-900 active:scale-95"><span>GREEN</span><span class="w-3.5 h-3.5 rounded-full bg-emerald-500 border border-emerald-800"></span></button>
+                    <button onclick="setAppTheme('black')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-zinc-900 bg-zinc-900 text-[11px] font-black text-white active:scale-95"><span>BLACK</span><span class="w-3.5 h-3.5 rounded-full bg-black border border-white"></span></button>
+                    <button onclick="setAppTheme('rgb')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-pink-600 bg-gradient-to-r from-red-400 via-emerald-400 to-blue-400 text-[11px] font-black text-zinc-900 active:scale-95 shadow-sm"><span>RGB DYNAMIC</span><span class="w-3.5 h-3.5 rounded-full bg-white border border-black animate-pulse"></span></button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Overlay Latar Belakang (z-40) -->
+    <div id="menuOverlay" class="fixed inset-0 bg-black/60 hidden z-40"></div>
+
+    <!-- Sidebar Dropdown Nav (z-50) -->
+    <div id="bioDropdown" class="fixed top-0 right-0 h-full bg-[#FAF7EF] border-l-2 brutal-border transform translate-x-full transition-transform duration-300 ease-in-out z-50 shadow-2xl flex flex-col p-4 text-zinc-900 overflow-y-auto scrollbar-hide">
+        
+        <!-- Header Dropdown -->
+        <div class="flex items-center justify-between pb-3 mb-3 border-b-2 brutal-border">
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 theme-bg-accent border-2 brutal-border rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    ARULZXD API
+                </span>
+            </div>
+
+            <button id="closeMenuBtn" class="w-8 h-8 rounded-lg border-2 brutal-border bg-[#FAF7EF] flex items-center justify-center text-zinc-900 active:scale-95">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <!-- Banner Video HD -->
+        <div class="mb-3.5 rounded-xl border-2 brutal-border overflow-hidden bg-black h-44 w-full relative shadow-sm">
+            <video id="sidebarBannerVideo" autoplay loop muted playsinline webkit-playsinline preload="auto" class="w-full h-full object-cover">
+                <source src="https://cdn.arulzzxd.my.id/files/MPzS.mp4" type="video/mp4">
+            </video>
+        </div>
+
+        <!-- Auth / Profile Status Container -->
+        <div id="sidebarAuthBtnContainer" class="mb-3">
+            <div class="p-3 bg-amber-100 border-2 brutal-border rounded-xl shadow-xs">
+                <div class="flex items-center gap-1.5 text-amber-900 text-xs font-black mb-1">
+                    <svg class="w-4 h-4 text-amber-700 fill-current" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <span>STATUS PROFIL</span>
+                </div>
+                <p class="text-[10px] font-semibold text-zinc-700 leading-tight">
+                    Mengelola informasi pengguna &amp; API Key aktif.
+                </p>
+            </div>
+        </div>
+
+        <!-- Tombol Navigasi Dropdown -->
+        <nav class="space-y-2 flex-1 pb-4">
+            <a href="/" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+                    <span>DASHBOARD</span>
+                </div>
+            </a>
+            <a href="/api" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    <span>DOCS / ENDPOINTS</span>
+                </div>
+            </a>
+            <a href="/store" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+                    <span>STORE</span>
+                </div>
+            </a>
+            <a href="/uploader" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+                    <span>UPLOADER FILE</span>
+                </div>
+            </a>
+            <a href="/pastecode" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
+                    <span>PASTECODE SNIPPET</span>
+                </div>
+            </a>
+            <a href="/feedback" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.255-3.883c.195-.29.515-.475.865-.501 1.153-.086 2.294-.213 3.423-.379 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
+                    <span>FEEDBACK</span>
+                </div>
+            </a>
+            <a href="/status" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 3h13.5m-13.5 3h13.5M6 3h12a2.25 2.25 0 012.25 2.25v3.75A2.25 2.25 0 0118 11.25H6A2.25 2.25 0 013.75 9V5.25A2.25 2.25 0 016 3z"/></svg>
+                    <span>SERVER STATUS</span>
+                </div>
+            </a>
+            <a href="/support" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+                    <span>SUPPORT / DONASI</span>
+                </div>
+            </a>
+            <a href="/privacy" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                    <span>PRIVACY POLICY</span>
+                </div>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="w-full max-w-2xl mx-auto px-3.5 sm:px-6 pt-20 pb-10 relative z-10 flex-1 flex flex-col items-center space-y-5">
+
+        <!-- KARTU 1: HEADER PROFIL & DETAIL KELOLA AKUN -->
+        <div class="w-full light-card p-5 sm:p-6">
+            
+            <!-- Top Section: Avatar & Info Header -->
+            <div class="flex flex-col gap-3 mb-5">
+                <div class="relative w-20 h-20 flex-shrink-0">
+                    <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadAvatarFile(this)">
+                    <div class="relative cursor-pointer w-full h-full group" onclick="document.getElementById('avatarInput').click()" title="Klik untuk ubah foto profil">
+                        <div class="w-full h-full rounded-full border-2 border-zinc-900 shadow-sm overflow-hidden bg-emerald-500 p-0.5">
+                            <img id="userAvatar" src="https://cdn.arulzzxd.my.id/files/X1F0Cn.png" class="w-full h-full rounded-full object-cover">
+                        </div>
+                        <div class="absolute bottom-0 right-0 bg-zinc-900 text-white w-7 h-7 rounded-full border-2 border-white flex items-center justify-center shadow-md hover:bg-zinc-800 transition-all">
+                            <i class="fa-solid fa-camera text-[11px]"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h2 id="userName" class="text-xl font-black text-zinc-900 tracking-tight truncate">Loading...</h2>
+                        <span id="roleBadge" class="text-[10px] font-black border-2 border-zinc-900 px-2.5 py-0.5 rounded-full uppercase shadow-xs bg-zinc-200 text-zinc-800">
+                            FREE
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-xs font-bold text-zinc-600 mt-1 flex-wrap">
+                        <span id="userEmail" class="truncate">loading_email@gmail.com</span>
+                        <span class="text-zinc-400">•</span>
+                        <span class="text-emerald-600 flex items-center gap-1 font-extrabold">
+                            <i class="fa-solid fa-circle-check text-xs"></i>
+                            <span>Akun Terverifikasi</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-Box Detail Profil -->
+            <div class="light-card-box p-4 space-y-3 bg-[#FFFDF8]">
+                <div class="flex items-center justify-between text-xs font-bold border-b border-zinc-200/80 pb-2.5 gap-2">
+                    <span class="text-zinc-500 uppercase code-font text-[11px]">Username:</span>
+                    <div class="flex items-center gap-2 truncate max-w-[70%] justify-end">
+                        <span id="detailUsername" class="text-zinc-900 font-extrabold truncate">loading...</span>
+                        <button onclick="toggleEditUsernameModal()" title="Edit Username" class="p-1.5 rounded-lg border-2 border-zinc-900 theme-bg-accent hover:opacity-80 active:scale-95 transition-all text-[11px] leading-none flex-shrink-0 cursor-pointer">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs font-bold border-b border-zinc-200/80 pb-2.5">
+                    <span class="text-zinc-500 uppercase code-font text-[11px]">Status Plan:</span>
+                    <span id="detailPlanBadge" class="text-[10px] font-black border-2 border-zinc-900 px-3 py-0.5 rounded-full uppercase shadow-xs bg-zinc-200 text-zinc-800">
+                        FREE
+                    </span>
+                </div>
+
+                <div class="flex items-center justify-between text-xs font-bold border-b border-zinc-200/80 pb-2.5">
+                    <span class="text-zinc-500 uppercase code-font text-[11px]">Masa Aktif Role:</span>
+                    <span id="detailRoleExpire" class="text-zinc-900 font-extrabold truncate">Selamanya (Free)</span>
+                </div>
+
+                <div class="flex items-center justify-between text-xs font-bold gap-2">
+                    <span id="providerLabel" class="text-zinc-500 uppercase code-font text-[11px]">Email:</span>
+                    <div class="flex items-center gap-2 truncate max-w-[70%] justify-end">
+                        <span id="providerIcon" class="flex-shrink-0 flex items-center">
+                            <i class="fa-solid fa-envelope text-amber-600"></i>
+                        </span>
+                        <span id="detailEmail" class="text-zinc-900 font-extrabold truncate">loading_email@gmail.com</span>
+                        <button onclick="toggleEditEmailModal()" title="Edit Email" class="p-1.5 rounded-lg border-2 border-zinc-900 theme-bg-accent hover:opacity-80 active:scale-95 transition-all text-[11px] leading-none flex-shrink-0 cursor-pointer">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KARTU 2: KREDENSIAL API KEY -->
+        <div class="w-full light-card p-5">
+            <div class="flex items-center justify-between mb-3 border-b-2 border-zinc-200 pb-2">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-key text-zinc-900"></i>
+                    <h3 class="text-xs font-black uppercase tracking-wider code-font">KREDENSIAL API KEY</h3>
+                </div>
+                <span class="text-[9px] font-black code-font bg-zinc-900 text-white px-2 py-0.5 rounded uppercase">
+                    PRIVATE KEY
+                </span>
+            </div>
+
+            <div class="light-card-box p-3 mb-3 relative bg-amber-50/60">
+                <input type="password" id="userApiKeyInput" readonly value="••••••••••••••••" class="w-full bg-transparent text-center code-font text-sm font-black text-zinc-900 focus:outline-none select-all">
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <button onclick="toggleShowApiKey()" id="btnToggleKey" class="bg-[#FFFDF8] hover:bg-zinc-100 text-zinc-900 border-2 border-zinc-900 text-xs py-2 px-3 rounded-xl uppercase font-extrabold active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                    <i class="fa-solid fa-eye"></i> TAMPILKAN
+                </button>
+                <button onclick="copyApiKey()" class="theme-bg-accent text-zinc-900 border-2 border-zinc-900 text-xs py-2 px-3 rounded-xl uppercase font-extrabold active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                    <i class="fa-regular fa-copy"></i> SALIN KEY
+                </button>
+                <button onclick="toggleCustomKeyInput()" id="btnCustomKey" class="bg-zinc-900 hover:bg-zinc-800 text-white border-2 border-zinc-900 text-xs py-2 px-3 rounded-xl uppercase font-extrabold transition-all flex items-center justify-center gap-1.5 col-span-2 sm:col-span-1 shadow-xs opacity-40 cursor-not-allowed">
+                    <i class="fa-solid fa-sliders"></i> CUSTOM KEY
+                </button>
+            </div>
+
+            <div id="vipCustomKeyBox" class="hidden mt-3 light-card-box p-3">
+                <p class="text-[10px] font-bold text-zinc-600 mb-2">Ubah API Key kustom Anda (Khusus VIP User):</p>
+                <div class="flex gap-2">
+                    <input type="text" id="customApiKeyInput" placeholder="Ketik Custom Key..." class="w-full bg-[#FFFDF8] border-2 border-zinc-900 rounded-xl px-3 py-1.5 text-xs text-zinc-900 focus:outline-none font-bold">
+                    <button onclick="saveCustomApiKey()" class="theme-bg-accent text-zinc-900 border-2 border-zinc-900 text-xs px-4 rounded-xl uppercase font-extrabold shadow-xs active:scale-95 cursor-pointer">SIMPAN</button>
+                </div>
+            </div>
+
+            <p class="text-[10px] font-bold text-zinc-500 mt-3 text-center">
+                Gunakan API Key ini dengan parameter <code class="code-font text-zinc-800 bg-zinc-200 px-1 rounded">?apikey=</code> pada endpoint API.
+            </p>
+        </div>
+
+        <!-- KARTU 3: PENGGUNAAN & KUOTA -->
+        <div class="w-full light-card p-5">
+            <div class="flex items-center justify-between mb-3 border-b-2 border-zinc-200 pb-2">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-zinc-900"></i>
+                    <h3 class="text-xs font-black uppercase tracking-wider code-font">PENGGUNAAN &amp; KUOTA</h3>
+                </div>
+                <a href="/upgrade-apikey" class="text-[10px] font-black theme-bg-accent border-2 border-zinc-900 px-2.5 py-1 rounded-lg uppercase shadow-xs flex items-center gap-1 active:scale-95">
+                    <i class="fa-solid fa-plus"></i> UPGRADE KUOTA
+                </a>
+            </div>
+
+            <div class="light-card-box p-4 mb-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-black text-zinc-900 uppercase code-font">Kuota Harian (API)</span>
+                    <span class="text-xs font-black code-font text-zinc-900">
+                        <span id="popupLimitUsed">0</span> / <span id="popupLimitMax">100</span>
+                    </span>
+                </div>
+                <div class="w-full bg-zinc-200 h-3 rounded-full border-2 border-zinc-900 overflow-hidden">
+                    <div id="limitProgressBar" class="bg-amber-400 h-full w-0 transition-all duration-300"></div>
+                </div>
+                <p class="text-[10px] font-bold text-zinc-500 mt-2 flex items-center justify-between">
+                    <span>Masa Aktif: <strong id="quotaRoleExpireText" class="text-zinc-800">Selamanya (Free)</strong></span>
+                    <span>Reset: 00:00 WIB</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- KARTU 4: METRIK PERANGKAT AKTIF -->
+        <div class="w-full light-card p-5">
+            <div class="flex items-center justify-between mb-3 border-b-2 border-zinc-200 pb-2">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-desktop text-zinc-900"></i>
+                    <h3 class="text-xs font-black uppercase tracking-wider code-font">METRIK PERANGKAT AKTIF</h3>
+                </div>
+                <span class="text-[9px] font-black code-font bg-zinc-200 text-zinc-800 border border-zinc-900 px-2 py-0.5 rounded uppercase">
+                    CLIENT INFO
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
+                <div class="light-card-box p-3">
+                    <i class="fa-solid fa-mobile-screen-button text-amber-600 text-base mb-1"></i>
+                    <span class="block text-[9px] font-black text-zinc-500 uppercase code-font">OS</span>
+                    <span id="clientOS" class="text-xs font-black text-zinc-900 truncate block">Detecting...</span>
+                </div>
+                <div class="light-card-box p-3">
+                    <i class="fa-brands fa-chrome text-blue-600 text-base mb-1"></i>
+                    <span class="block text-[9px] font-black text-zinc-500 uppercase code-font">Browser</span>
+                    <span id="clientBrowser" class="text-xs font-black text-zinc-900 truncate block">Detecting...</span>
+                </div>
+                <div class="light-card-box p-3">
+                    <i class="fa-solid fa-battery-three-quarters text-emerald-600 text-base mb-1"></i>
+                    <span class="block text-[9px] font-black text-zinc-500 uppercase code-font">Baterai</span>
+                    <span id="clientBattery" class="text-xs font-black text-zinc-900 truncate block">100%</span>
+                </div>
+                <div class="light-card-box p-3">
+                    <i class="fa-solid fa-expand text-purple-600 text-base mb-1"></i>
+                    <span class="block text-[9px] font-black text-zinc-500 uppercase code-font">Resolusi</span>
+                    <span id="clientRes" class="text-xs font-black text-zinc-900 truncate block">1920x1080</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KARTU 5: AKTIVITAS & RIWAYAT REQUEST -->
+        <div class="w-full light-card p-5">
+            <div class="border-b-2 border-zinc-200 pb-3 mb-3">
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-500 font-mono font-black text-sm">&gt;_</span>
+                        <h3 class="text-xs font-black uppercase tracking-wider code-font text-zinc-900">
+                            AKTIVITAS &amp; RIWAYAT REQUEST
+                        </h3>
+                    </div>
+                </div>
+                <p class="text-[11px] font-semibold text-zinc-600 code-font">
+                    Histori pemanggilan endpoint API secara langsung.
+                </p>
+
+                <!-- Tombol Hapus Riwayat -->
+                <div class="mt-3">
+                    <button onclick="clearActivityLogs()" class="border-2 border-red-500 text-red-600 hover:bg-red-500 hover:text-white font-extrabold text-[10px] px-3 py-1.5 rounded-xl transition-all active:scale-95 shadow-xs flex items-center gap-1.5 uppercase code-font cursor-pointer">
+                        <i class="fa-solid fa-trash-can text-xs"></i> Hapus Riwayat
+                    </button>
+                </div>
+            </div>
+
+            <!-- Container List Log Aktivitas -->
+            <div id="activityLogsContainer" class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                <div class="light-pill-capsule text-zinc-800 code-font text-xs py-3 px-3 text-center truncate">
+                    Memuat data aktivitas...
+                </div>
+            </div>
+        </div>
+
+        <!-- KARTU 6: SESI AKUN -->
+        <div class="w-full light-card p-5">
+            <div class="flex items-center justify-between mb-3 border-b-2 border-zinc-200 pb-2">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-right-from-bracket text-zinc-900"></i>
+                    <h3 class="text-xs font-black uppercase tracking-wider code-font">SESI AKUN</h3>
+                </div>
+            </div>
+
+            <a href="/auth/logout" class="w-full border-2 border-zinc-900 bg-zinc-900 hover:bg-zinc-800 text-white font-black text-xs py-3 rounded-xl flex items-center justify-center gap-2 uppercase tracking-wider active:scale-95 transition-all shadow-xs">
+                <i class="fa-solid fa-right-from-bracket text-sm"></i> KELUAR DARI AKUN (LOGOUT)
+            </a>
+        </div>
+
+        <!-- KARTU 7: ZONA BERBAHAYA: HAPUS AKUN -->
+        <div class="w-full border-2 border-red-600 bg-red-50/60 rounded-2xl p-5 shadow-xs">
+            <div class="flex items-center gap-2 mb-2 text-red-700">
+                <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                <h3 class="text-xs font-black uppercase tracking-wider code-font">ZONA BERBAHAYA: HAPUS AKUN</h3>
+            </div>
+            
+            <p class="text-[11px] font-semibold text-zinc-700 leading-relaxed mb-4">
+                Tindakan ini bersifat permanen. Seluruh data akun, API Key, kuota, riwayat log, dan sesi login akan dihapus 100% dari database server dan tidak dapat dikembalikan.
+            </p>
+
+            <button onclick="handleDeleteAccount()" class="w-full bg-red-600 hover:bg-red-700 text-white border-2 border-zinc-900 font-black text-xs py-3 rounded-xl flex items-center justify-center gap-2 uppercase tracking-wider active:scale-95 transition-all shadow-xs cursor-pointer">
+                <i class="fa-solid fa-trash-can"></i> HAPUS AKUN PERMANEN
+            </button>
+        </div>
+
+    </main>
+
+    <!-- MODAL EDIT USERNAME -->
+    <div id="editUsernameModal" class="fixed inset-0 bg-black/70 backdrop-blur-xs hidden z-[999] flex items-center justify-center p-4">
+        <div class="light-card p-6 w-full max-w-md relative bg-[#FFFDF8]">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b-2 border-zinc-900">
+                <h3 class="text-sm font-black uppercase tracking-wider code-font">EDIT USERNAME</h3>
+                <button onclick="toggleEditUsernameModal()" class="w-8 h-8 rounded-lg border-2 border-zinc-900 bg-zinc-200 flex items-center justify-center text-zinc-900 font-bold cursor-pointer">✕</button>
+            </div>
+
+            <form id="formEditUsername" onsubmit="handleSaveUsername(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-black uppercase code-font mb-1 text-zinc-800">Username Baru:</label>
+                    <input type="text" id="editUsernameOnlyInput" minlength="4" required placeholder="Masukkan min. 4 karakter" class="w-full bg-[#FFFDF8] border-2 border-zinc-900 rounded-xl px-3 py-2 text-xs text-zinc-900 font-bold focus:outline-none">
+                    <p class="text-[10px] font-bold text-zinc-500 mt-2 leading-relaxed bg-amber-100/70 p-2 rounded-lg border border-amber-300">
+                        <i class="fa-solid fa-circle-info text-amber-700 mr-1"></i> <strong>Keterangan:</strong> Username digunakan sebagai nama identitas unik akun Anda di sistem. Panjang minimal harus <strong>4 karakter</strong>.
+                    </p>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="toggleEditUsernameModal()" class="flex-1 border-2 border-zinc-900 bg-zinc-200 text-zinc-900 font-black text-xs py-2.5 rounded-xl uppercase tracking-wider cursor-pointer">
+                        BATAL
+                    </button>
+                    <button type="submit" class="flex-1 theme-bg-accent text-zinc-900 border-2 border-zinc-900 font-black text-xs py-2.5 rounded-xl uppercase tracking-wider shadow-xs active:scale-95 cursor-pointer">
+                        SIMPAN USERNAME
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT EMAIL -->
+    <div id="editEmailModal" class="fixed inset-0 bg-black/70 backdrop-blur-xs hidden z-[999] flex items-center justify-center p-4">
+        <div class="light-card p-6 w-full max-w-md relative bg-[#FFFDF8]">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b-2 border-zinc-900">
+                <h3 class="text-sm font-black uppercase tracking-wider code-font">EDIT EMAIL PENGGUNA</h3>
+                <button onclick="toggleEditEmailModal()" class="w-8 h-8 rounded-lg border-2 border-zinc-900 bg-zinc-200 flex items-center justify-center text-zinc-900 font-bold cursor-pointer">✕</button>
+            </div>
+
+            <form id="formEditEmail" onsubmit="handleSaveEmail(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-black uppercase code-font mb-1 text-zinc-800">Email Baru:</label>
+                    <input type="email" id="editEmailOnlyInput" required placeholder="contoh@gmail.com" class="w-full bg-[#FFFDF8] border-2 border-zinc-900 rounded-xl px-3 py-2 text-xs text-zinc-900 font-bold focus:outline-none">
+                    <p class="text-[10px] font-bold text-zinc-500 mt-2 leading-relaxed bg-amber-100/70 p-2 rounded-lg border border-amber-300">
+                        <i class="fa-solid fa-circle-info text-amber-700 mr-1"></i> <strong>Keterangan:</strong> Email digunakan untuk verifikasi akun, menerima pemberitahuan sistem, serta pemulihan kata sandi jika lupa akses login.
+                    </p>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                    <button type="button" onclick="toggleEditEmailModal()" class="flex-1 border-2 border-zinc-900 bg-zinc-200 text-zinc-900 font-black text-xs py-2.5 rounded-xl uppercase tracking-wider cursor-pointer">
+                        BATAL
+                    </button>
+                    <button type="submit" class="flex-1 theme-bg-accent text-zinc-900 border-2 border-zinc-900 font-black text-xs py-2.5 rounded-xl uppercase tracking-wider shadow-xs active:scale-95 cursor-pointer">
+                        SIMPAN EMAIL
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer Halaman -->
+    <footer class="w-full max-w-2xl mx-auto px-4 py-6 border-t-2 border-zinc-300 text-center text-[10px] code-font font-bold text-zinc-500 uppercase tracking-widest relative z-10">
+        &copy; 2026 ARULZ-XD API · ALL RIGHTS RESERVED
+    </footer>
+
+    <script>
+        let currentRawApiKey = '';
+        let isApiKeyVisible = false;
+        let isVipUser = false;
+
+        // Memblokir Pinch Zoom & Gesture Zoom
+        document.addEventListener('gesturestart', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.ctrlKey && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) e.preventDefault();
+        });
+        document.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+
+        // Presets Tema Warna & Border
+        const THEME_PRESETS = {
+            yellow: { border: '#eab308', accent: '#fde047', text: '#121212', light: '#fef9c3' },
+            red:    { border: '#b91c1c', accent: '#ef4444', text: '#ffffff', light: '#fee2e2' },
+            blue:   { border: '#1d4ed8', accent: '#3b82f6', text: '#ffffff', light: '#dbeafe' },
+            cyan:   { border: '#0e7490', accent: '#06b6d4', text: '#ffffff', light: '#cff4fc' },
+            purple: { border: '#7e22ce', accent: '#a855f7', text: '#ffffff', light: '#f3e8ff' },
+            green:  { border: '#047857', accent: '#10b981', text: '#ffffff', light: '#d1fae5' },
+            black:  { border: '#000000', accent: '#18181b', text: '#ffffff', light: '#e4e4e7' }
+        };
+
+        let rgbInterval = null;
+
+        function setAppTheme(themeName) {
+            const root = document.documentElement;
+            const dropdown = document.getElementById('themeMenuDropdown');
+
+            if (rgbInterval) { clearInterval(rgbInterval); rgbInterval = null; }
+            localStorage.setItem('selectedThemeStyle', themeName);
+
+            if (themeName === 'rgb') {
+                document.body.classList.add('rgb-mode-active');
+                let angle = 0;
+                rgbInterval = setInterval(() => {
+                    angle = (angle + 3) % 360;
+                    root.style.setProperty('--rgb-angle', angle + 'deg');
+                }, 20);
+            } else {
+                document.body.classList.remove('rgb-mode-active');
+                const t = THEME_PRESETS[themeName] || THEME_PRESETS.yellow;
+                root.style.setProperty('--theme-border', t.border);
+                root.style.setProperty('--theme-accent', t.accent);
+                root.style.setProperty('--theme-text', t.text);
+                root.style.setProperty('--theme-light', t.light);
+            }
+            if (dropdown) dropdown.classList.add('hidden');
+        }
+
+        // Event Transparansi Header saat Di-scroll
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('mainHeader');
+            if (header) {
+                if (window.scrollY > 10) {
+                    header.classList.add('header-scrolled');
+                } else {
+                    header.classList.remove('header-scrolled');
+                }
+            }
+        });
+
+        // Toggle Tampilkan / Sembunyikan API Key
+        function toggleShowApiKey() {
+            const input = document.getElementById('userApiKeyInput');
+            const btn = document.getElementById('btnToggleKey');
+            isApiKeyVisible = !isApiKeyVisible;
+
+            if (isApiKeyVisible) {
+                input.type = 'text';
+                input.value = currentRawApiKey || 'No Key';
+                btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i> SEMBUNYIKAN';
+            } else {
+                input.type = 'password';
+                input.value = '••••••••••••••••';
+                btn.innerHTML = '<i class="fa-solid fa-eye"></i> TAMPILKAN';
+            }
+        }
+
+        function copyApiKey() {
+            if (!currentRawApiKey) return;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(currentRawApiKey).then(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'BERHASIL DISALIN',
+                        text: 'API Key telah disalin ke clipboard!',
+                        confirmButtonText: 'OKE',
+                        buttonsStyling: false,
+                        customClass: { confirmButton: 'px-4 py-2 bg-zinc-900 text-white font-black rounded-xl border-2 border-black' }
+                    });
+                });
+            }
+        }
+
+        function toggleCustomKeyInput() {
+            if (!isVipUser) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'KHUSUS VIP USER',
+                    text: 'Fitur Custom API Key hanya dapat digunakan oleh akun VIP USER!',
+                    confirmButtonText: 'UPGRADE VIP',
+                    showCancelButton: true,
+                    cancelButtonText: 'TUTUP',
+                    buttonsStyling: false,
+                    customClass: {
+                        confirmButton: 'px-4 py-2 bg-yellow-400 text-zinc-900 font-black rounded-xl border-2 border-black m-1 text-xs uppercase',
+                        cancelButton: 'px-4 py-2 bg-zinc-200 text-zinc-900 font-black rounded-xl border-2 border-black m-1 text-xs uppercase'
+                    }
+                }).then((res) => {
+                    if (res.isConfirmed) {
+                        window.location.href = '/upgrade-apikey';
+                    }
+                });
+                return;
+            }
+
+            const box = document.getElementById('vipCustomKeyBox');
+            if (box) box.classList.toggle('hidden');
+        }
+
+        function setRoleTheme(roleName) {
+            const badge = document.getElementById('roleBadge');
+            const detailPlanBadge = document.getElementById('detailPlanBadge');
+            const btnCustomKey = document.getElementById('btnCustomKey');
+            const role = (roleName || '').toLowerCase();
+
+            if (role.includes('vip')) {
+                isVipUser = true;
+                if (badge) {
+                    badge.innerText = 'VIP USER';
+                    badge.className = 'text-[10px] font-black bg-yellow-400 text-zinc-900 border-2 border-zinc-900 px-2.5 py-0.5 rounded-full uppercase shadow-xs';
+                }
+                if (detailPlanBadge) {
+                    detailPlanBadge.innerText = 'VIP USER';
+                    detailPlanBadge.className = 'text-[10px] font-black bg-yellow-400 text-zinc-900 border-2 border-zinc-900 px-3 py-0.5 rounded-full uppercase shadow-xs';
+                }
+                if (btnCustomKey) {
+                    btnCustomKey.classList.remove('opacity-40', 'cursor-not-allowed');
+                    btnCustomKey.classList.add('opacity-100', 'cursor-pointer', 'active:scale-95');
+                }
+            } else if (role.includes('premium')) {
+                isVipUser = false;
+                if (badge) {
+                    badge.innerText = 'PREMIUM';
+                    badge.className = 'text-[10px] font-black bg-amber-500 text-white border-2 border-zinc-900 px-2.5 py-0.5 rounded-full uppercase shadow-xs';
+                }
+                if (detailPlanBadge) {
+                    detailPlanBadge.innerText = 'PREMIUM USER';
+                    detailPlanBadge.className = 'text-[10px] font-black bg-amber-500 text-white border-2 border-zinc-900 px-3 py-0.5 rounded-full uppercase shadow-xs';
+                }
+                if (btnCustomKey) {
+                    btnCustomKey.classList.remove('opacity-100', 'cursor-pointer', 'active:scale-95');
+                    btnCustomKey.classList.add('opacity-40', 'cursor-not-allowed');
+                }
+            } else {
+                isVipUser = false;
+                if (badge) {
+                    badge.innerText = 'FREE';
+                    badge.className = 'text-[10px] font-black bg-zinc-200 text-zinc-800 border-2 border-zinc-900 px-2.5 py-0.5 rounded-full uppercase shadow-xs';
+                }
+                if (detailPlanBadge) {
+                    detailPlanBadge.innerText = 'FREE USER';
+                    detailPlanBadge.className = 'text-[10px] font-black bg-zinc-200 text-zinc-800 border-2 border-zinc-900 px-3 py-0.5 rounded-full uppercase shadow-xs';
+                }
+                if (btnCustomKey) {
+                    btnCustomKey.classList.remove('opacity-100', 'cursor-pointer', 'active:scale-95');
+                    btnCustomKey.classList.add('opacity-40', 'cursor-not-allowed');
+                }
+            }
+        }
+
+        function formatRoleExpiry(role, roleExpiresAt) {
+            const roleLower = (role || '').toLowerCase();
+            if (!roleExpiresAt || roleLower.includes('free')) {
+                return 'Selamanya (Free)';
+            }
+
+            const expireDate = new Date(roleExpiresAt);
+            if (isNaN(expireDate.getTime())) return 'Selamanya (Free)';
+
+            const now = new Date();
+            if (expireDate <= now) {
+                return 'Kedaluwarsa (Expired)';
+            }
+
+            const diffDays = Math.ceil((expireDate - now) / (1000 * 60 * 60 * 24));
+            const formattedDate = expireDate.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'Asia/Jakarta'
+            });
+
+            return `${formattedDate} WIB (${diffDays} Hari Lagi)`;
+        }
+
+        function updateRoleExpiryUI(role, roleExpiresAt) {
+            const expireText = formatRoleExpiry(role, roleExpiresAt);
+            const detailEl = document.getElementById('detailRoleExpire');
+            const quotaEl = document.getElementById('quotaRoleExpireText');
+
+            if (detailEl) detailEl.innerText = expireText;
+            if (quotaEl) quotaEl.innerText = expireText;
+        }
+
+        // TAMPILAN PROVIDER LOGIN (Local, Google, GitHub)
+        function updateProviderUI(provider, email) {
+            const providerLabel = document.getElementById('providerLabel');
+            const providerIcon = document.getElementById('providerIcon');
+            const detailEmail = document.getElementById('detailEmail');
+
+            if (detailEmail) detailEmail.innerText = email || '-';
+
+            const prov = (provider || 'local').toLowerCase();
+
+            if (prov === 'google') {
+                if (providerLabel) providerLabel.innerText = 'Google:';
+                if (providerIcon) providerIcon.innerHTML = `<svg class="w-4 h-4 inline-block" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"/><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"/><path fill="#FBBC05" d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.3C.7 9.7 0 10.8 0 12.5s.7 2.8 1.9 5.2l3.7-2.9z"/><path fill="#34A853" d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"/></svg>`;
+            } else if (prov === 'github') {
+                if (providerLabel) providerLabel.innerText = 'GitHub:';
+                if (providerIcon) providerIcon.innerHTML = `<i class="fa-brands fa-github text-base text-zinc-900"></i>`;
+            } else {
+                if (providerLabel) providerLabel.innerText = 'Email:';
+                if (providerIcon) providerIcon.innerHTML = `<i class="fa-solid fa-envelope text-base text-amber-600"></i>`;
+            }
+        }
+
+        // Toggle Modal Edit Username
+        function toggleEditUsernameModal() {
+            const modal = document.getElementById('editUsernameModal');
+            if (!modal) return;
+            modal.classList.toggle('hidden');
+
+            if (!modal.classList.contains('hidden')) {
+                const usernameInput = document.getElementById('editUsernameOnlyInput');
+                if (usernameInput) {
+                    const currentUsername = document.getElementById('userName').innerText;
+                    usernameInput.value = currentUsername !== 'Loading...' ? currentUsername : '';
+                    setTimeout(() => usernameInput.focus(), 100);
+                }
+            }
+        }
+
+        // Toggle Modal Edit Email
+        function toggleEditEmailModal() {
+            const modal = document.getElementById('editEmailModal');
+            if (!modal) return;
+            modal.classList.toggle('hidden');
+
+            if (!modal.classList.contains('hidden')) {
+                const emailInput = document.getElementById('editEmailOnlyInput');
+                if (emailInput) {
+                    const currentEmail = document.getElementById('userEmail').innerText;
+                    emailInput.value = currentEmail !== 'loading_email@gmail.com' ? currentEmail : '';
+                    setTimeout(() => emailInput.focus(), 100);
+                }
+            }
+        }
+
+        // Simpan Username Baru (Minimal 4 Karakter)
+        async function handleSaveUsername(e) {
+            e.preventDefault();
+            const newUsername = document.getElementById('editUsernameOnlyInput').value.trim();
+            const currentEmail = document.getElementById('userEmail').innerText;
+
+            if (!newUsername) {
+                Swal.fire({ icon: 'warning', title: 'PERINGATAN', text: 'Username wajib diisi!' });
+                return;
+            }
+
+            if (newUsername.length < 4) {
+                Swal.fire({ icon: 'warning', title: 'PERINGATAN', text: 'Username minimal harus terdiri dari 4 karakter!' });
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/update-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: newUsername, email: currentEmail })
+                });
+
+                const resData = await response.json();
+                if (resData.status) {
+                    Swal.fire({ icon: 'success', title: 'BERHASIL', text: resData.message || 'Username berhasil diperbarui!' });
+                    toggleEditUsernameModal();
+                    fetchUserProfile();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'GAGAL', text: resData.message || 'Gagal memperbarui username.' });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'ERROR', text: 'Terjadi kesalahan koneksi server.' });
+            }
+        }
+
+        // Simpan Email Baru
+        async function handleSaveEmail(e) {
+            e.preventDefault();
+            const newEmail = document.getElementById('editEmailOnlyInput').value.trim();
+            const currentUsername = document.getElementById('userName').innerText;
+
+            if (!newEmail) {
+                Swal.fire({ icon: 'warning', title: 'PERINGATAN', text: 'Email wajib diisi!' });
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/update-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUsername, email: newEmail })
+                });
+
+                const resData = await response.json();
+                if (resData.status) {
+                    Swal.fire({ icon: 'success', title: 'BERHASIL', text: resData.message || 'Email berhasil diperbarui!' });
+                    toggleEditEmailModal();
+                    fetchUserProfile();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'GAGAL', text: resData.message || 'Gagal memperbarui email.' });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'ERROR', text: 'Terjadi kesalahan koneksi server.' });
+            }
+        }
+
+        // Handle Hapus Akun Permanen
+        function handleDeleteAccount() {
+            Swal.fire({
+                title: 'HAPUS AKUN PERMANEN?',
+                text: 'Tindakan ini tidak dapat dibatalkan! Seluruh data akun, API Key, kuota, dan log riwayat akan dihapus 100% dari database.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'YA, HAPUS AKUN',
+                cancelButtonText: 'BATAL',
+                buttonsStyling: false,
+                customClass: {
+                    confirmButton: 'px-4 py-2.5 bg-red-600 text-white font-black rounded-xl border-2 border-black m-1 text-xs uppercase',
+                    cancelButton: 'px-4 py-2.5 bg-zinc-200 text-zinc-900 font-black rounded-xl border-2 border-black m-1 text-xs uppercase'
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const response = await fetch('/api/user/delete-account', { method: 'POST' });
+                        const resData = await response.json();
+                        if (resData.status) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'AKUN TERHAPUS',
+                                text: 'Akun Anda berhasil dihapus permanen dari database.',
+                                confirmButtonText: 'OKE',
+                                buttonsStyling: false,
+                                customClass: { confirmButton: 'px-4 py-2 bg-zinc-900 text-white font-black rounded-xl border-2 border-black' }
+                            }).then(() => {
+                                window.location.href = '/login';
+                            });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'GAGAL', text: resData.message || 'Gagal menghapus akun.' });
+                        }
+                    } catch (err) {
+                        Swal.fire({ icon: 'error', title: 'ERROR', text: 'Terjadi kesalahan koneksi server.' });
+                    }
+                }
+            });
+        }
+
+        async function saveCustomApiKey() {
+            const input = document.getElementById('customApiKeyInput');
+            if (!input || !input.value.trim()) {
+                Swal.fire({ icon: 'warning', title: 'PERINGATAN', text: 'Ketik API Key kustom terlebih dahulu!' });
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/custom-apikey', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ customKey: input.value.trim() })
+                });
+
+                const resData = await response.json();
+                if (resData.status) {
+                    Swal.fire({ icon: 'success', title: 'BERHASIL', text: resData.message });
+                    currentRawApiKey = resData.apikey;
+                    if (isApiKeyVisible) document.getElementById('userApiKeyInput').value = currentRawApiKey;
+                    input.value = '';
+                } else {
+                    Swal.fire({ icon: 'error', title: 'GAGAL', text: resData.message || 'Gagal mengubah API Key.' });
+                }
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'ERROR', text: 'Terjadi kesalahan koneksi.' });
+            }
+        }
+
+        async function uploadAvatarFile(input) {
+            if (!input.files || !input.files[0]) return;
+            const formData = new FormData();
+            formData.append('avatar', input.files[0]);
+
+            const userAvatarImg = document.getElementById('userAvatar');
+            if (userAvatarImg) userAvatarImg.style.opacity = '0.4';
+
+            try {
+                const response = await fetch('/api/user/update-avatar', { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (result.status) {
+                    if (userAvatarImg) userAvatarImg.src = result.avatar;
+                    Swal.fire({ icon: 'success', title: 'AVATAR DISIMPAN', text: 'Foto profil berhasil diperbarui!' });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'GAGAL', text: result.message || 'Gagal mengunggah avatar.' });
+                }
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'ERROR', text: 'Gagal mengunggah file.' });
+            } finally {
+                if (userAvatarImg) userAvatarImg.style.opacity = '1';
+                input.value = '';
+            }
+        }
+
+        function fetchUserProfile() {
+            fetch('/api/user-status')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.loggedIn && data.user) {
+                        const avatarUrl = data.user.avatar || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png';
+                        document.getElementById('userAvatar').src = avatarUrl;
+                        document.getElementById('userName').innerText = data.user.username || 'User';
+                        document.getElementById('userEmail').innerText = data.user.email || 'no-email@mail.com';
+                        document.getElementById('detailUsername').innerText = data.user.username || 'User';
+
+                        currentRawApiKey = data.user.apikey || '';
+                        if (isApiKeyVisible) {
+                            document.getElementById('userApiKeyInput').value = currentRawApiKey;
+                        }
+
+                        setRoleTheme(data.user.role || 'Free User');
+                        updateProviderUI(data.user.provider || 'local', data.user.email);
+                        updateRoleExpiryUI(data.user.role, data.user.roleExpiresAt);
+
+                        fetchUserLimit(data.user.apikey);
+                        fetchUserActivityLogs();
+
+                        const sidebarAuth = document.getElementById('sidebarAuthBtnContainer');
+                        if (sidebarAuth) {
+                            sidebarAuth.innerHTML = `
+                                <a href="/profile" class="w-full bg-blue-50 border-2 border-blue-600 rounded-xl p-2.5 flex items-center justify-between text-zinc-900 transition-all active:scale-95 shadow-xs">
+                                    <div class="flex items-center gap-2.5 truncate">
+                                        <img src="${avatarUrl}" class="w-7 h-7 rounded-lg border-2 brutal-border object-cover">
+                                        <div class="truncate text-left leading-tight">
+                                            <span class="block text-xs font-black truncate">${data.user.username}</span>
+                                            <span class="block text-[9px] text-blue-600 font-bold">AKUN TERHUBUNG</span>
+                                        </div>
+                                    </div>
+                                    <span class="text-[9px] bg-blue-600 text-white font-black px-2 py-1 rounded-md tracking-wider">PROFILE</span>
+                                </a>
+                            `;
+                        }
+                    } else {
+                        window.location.href = '/login';
+                    }
+                })
+                .catch(err => console.error("Gagal sinkronisasi profile:", err));
+        }
+
+        function fetchUserLimit(apikey) {
+            fetch('/api/user-limit?apikey=' + encodeURIComponent(apikey))
+                .then(res => res.json())
+                .then(data => {
+                    const used = data.limitUsed || 0;
+                    const max = data.maxLimit || 100;
+                    document.getElementById('popupLimitUsed').innerText = used;
+                    document.getElementById('popupLimitMax').innerText = max;
+
+                    const bar = document.getElementById('limitProgressBar');
+                    if (bar) {
+                        const pct = max === 'Unlimited' ? 100 : Math.min(100, (used / max) * 100);
+                        bar.style.width = pct + '%';
+                    }
+                });
+        }
+
+        // Ambil Data Riwayat Aktivitas Request
+        function fetchUserActivityLogs() {
+            const container = document.getElementById('activityLogsContainer');
+            fetch('/api/user-activity')
+                .then(res => res.json())
+                .then(resData => {
+                    const logs = resData.logs || [];
+                    if (resData.status && logs.length > 0) {
+                        container.innerHTML = logs.map(log => {
+                            const isSuccess = log.status_code >= 200 && log.status_code < 300;
+                            const statusBg = isSuccess ? 'bg-emerald-300 text-zinc-900 border-emerald-700' : 'bg-red-300 text-zinc-900 border-red-700';
+                            
+                            return `
+                                <div class="light-card-box p-3 border-2 border-zinc-900 bg-[#FFFDF8] hover:bg-amber-50/50 transition-all rounded-xl shadow-xs">
+                                    <div class="flex items-center justify-between mb-1.5 gap-2 flex-wrap">
+                                        <div class="flex items-center gap-1.5">
+                                            <!-- Badge HTTP Method -->
+                                            <span class="px-2 py-0.5 text-[10px] font-black code-font border-2 border-zinc-900 rounded-md bg-amber-300 text-zinc-900 shadow-2xs uppercase">
+                                                ${log.method || 'GET'}
+                                            </span>
+                                            <!-- Badge Status Code -->
+                                            <span class="px-2 py-0.5 text-[10px] font-black code-font border-2 rounded-md ${statusBg} shadow-2xs">
+                                                ${log.status_code}
+                                            </span>
+                                        </div>
+                                        <!-- Tanggal, Bulan, Tahun, & Jam -->
+                                        <span class="text-[10px] font-bold code-font text-zinc-600 flex items-center gap-1">
+                                            <i class="fa-regular fa-clock text-[9px] text-zinc-500"></i>
+                                            <span>${log.fullDate || log.time || ''}</span>
+                                        </span>
+                                    </div>
+                                    <!-- Endpoint API -->
+                                    <div class="code-font text-xs font-black text-zinc-900 truncate tracking-tight pt-0.5">
+                                        ${log.endpoint}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    } else if (resData.status && resData.data && resData.data.length > 0) {
+                        container.innerHTML = resData.data.map(logText => 
+                            '<div class="light-pill-capsule text-zinc-800 code-font text-[10px] py-2 px-3 text-center truncate bg-amber-50/60">' + logText + '</div>'
+                        ).join('');
+                    } else {
+                        container.innerHTML = '<div class="light-pill-capsule text-zinc-500 code-font text-[10px] py-3 px-3 text-center">Belum ada aktivitas request</div>';
+                    }
+                })
+                .catch(err => {
+                    container.innerHTML = '<div class="light-pill-capsule text-red-600 code-font text-[10px] py-3 px-3 text-center">Gagal memuat aktivitas</div>';
+                });
+        }
+
+        // Fungsi Hapus Riwayat Request
+        function clearActivityLogs() {
+            Swal.fire({
+                title: 'HAPUS RIWAYAT REQUEST?',
+                text: 'Apakah Anda yakin ingin menghapus seluruh log riwayat aktivitas request API?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'YA, HAPUS',
+                cancelButtonText: 'BATAL',
+                buttonsStyling: false,
+                customClass: {
+                    confirmButton: 'px-4 py-2.5 bg-red-600 text-white font-black rounded-xl border-2 border-black m-1 text-xs uppercase shadow-xs',
+                    cancelButton: 'px-4 py-2.5 bg-zinc-200 text-zinc-900 font-black rounded-xl border-2 border-black m-1 text-xs uppercase shadow-xs'
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const response = await fetch('/api/user-activity', { method: 'DELETE' });
+                        const resData = await response.json();
+                        if (resData.status) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'BERHASIL',
+                                text: resData.message || 'Riwayat request berhasil dibersihkan!',
+                                confirmButtonText: 'OKE',
+                                buttonsStyling: false,
+                                customClass: { confirmButton: 'px-4 py-2 bg-zinc-900 text-white font-black rounded-xl border-2 border-black' }
+                            });
+                            fetchUserActivityLogs();
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'GAGAL', text: resData.message || 'Gagal menghapus riwayat.' });
+                        }
+                    } catch (err) {
+                        Swal.fire({ icon: 'error', title: 'ERROR', text: 'Terjadi kesalahan koneksi server.' });
+                    }
+                }
+            });
+        }
+
+        // Deteksi Informasi Klien (OS, Browser, Screen)
+        function detectClientInfo() {
+            const osEl = document.getElementById('clientOS');
+            const browserEl = document.getElementById('clientBrowser');
+            const resEl = document.getElementById('clientRes');
+            const batteryEl = document.getElementById('clientBattery');
+
+            const ua = navigator.userAgent;
+            let os = 'Unknown OS';
+            if (ua.indexOf('Android') !== -1) os = 'Android';
+            else if (ua.indexOf('iPhone') !== -1 || ua.indexOf('iPad') !== -1) os = 'iOS';
+            else if (ua.indexOf('Windows') !== -1) os = 'Windows';
+            else if (ua.indexOf('Mac') !== -1) os = 'macOS';
+            else if (ua.indexOf('Linux') !== -1) os = 'Linux';
+            if (osEl) osEl.innerText = os;
+
+            let browser = 'Chrome';
+            if (ua.indexOf('Firefox') !== -1) browser = 'Firefox';
+            else if (ua.indexOf('Safari') !== -1 && ua.indexOf('Chrome') === -1) browser = 'Safari';
+            else if (ua.indexOf('Edg') !== -1) browser = 'Edge';
+            if (browserEl) browserEl.innerText = browser;
+
+            if (resEl) resEl.innerText = `${window.screen.width}x${window.screen.height}`;
+
+            if (navigator.getBattery && batteryEl) {
+                navigator.getBattery().then(b => {
+                    batteryEl.innerText = Math.round(b.level * 100) + '%';
+                });
+            } else if (batteryEl) {
+                batteryEl.innerText = '100%';
+            }
+        }
+
+        // Fungsi Autoplay Banner Sidebar Khusus
+        function playSidebarBannerVideo() {
+            const video = document.getElementById('sidebarBannerVideo');
+            if (!video) return;
+            video.muted = true;
+            video.defaultMuted = true;
+            video.playsInline = true;
+            video.setAttribute('muted', '');
+            video.setAttribute('playsinline', '');
+            video.setAttribute('webkit-playsinline', '');
+            video.setAttribute('autoplay', '');
+
+            if (video.paused) {
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(err => {
+                        setTimeout(() => {
+                            video.play().catch(e => console.log("Retry sidebar banner play error:", e));
+                        }, 250);
+                    });
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const bioMenuBtn = document.getElementById('bioMenuBtn');
+            const bioDropdown = document.getElementById('bioDropdown');
+            const closeMenuBtn = document.getElementById('closeMenuBtn');
+            const menuOverlay = document.getElementById('menuOverlay');
+
+            const themeBtn = document.getElementById('themePickerBtn');
+            const themeDropdown = document.getElementById('themeMenuDropdown');
+
+            if (themeBtn && themeDropdown) {
+                themeBtn.addEventListener('click', (e) => { e.stopPropagation(); themeDropdown.classList.toggle('hidden'); });
+                document.addEventListener('click', (e) => { if (!themeDropdown.contains(e.target) && e.target !== themeBtn) themeDropdown.classList.add('hidden'); });
+            }
+
+            const savedTheme = localStorage.getItem('selectedThemeStyle') || 'yellow';
+            setAppTheme(savedTheme);
+
+            function closeSidebarMenu() {
+                if (bioDropdown && menuOverlay) {
+                    bioDropdown.style.transform = 'translateX(100%)';
+                    menuOverlay.classList.add('hidden');
+                }
+            }
+
+            if (bioMenuBtn && bioDropdown && menuOverlay) {
+                bioMenuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    bioDropdown.style.transform = 'translateX(0)';
+                    menuOverlay.classList.remove('hidden');
+                    playSidebarBannerVideo();
+                });
+                if (closeMenuBtn) closeMenuBtn.addEventListener('click', closeSidebarMenu);
+                menuOverlay.addEventListener('click', closeSidebarMenu);
+                bioDropdown.addEventListener('click', (e) => { e.stopPropagation(); });
+            }
+
+            fetchUserProfile();
+            detectClientInfo();
+            playSidebarBannerVideo();
+        });
+
+        // Event listener pendukung autoplay khusus banner sidebar
+        window.addEventListener('load', playSidebarBannerVideo);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) playSidebarBannerVideo();
+        });
+        document.addEventListener('touchstart', playSidebarBannerVideo, { once: true });
+        document.addEventListener('click', playSidebarBannerVideo, { once: true });
+
+        // Cyber Loader Overlay Animation Logic
+        let currentProgress = 0;
+        const progressFill = document.getElementById('loader-progress-fill');
+        const percentageText = document.getElementById('loader-percentage');
+        const loaderOverlay = document.getElementById('cyber-loader-overlay');
+
+        function updateProgress(targetVal) {
+            currentProgress = Math.min(Math.max(currentProgress, targetVal), 100);
+            if (progressFill) progressFill.style.width = currentProgress + '%';
+            if (percentageText) percentageText.innerText = Math.floor(currentProgress) + '%';
+        }
+
+        const progressInterval = setInterval(() => {
+            if (currentProgress < 85) {
+                const increment = Math.random() * 12 + 5;
+                updateProgress(currentProgress + increment);
+            }
+        }, 120);
+
+        window.addEventListener('load', () => {
+            clearInterval(progressInterval);
+            updateProgress(100);
+
+            setTimeout(() => {
+                if (loaderOverlay) loaderOverlay.classList.add('fade-out');
+            }, 400);
+        });
+
+        setTimeout(() => {
+            clearInterval(progressInterval);
+            updateProgress(100);
+            if (loaderOverlay && !loaderOverlay.classList.contains('fade-out')) {
+                loaderOverlay.classList.add('fade-out');
+            }
+        }, 3000);
+    </script>
+</body>
+</html>
