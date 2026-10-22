@@ -723,20 +723,22 @@
 
         // Ambil Data Statistik Realtime
         function fetchServerStats() {
-            fetch('/api/server-status')
-                .then(res => res.json())
-                .then(data => {
-                    if (data.totalUsers !== undefined) {
-                        const userEl = document.getElementById('totalUsersStat');
-                        if (userEl) userEl.innerHTML = `${data.totalUsers.toLocaleString('id-ID')} <span class="text-xs text-zinc-600 font-bold">User</span>`;
-                    }
-                    if (data.totalRequests !== undefined) {
-                        const reqEl = document.getElementById('totalRequestsStat');
-                        if (reqEl) reqEl.innerHTML = `${data.totalRequests.toLocaleString('id-ID')} <span class="text-xs text-zinc-600 font-bold">Hits</span>`;
-                    }
-                })
-                .catch(err => console.error("Gagal memuat statistik server:", err));
-        }
+    fetch('/api/server-status')
+        .then(res => res.json())
+        .then(data => {
+            if (data.totalUsers !== undefined) {
+                const userEl = document.getElementById('totalUsersStat');
+                if (userEl) userEl.innerHTML = `${data.totalUsers.toLocaleString('id-ID')} <span class="text-xs text-zinc-600 font-bold">User</span>`;
+            }
+            if (data.totalRequests !== undefined) {
+                const reqEl = document.getElementById('totalRequestsStat');
+                // Menambahkan nilai default 3000 ke total request real-time
+                const totalCombinedRequests = 3000 + data.totalRequests;
+                if (reqEl) reqEl.innerHTML = `${totalCombinedRequests.toLocaleString('id-ID')} <span class="text-xs text-zinc-600 font-bold">Hits</span>`;
+            }
+        })
+        .catch(err => console.error("Gagal memuat statistik server:", err));
+}
 
         // Inisialisasi Sidebar & Theme Picker
         document.addEventListener('DOMContentLoaded', () => {

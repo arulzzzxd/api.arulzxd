@@ -1210,21 +1210,23 @@
     }
 
     function fetchServerStatsDocs() {
-        fetch('/api/server-status')
-            .then(res => res.json())
-            .then(data => {
-                const userEl = document.getElementById('totalUsersStat');
-                const reqEl = document.getElementById('totalRequestsStat');
+    fetch('/api/server-status')
+        .then(res => res.json())
+        .then(data => {
+            const userEl = document.getElementById('totalUsersStat');
+            const reqEl = document.getElementById('totalRequestsStat');
 
-                if (userEl && data.totalUsers !== undefined) {
-                    userEl.innerText = data.totalUsers.toLocaleString('id-ID');
-                }
-                if (reqEl && data.totalRequests !== undefined) {
-                    reqEl.innerText = data.totalRequests.toLocaleString('id-ID');
-                }
-            })
-            .catch(err => console.error("Gagal update server stats:", err));
-    }
+            if (userEl && data.totalUsers !== undefined) {
+                userEl.innerText = data.totalUsers.toLocaleString('id-ID');
+            }
+            if (reqEl && data.totalRequests !== undefined) {
+                // Menambahkan nilai default 3000 ke total request real-time
+                const totalCombinedRequests = 3000 + data.totalRequests;
+                reqEl.innerText = totalCombinedRequests.toLocaleString('id-ID');
+            }
+        })
+        .catch(err => console.error("Gagal update server stats:", err));
+}
 
     function startLimitResetCountdown() {
         function updateCountdown() {

@@ -25,7 +25,7 @@
     <meta name="twitter:image" content="https://api.arulzzxd.my.id/og/store" />
 
     <link rel="icon" href="https://cdn.arulzzxd.my.id/files/1wh5do.png" type="image/png">
-    
+
     <!-- Tailwind CSS, SweetAlert2, QRCode, Google Fonts, & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -386,7 +386,7 @@
 
                 <div id="themeMenuDropdown" class="hidden absolute top-12 right-0 w-44 bg-[#FFFDF8] border-2 border-zinc-900 rounded-xl p-2 shadow-2xl z-50 flex flex-col gap-1.5">
                     <div class="text-[9px] font-black code-font uppercase text-zinc-500 px-2 py-0.5 border-b border-zinc-200">PILIH TEMA STYLE</div>
-                    
+
                     <button onclick="setAppTheme('yellow')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-amber-600 bg-yellow-300 text-[11px] font-black text-zinc-900 active:scale-95">
                         <span>YELLOW</span>
                         <span class="w-3.5 h-3.5 rounded-full bg-yellow-400 border border-amber-700"></span>
@@ -436,16 +436,9 @@
                 </span>
             </div>
 
-            <div class="flex items-center gap-2">
-                <div class="flex items-center gap-1 border-2 border-zinc-900 rounded-xl p-1 bg-[#FFFDF8]">
-                    <button id="lang-btn-id" onclick="switchLanguage('id')" class="px-2.5 py-1 text-[10px] font-black rounded-lg border-2 border-zinc-900 theme-bg-accent">ID</button>
-                    <button id="lang-btn-en" onclick="switchLanguage('en')" class="px-2.5 py-1 text-[10px] font-black rounded-lg text-zinc-600 hover:text-zinc-900">EN</button>
-                </div>
-
-                <button id="closeMenuBtn" class="w-8 h-8 rounded-lg border-2 border-zinc-900 bg-[#FAF7EF] flex items-center justify-center text-zinc-900 active:scale-95">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
+            <button id="closeMenuBtn" class="w-8 h-8 rounded-lg border-2 border-zinc-900 bg-[#FAF7EF] flex items-center justify-center text-zinc-900 active:scale-95">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         </div>
 
         <!-- Banner Video Sidebar Khusus -->
@@ -474,6 +467,12 @@
         </div>
 
         <nav class="space-y-2 flex-1 pb-4">
+        <a href="/" class="dropdown-nav-card">
+            <div class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+                <span>DASHBOARD</span>
+            </div>
+        </a>
             <a href="/api" class="dropdown-nav-card">
                 <div class="flex items-center gap-2.5">
                     <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
@@ -582,7 +581,7 @@
     <!-- MODAL DETAIL PRODUK & PENILAIAN PRESISI ALL DPI -->
     <div id="productDetailModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
         <div id="productDetailModalContent" class="modal-box bg-[#FFFDF8] w-full max-w-2xl rounded-2xl border-2.5 border-zinc-900 shadow-lg overflow-hidden my-auto max-h-[90vh] flex flex-col relative">
-            
+
             <div class="theme-bg-accent p-4 text-zinc-900 flex justify-between items-center border-b-2 border-zinc-900 flex-shrink-0">
                 <h3 class="font-black text-sm flex items-center gap-2 uppercase tracking-wide">
                     <i class="fa-solid fa-star text-amber-600"></i> Detail & Penilaian Produk
@@ -594,12 +593,12 @@
 
             <div id="modalDetailScrollable" class="overflow-y-auto p-4 sm:p-5 space-y-5 flex-1 scroll-smooth">
                 <div class="flex flex-col sm:flex-row gap-4 items-start bg-[#FAF7EF] p-3 rounded-2xl border-2 border-zinc-900 brutal-border">
-                    
+
                     <div class="relative w-full sm:w-36 h-36 rounded-xl overflow-hidden bg-zinc-200 border-2 border-zinc-900 flex-shrink-0 group cursor-pointer" id="modalProductCarousel" onclick="zoomCurrentProductImage()">
                         <div class="flex w-full h-full transition-transform duration-300 ease-out" id="modalCarouselTrack">
                             <img id="detailImg" src="" class="w-full h-full object-cover flex-shrink-0">
                         </div>
-                        
+
                         <span class="absolute top-1.5 right-1.5 bg-black/60 text-white text-[10px] p-1 rounded backdrop-blur-xs opacity-80 group-hover:opacity-100 transition">
                             <i class="fa-solid fa-magnifying-glass-plus"></i>
                         </span>
@@ -661,7 +660,7 @@
                             <textarea id="reviewComment" rows="1" required placeholder="Tuliskan ulasan produk..."
                                 oninput="this.style.height = ''; this.style.height = Math.min(this.scrollHeight, 90) + 'px'"
                                 class="flex-1 bg-transparent text-xs text-zinc-900 font-bold placeholder-zinc-400 focus:outline-none resize-none max-h-24 py-1.5 px-1 scrollbar-hide leading-relaxed"></textarea>
-                            
+
                             <div class="flex items-center gap-1.5 flex-shrink-0 pb-0.5">
                                 <label for="reviewMediaFiles" title="Lampirkan Gambar/Video" class="w-8 h-8 rounded-xl bg-[#FAF7EF] border-2 border-zinc-900 text-zinc-900 hover:bg-zinc-200 flex items-center justify-center cursor-pointer transition active:scale-95">
                                     <i class="fa-solid fa-paperclip text-xs"></i>
@@ -733,7 +732,7 @@
             <!-- Gambar / Video Kontainer -->
             <div class="max-w-4xl max-h-[75vh] w-full flex items-center justify-center p-2 relative">
                 <img id="lightboxImage" src="" class="hidden max-w-full max-h-[75vh] rounded-2xl object-contain border-2 border-white/20 shadow-2xl transition-all duration-200">
-                
+
                 <!-- Video Dengan Area Sentuh Play/Pause Bening & Kontrol Tersembunyi -->
                 <div id="lightboxVideoWrapper" class="hidden relative max-w-full max-h-[75vh] flex items-center justify-center cursor-pointer" onclick="toggleLightboxVideoPlay()">
                     <video id="lightboxVideo" playsinline webkit-playsinline class="max-w-full max-h-[75vh] rounded-2xl object-contain border-2 border-white/20 shadow-2xl transition-all duration-200"></video>
@@ -944,7 +943,7 @@
                             <i class="fa-solid fa-file-invoice text-amber-600 mr-1"></i> Unggah Bukti Pembayaran:
                         </label>
                         <input type="file" id="proofFileInput" accept="image/*" onchange="previewProofImage(this)" class="w-full text-xs text-zinc-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-2 file:border-zinc-900 file:text-xs file:font-black file:bg-yellow-300 file:text-zinc-900 cursor-pointer">
-                        
+
                         <div id="proofPreviewBox" class="hidden text-center pt-2">
                             <img id="proofPreviewImg" src="" class="max-h-36 mx-auto rounded-lg border-2 border-zinc-900 object-contain">
                         </div>
@@ -1038,30 +1037,6 @@
             if (dropdown) dropdown.classList.add('hidden');
         }
 
-        const docTranslations = {
-            id: { langBtn: 'ID' },
-            en: { langBtn: 'EN' }
-        };
-
-        let currentLang = localStorage.getItem('arulzxd_lang') || 'id';
-
-        function switchLanguage(lang) {
-            currentLang = lang;
-            localStorage.setItem('arulzxd_lang', lang);
-            
-            const btnId = document.getElementById('lang-btn-id');
-            const btnEn = document.getElementById('lang-btn-en');
-            if (btnId && btnEn) {
-                if (lang === 'id') {
-                    btnId.className = 'px-2.5 py-1 text-[10px] font-black rounded-lg border-2 border-zinc-900 theme-bg-accent';
-                    btnEn.className = 'px-2.5 py-1 text-[10px] font-black rounded-lg text-zinc-600 hover:text-zinc-900';
-                } else {
-                    btnEn.className = 'px-2.5 py-1 text-[10px] font-black rounded-lg border-2 border-zinc-900 theme-bg-accent';
-                    btnId.className = 'px-2.5 py-1 text-[10px] font-black rounded-lg text-zinc-600 hover:text-zinc-900';
-                }
-            }
-        }
-
         document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
         document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
 
@@ -1086,7 +1061,7 @@
                 mainVideo.muted = false; 
                 mainVideo.playsInline = true;
                 mainVideo.setAttribute('playsinline', '');
-                
+
                 if (mainVideo.paused || mainVideo.currentTime === 0) {
                     mainVideo.play().catch(e => console.log("Gagal memutar video utama:", e));
                 }
@@ -1098,7 +1073,7 @@
                 sidebarVideo.playsInline = true;
                 sidebarVideo.setAttribute('muted', '');
                 sidebarVideo.setAttribute('playsinline', '');
-                
+
                 if (sidebarVideo.paused || sidebarVideo.currentTime === 0) {
                     sidebarVideo.play().catch(e => console.log("Gagal memutar video sidebar:", e));
                 }
@@ -1253,7 +1228,7 @@
             }
 
             container.classList.remove('hidden');
-            
+
             let html = EXISTING_MEDIA_LIST.map((media, idx) => {
                 const isVideo = media.type === 'video';
                 return `
@@ -1664,7 +1639,7 @@
                 commentInput.style.height = '';
                 commentInput.style.height = Math.min(commentInput.scrollHeight, 90) + 'px';
             }
-            
+
             SELECTED_FILE_LIST = [];
             REMOVED_MEDIA_URLS = [];
             KEEP_EXISTING_MEDIA = true;
@@ -1751,7 +1726,7 @@
 
         function renderReviewsToDOM(data) {
             const container = document.getElementById('reviewsListContainer');
-            
+
             document.getElementById('detailRatingSummary').innerHTML = `
                 ${renderStarRating(data.averageRating || 0)}
                 <span class="text-[11px] text-zinc-600 font-bold">(${data.totalReviews || 0} Penilaian)</span>
@@ -1769,7 +1744,7 @@
                 let mediaHtml = '';
                 if (rev.media && rev.media.length > 0) {
                     const revMediaIdx = currentReviewsListWithMedia.findIndex(r => r._id === rev._id);
-                    
+
                     mediaHtml = `<div class="flex gap-2 mt-2 overflow-x-auto scrollbar-hide py-1">` + rev.media.map((m, mIdx) => {
                         if (m.type === 'video') {
                             return `
@@ -2055,7 +2030,7 @@
                         }
                         localStorage.removeItem('active_order_id');
                         localStorage.removeItem('active_order_product');
-                        
+
                         onPaymentSuccess(result.data.productLink || (SELECTED_PRODUCT ? SELECTED_PRODUCT.link : null) || "#");
                         document.getElementById('checkoutModal').classList.remove('hidden');
                         return true;
@@ -2154,7 +2129,7 @@
                 let imagesHtml = imageList.map((imgUrl, imgIdx) => 
                     `<img src="${imgUrl}" onclick="event.stopPropagation(); openProductZoomLightbox(${originalIndex}, ${imgIdx})" class="w-full h-full object-cover flex-shrink-0 cursor-pointer ${isOutOfStock ? 'grayscale opacity-60' : ''}">`
                 ).join('');
-                
+
                 let cardNavBtns = imageList.length > 1 ? `
                     <button onclick="event.stopPropagation(); slideCardCarousel(${originalIndex}, -1)" class="absolute left-1 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-[#FFFDF8] border border-zinc-900 text-zinc-900 flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition hover:bg-amber-300 z-10">
                         <i class="fa-solid fa-chevron-left"></i>
@@ -2279,7 +2254,7 @@
             document.getElementById('modalProductName').innerText = SELECTED_PRODUCT.nama;
             document.getElementById('modalProductPrice').innerText = formatRupiah(hargaFinal);
             document.getElementById('modalProductSold').innerText = formatTerjual(SELECTED_PRODUCT.terjual);
-            
+
             let modalImgSrc = Array.isArray(SELECTED_PRODUCT.gambar) ? SELECTED_PRODUCT.gambar[0] : (SELECTED_PRODUCT.gambar || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png');
             document.getElementById('modalProductImage').src = modalImgSrc;
             document.getElementById('modalStockInfo').innerText = `Tersisa: ${SELECTED_PRODUCT.stok !== undefined ? SELECTED_PRODUCT.stok : 'Tersedia'}`;
@@ -2291,7 +2266,7 @@
             }
             document.getElementById('voucherStatusLabel').innerText = 'Bisa diisi / dikosongkan';
             document.getElementById('voucherStatusLabel').className = 'text-[10px] font-mono text-zinc-500 font-bold';
-            
+
             const btnClaimText = document.getElementById('btnClaimText');
             if (btnClaimText) btnClaimText.innerText = 'Claim';
 
@@ -2422,7 +2397,7 @@
 
         function calculateFinalTotal() {
             if (!SELECTED_PRODUCT) return { subtotal: 0, discount: 0, total: 0 };
-            
+
             const hargaUnit = SELECTED_PRODUCT.harga_diskon || SELECTED_PRODUCT.harga;
             const subtotal = hargaUnit * CURRENT_QTY;
             let discountAmount = 0;
@@ -2509,7 +2484,7 @@
                 });
 
                 const result = await res.json();
-                
+
                 if (!res.ok || !result.status) {
                     throw new Error(result.message || "Gagal menghasilkan QRIS");
                 }
@@ -2876,7 +2851,6 @@
                 bioDropdown.addEventListener('click', (e) => { e.stopPropagation(); });
             }
 
-            switchLanguage(currentLang);
             await fetchCurrentUserStatus();
             await fetchProduk();
             await checkActiveTransaction();
