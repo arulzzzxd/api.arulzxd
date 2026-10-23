@@ -1,127 +1,196 @@
-import express from 'express';
-import axios from 'axios';
-import { wrapper } from 'axios-cookiejar-support';
-import { CookieJar } from 'tough-cookie';
+import express from "express";
+import puppeteer from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
+
+puppeteer.use(StealthPlugin());
 
 const router = express.Router();
+const TARGET_SITE = "https://fastdl.app";
 
-const BASE_URL = 'https://igexport.com';
+async function downloadInstagram(instagramUrl) {
+    const browser = await puppeteer.launch({
+        headless: "new",
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-blink-features=AutomationControlled",
+            "--disable-dev-shm-usage"
+        ]
+    });
 
-const jar = new CookieJar();
-const client = wrapper(axios.create({
-    baseURL: BASE_URL,
-    jar: jar, 
-    timeout: 30000, 
-    headers: {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36',
-        'Referer': `${BASE_URL}/id/video-download/`,
-        'Accept': 'application/json, text/plain, */*',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'same-origin'
-    }
-}));
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1366, height: 768 });
 
-function getEndpointByUrl(url) {
-    const lowerUrl = url.toLowerCase();
-    if (lowerUrl.includes('/reel/') || 
-        lowerUrl.includes('/tv/') || 
-        lowerUrl.includes('/stories/')) {
-        return '/api/ig-reels';
-    }
-    return '/api/ig-photo';
-}
+    await page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+        window.chrome = { runtime: {} };
+        Object.defineProperty(navigator, "languages", { get: () => ["id-ID", "id", "en-US", "en"] });
+        Object.defineProperty(navigator, "plugins", { get: () => [1, 2, 3, 4, 5] });
+    });
 
-async function scrapeIGExportSmart(igUrl, retries = 2) {
-    const endpoint = getEndpointByUrl(igUrl);
+    try {
+        await page.goto(TARGET_SITE, { waitUntil: "networkidle2", timeout: 60000 });
+        await new Promise((r) => setTimeout(r, 2000 + Math.random() * 2000));
 
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            if (attempt > 1) {
-                await new Promise(r => setTimeout(r, 2000));
+        let apiResponse = null;
+        let apiResponseRaw = null;
+
+        page.on("response", async (response) => {
+            const url = response.url();
+            if (url.includes("/api/convert")) {
+                try {
+                    apiResponseRaw = await response.text();
+                    try {
+                        apiResponse = JSON.parse(apiResponseRaw);
+                    } catch (e) {
+                        const jsonMatch = apiResponseRaw.match(/\{[\s\S]*\}/);
+                        if (jsonMatch) {
+                            apiResponse = JSON.parse(jsonMatch[0]);
+                        }
+                    }
+                } catch (e) {
+                    // Ignore parse error
+                }
+            }
+        });
+
+        const inputFound = await page.evaluate((url) => {
+            const selectors = [
+                'input[type="text"]', 'input[type="url"]',
+                'input[name="url"]', 'input[placeholder*="URL"]',
+                'input[placeholder*="url"]', 'input[placeholder*="link"]',
+                "#url-input", "#url", ".url-input", "form input"
+            ];
+
+            let input = null;
+            for (const sel of selectors) {
+                input = document.querySelector(sel);
+                if (input) break;
             }
 
-            await client.get('/id/video-download/');
-            
-            const params = { url: igUrl };
-            const response = await client.get(endpoint, { params });
+            if (!input) return false;
 
-            const serverData = response.data;
-            if (!serverData) throw new Error('Empty response from server');
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                window.HTMLInputElement.prototype, "value"
+            ).set;
+
+            nativeInputValueSetter.call(input, url);
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+            input.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }));
+
+            return true;
+        }, instagramUrl);
+
+        if (!inputFound) {
+            throw new Error("Could not find URL input field.");
+        }
+
+        await new Promise((r) => setTimeout(r, 1500));
+
+        const btnClicked = await page.evaluate(() => {
+            const selectors = [
+                'button[type="submit"]', "button.btn",
+                ".download-btn", ".btn-download", "form button",
+                '[class*="download"]', '[class*="submit"]', '[class*="convert"]'
+            ];
+
+            for (const sel of selectors) {
+                const btns = document.querySelectorAll(sel);
+                for (const btn of btns) {
+                    if (btn.offsetParent !== null && btn.textContent.trim().length > 0) {
+                        btn.click();
+                        return btn.textContent.trim().substring(0, 30);
+                    }
+                }
+            }
+
+            const form = document.querySelector("form");
+            if (form) {
+                form.dispatchEvent(new Event("submit", { bubbles: true }));
+                return "form_submit";
+            }
+
+            return null;
+        });
+
+        if (!btnClicked) {
+            throw new Error("Could not find download button.");
+        }
+
+        let waitTime = 0;
+        const maxWait = 45000;
+
+        while (!apiResponse && waitTime < maxWait) {
+            await new Promise((r) => setTimeout(r, 1000));
+            waitTime += 1000;
+        }
+
+        if (!apiResponse) {
+            throw new Error("API response not captured within timeout.");
+        }
+
+        let data = apiResponse;
+
+        if (data?.url && Array.isArray(data.url) && data.url.length > 0) {
+            const bestVideo = data.url.reduce((prev, curr) =>
+                (curr.quality || 0) > (prev.quality || 0) ? curr : prev
+            );
 
             return {
-                status: true,
-                detected_type: endpoint === '/api/ig-reels' ? 'video/reel' : 'photo/post',
-                result: serverData
+                original_url: instagramUrl,
+                title: data.meta?.title || "Untitled",
+                username: data.meta?.username || "unknown",
+                shortcode: data.meta?.shortcode || "",
+                thumbnail: data.meta?.thumbnail || null,
+                download_url: bestVideo.url,
+                quality: bestVideo.subname || `${bestVideo.quality}p`,
+                type: bestVideo.type || bestVideo.ext || "mp4",
+                all_qualities: data.url,
+                meta: data.meta
             };
-
-        } catch (error) {
-            const isServerError = error.response && [502, 504, 503].includes(error.response.status);
-            if (isServerError && attempt < retries) {
-                continue; 
-            }
-
-            if (error.response) {
-                return {
-                    status: false,
-                    message: error.response.data?.message || `HTTP Error ${error.response.status}`
-                };
-            }
-            
-            if (attempt === retries) {
-                return {
-                    status: false,
-                    message: error.message || 'Gagal mengambil data dari IGExport.'
-                };
-            }
         }
+
+        if (data?.info === -1 || data?.invalid_request) {
+            const errorMsg = data.html || data.message || data.code || "Unknown server error";
+            throw new Error(`Server rejected: ${String(errorMsg).substring(0, 150)}`);
+        }
+
+        throw new Error("Unexpected response format from server");
+    } finally {
+        await browser.close();
     }
-    
-    return { status: false, message: 'All retries exhausted.' };
 }
 
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
     try {
-        const url = req.query.url?.trim();
+        const url = req.query.url?.trim() || req.query.link?.trim();
 
-        if (!url || !url.includes('instagram.com')) {
+        if (!url || !url.includes("instagram.com")) {
             return res.status(400).json({
                 status: false,
-                creator: 'ArulzXD',
-                message: 'Masukkan parameter url Instagram yang valid (contoh: ?url=https://www.instagram.com/reel/...)'
+                message: "Parameter 'url' atau 'link' Instagram valid wajib diisi!"
             });
         }
 
-        const resData = await scrapeIGExportSmart(url);
-
-        if (!resData.status) {
-            return res.status(400).json({
-                status: false,
-                creator: 'ArulzXD',
-                message: resData.message
-            });
-        }
+        const data = await downloadInstagram(url);
 
         return res.json({
             status: true,
-            creator: 'ArulzXD',
-            type: resData.detected_type,
-            result: resData.result
+            creator: "AwasPhpJir",
+            result: data
         });
-
     } catch (err) {
-        console.error(err);
         return res.status(500).json({
             status: false,
-            creator: 'ArulzXD',
-            message: err.message || 'Terjadi kesalahan pada server saat memproses unduhan Instagram.'
+            message: err.message || "Internal Server Error saat mengunduh dari FastDL"
         });
     }
 });
 
-router.desc = "Instagram Downloader via IGExport (mendukung Reel, Photo, Post, & Story).";
+router.desc = "Downloader Instagram (Reels, Post, Photo, Video) via FastDL Puppeteer Stealth.";
 router.paramsConfig = {
-    url: "contoh: https://www.instagram.com/reel/..."
+    url: "contoh: https://www.instagram.com/reel/Da61UycpjkO/"
 };
 router.status = "ready";
 router.type = "free";
