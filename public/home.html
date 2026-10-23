@@ -732,9 +732,7 @@
             }
             if (data.totalRequests !== undefined) {
                 const reqEl = document.getElementById('totalRequestsStat');
-                // Menambahkan nilai default 3000 ke total request real-time
-                const totalCombinedRequests = 3000 + data.totalRequests;
-                if (reqEl) reqEl.innerHTML = `${totalCombinedRequests.toLocaleString('id-ID')} <span class="text-xs text-zinc-600 font-bold">Hits</span>`;
+                if (reqEl) reqEl.innerHTML = `${data.totalRequests.toLocaleString('id-ID')} <span class="text-xs text-zinc-600 font-bold">Hits</span>`;
             }
         })
         .catch(err => console.error("Gagal memuat statistik server:", err));

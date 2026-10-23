@@ -1220,9 +1220,7 @@
                 userEl.innerText = data.totalUsers.toLocaleString('id-ID');
             }
             if (reqEl && data.totalRequests !== undefined) {
-                // Menambahkan nilai default 3000 ke total request real-time
-                const totalCombinedRequests = 3000 + data.totalRequests;
-                reqEl.innerText = totalCombinedRequests.toLocaleString('id-ID');
+                reqEl.innerText = data.totalRequests.toLocaleString('id-ID');
             }
         })
         .catch(err => console.error("Gagal update server stats:", err));
