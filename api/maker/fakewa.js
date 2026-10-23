@@ -1,10 +1,7 @@
 import express from "express";
 import multer from "multer";
 import axios from "axios";
-import {
-    createCanvas,
-    loadImage
-} from "@napi-rs/canvas";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 const router = express.Router();
 const upload = multer();
@@ -37,21 +34,15 @@ function formatNomor(n) {
     return formatted;
 }
 
-const cpUpload = upload.fields([
-    { name: 'avatarFile', maxCount: 1 }
-]);
-
-router.post("/", cpUpload, async (req, res) => {
+router.post("/", upload.single('fileupload'), async (req, res) => {
     try {
-        const files = req.files || {};
+        const file = req.file;
         const body = req.body || {};
 
-        const avatarFileInput = files.avatarFile?.[0];
-
-        if (!avatarFileInput || !avatarFileInput.buffer) {
+        if (!file || !file.buffer) {
             return res.status(400).json({
                 status: false,
-                message: "Berkas 'avatarFile' (Foto profil) wajib diunggah!"
+                message: "Berkas 'fileupload' (Foto profil) wajib diunggah!"
             });
         }
 
@@ -62,17 +53,17 @@ router.post("/", cpUpload, async (req, res) => {
         if (!bgCache) bgCache = await getBuffer(BG_URL);
 
         const [avatar, background] = await Promise.all([
-            loadImage(avatarFileInput.buffer),
+            loadImage(file.buffer),
             loadImage(bgCache)
         ]);
 
         const canvas = createCanvas(background.width, background.height);
         const ctx = canvas.getContext("2d");
 
-        // Render Background Template WA
+        // Render Background
         ctx.drawImage(background, 0, 0);
 
-        // Clip & Crop Foto Profil ke Bentuk Lingkaran Presisi
+        // Clip & Crop Foto Profil ke Bentuk Lingkaran
         const avatarSize = 350;
         const avatarX = (canvas.width - avatarSize) / 2;
         const avatarY = 163;
@@ -125,14 +116,13 @@ router.post("/", cpUpload, async (req, res) => {
 
 router.desc = "Maker untuk membuat tampilan Fake WhatsApp Profile.";
 router.paramsConfig = {
-    router.paramsConfig = {
-    avatarFile: {
-    type: "file",
-    desc: "file gambar profil"
-  },
-  nama: "contoh: Fauzan",
-  nomor: "contoh: 08123456789",
-  status: "contoh: Sibuk"
+    fileupload: {
+        type: "file",
+        desc: "file gambar profil"
+    },
+    nama: "contoh: Arulz",
+    nomor: "contoh: 08123456789",
+    status: "contoh: Sibuk"
 };
 router.status = "ready";
 router.type = "free";

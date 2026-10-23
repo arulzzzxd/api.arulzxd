@@ -64,7 +64,7 @@ router.get("/", async (req, res) => {
 
 router.desc = "Maker untuk membuat gambar Fake Ijazah Hiburan.";
 router.paramsConfig = {
-    nama: "congelarArulz",
+    nama: "contoh: Arulz",
     gelar: "contoh: S.Kom",
     universitas: "contoh: Universitas Arulz"
 };

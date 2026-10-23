@@ -1,11 +1,7 @@
 import express from "express";
 import multer from "multer";
 import axios from "axios";
-import {
-    createCanvas,
-    loadImage,
-    GlobalFonts
-} from "@napi-rs/canvas";
+import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 
 const router = express.Router();
 const upload = multer();
@@ -67,22 +63,17 @@ const drawCircularTextBottom = (context, str, cx, cy, rad) => {
     }
 };
 
-const cpUpload = upload.fields([
-    { name: 'avatarFile', maxCount: 1 }
-]);
-
-router.post("/", cpUpload, async (req, res) => {
+router.post("/", upload.single('fileupload'), async (req, res) => {
     try {
-        const files = req.files || {};
+        const file = req.file;
         const body = req.body || {};
 
         const text = body.text?.trim() || body.caption?.trim() || "DEVELOPER";
-        const avatarFileInput = files.avatarFile?.[0];
 
-        if (!avatarFileInput || !avatarFileInput.buffer) {
+        if (!file || !file.buffer) {
             return res.status(400).json({
                 status: false,
-                message: "Berkas 'avatarFile' (Foto profil) wajib diunggah!"
+                message: "Berkas 'fileupload' (Foto profil) wajib diunggah!"
             });
         }
 
@@ -90,7 +81,7 @@ router.post("/", cpUpload, async (req, res) => {
 
         if (!bgCache) bgCache = await getBuffer(BG_URL);
 
-        const userImg = await loadImage(avatarFileInput.buffer);
+        const userImg = await loadImage(file.buffer);
         const background = await loadImage(bgCache);
 
         const canvas = createCanvas(1024, 1024);
@@ -103,7 +94,7 @@ router.post("/", cpUpload, async (req, res) => {
         const centerY = 455; 
         const radius = 235; 
 
-        // Crop & Clip Foto User ke Bentuk Lingkaran dengan Aspek Rasio Sesuai
+        // Crop & Clip Foto User ke Bentuk Lingkaran
         ctx.save();
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, Math.PI * 2, true);
@@ -146,12 +137,11 @@ router.post("/", cpUpload, async (req, res) => {
 
 router.desc = "Maker untuk membuat avatar berbingkai Fake Developer v2.";
 router.paramsConfig = {
-    router.paramsConfig = {
-    avatarFile: {
-    type: "file",
-    desc: "file gambar profil"
-  },
-  text: "contoh: DEVELOPER"
+    fileupload: {
+        type: "file",
+        desc: "file gambar profil"
+    },
+    text: "contoh: DEVELOPER"
 };
 router.status = "ready";
 router.type = "free";

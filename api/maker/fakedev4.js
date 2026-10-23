@@ -1,10 +1,7 @@
 import express from "express";
 import multer from "multer";
 import axios from "axios";
-import {
-    createCanvas,
-    loadImage
-} from "@napi-rs/canvas";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 const router = express.Router();
 const upload = multer();
@@ -21,30 +18,24 @@ async function getBuffer(url) {
     return Buffer.from(data);
 }
 
-const cpUpload = upload.fields([
-    { name: 'avatarFile', maxCount: 1 }
-]);
-
-router.post("/", cpUpload, async (req, res) => {
+router.post("/", upload.single('fileupload'), async (req, res) => {
     try {
-        const files = req.files || {};
+        const file = req.file;
         const body = req.body || {};
 
         const text = body.text?.trim() || body.caption?.trim() || "DEVELOPER";
-        const avatarFileInput = files.avatarFile?.[0];
 
-        if (!avatarFileInput || !avatarFileInput.buffer) {
+        if (!file || !file.buffer) {
             return res.status(400).json({
                 status: false,
-                message: "Berkas 'avatarFile' (Foto profil) wajib diunggah!"
+                message: "Berkas 'fileupload' (Foto profil) wajib diunggah!"
             });
         }
 
-        // Cache aset background ke memory
         if (!bgCache) bgCache = await getBuffer(BG_URL);
 
         const [userImage, bgImg] = await Promise.all([
-            loadImage(avatarFileInput.buffer),
+            loadImage(file.buffer),
             loadImage(bgCache)
         ]);
 
@@ -58,7 +49,7 @@ router.post("/", cpUpload, async (req, res) => {
         const centerY = canvas.height / 2;
         const radius = 263;
 
-        // Clip & Crop Foto Profil secara Proporsional
+        // Clip & Crop Foto Profil
         ctx.save();
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
@@ -101,7 +92,7 @@ router.post("/", cpUpload, async (req, res) => {
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate(angle - Math.PI / 2);
-            ctx.strokeStyle = "#ff0000"; // Stroke merah
+            ctx.strokeStyle = "#ff0000";
             ctx.lineWidth = 3;
             ctx.strokeText(chars[i], 0, 0);
             ctx.fillText(chars[i], 0, 0);
@@ -110,7 +101,6 @@ router.post("/", cpUpload, async (req, res) => {
 
         ctx.restore();
 
-        // Export PNG Buffer Response
         const buffer = await canvas.encode("png");
         res.setHeader("Content-Type", "image/png");
         return res.end(buffer);
@@ -125,12 +115,11 @@ router.post("/", cpUpload, async (req, res) => {
 
 router.desc = "Maker untuk membuat avatar berbingkai Fake Developer v4 (Red Stroke Text).";
 router.paramsConfig = {
-    router.paramsConfig = {
-    avatarFile: {
-    type: "file",
-    desc: "file gambar profil"
-  },
-  text: "contoh: DEVELOPER"
+    fileupload: {
+        type: "file",
+        desc: "file gambar profil"
+    },
+    text: "contoh: DEVELOPER"
 };
 router.status = "ready";
 router.type = "free";

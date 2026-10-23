@@ -1,10 +1,7 @@
 import express from "express";
 import multer from "multer";
 import axios from "axios";
-import {
-    createCanvas,
-    loadImage
-} from "@napi-rs/canvas";
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 const router = express.Router();
 const upload = multer();
@@ -65,29 +62,24 @@ function drawCircularTextTop(ctx, text, centerX, centerY, radius, badgeImage) {
     }
 }
 
-const cpUpload = upload.fields([
-    { name: 'avatarFile', maxCount: 1 }
-]);
-
-router.post("/", cpUpload, async (req, res) => {
+router.post("/", upload.single('fileupload'), async (req, res) => {
     try {
-        const files = req.files || {};
+        const file = req.file;
         const body = req.body || {};
 
         const text = body.text?.trim() || body.caption?.trim() || "DEVELOPER";
-        const avatarFileInput = files.avatarFile?.[0];
 
-        if (!avatarFileInput || !avatarFileInput.buffer) {
+        if (!file || !file.buffer) {
             return res.status(400).json({
                 status: false,
-                message: "Berkas 'avatarFile' (Foto profil) wajib diunggah!"
+                message: "Berkas 'fileupload' (Foto profil) wajib diunggah!"
             });
         }
 
         if (!bgCache) bgCache = await getBuffer(BG_URL);
         if (!badgeCache) badgeCache = await getBuffer(BADGE_URL);
 
-        const userImage = await loadImage(avatarFileInput.buffer);
+        const userImage = await loadImage(file.buffer);
         const bg = await loadImage(bgCache);
         const badge = await loadImage(badgeCache);
 
@@ -128,11 +120,11 @@ router.post("/", cpUpload, async (req, res) => {
 
 router.desc = "Maker untuk membuat avatar berbingkai Fake Developer.";
 router.paramsConfig = {
-    avatarFile: {
-    type: "file",
-    desc: "file gambar profil"
-  },
-  text: "contoh: ArulzDev"
+    fileupload: {
+        type: "file",
+        desc: "file gambar profil"
+    },
+    text: "contoh: ArulzDev"
 };
 router.status = "ready";
 router.type = "free";
