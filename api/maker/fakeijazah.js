@@ -24,7 +24,7 @@ async function generateFakeIjazah(nama, gelar, universitas) {
       <rect x="28" y="28" width="1044" height="704" rx="10" fill="none" stroke="#333" stroke-width="4"/>
       <rect x="42" y="42" width="1016" height="676" rx="8" fill="none" stroke="#777" stroke-width="2"/>
       <text x="550" y="105" text-anchor="middle" font-family="Times New Roman, serif" font-size="34" font-weight="700">IJAZAH</text>
-      <text x="550" y="145" text-anchor="middle" font-family="Times New Roman, serif" font-size="17">CONTOH / UNTUK HIBURAN</text>
+      <text x="550" y="145" text-anchor="middle" font-family="Times New Roman, serif" font-size="17">UNTUK HIBURAN</text>
       <line x1="220" y1="170" x2="880" y2="170" stroke="#333" stroke-width="2"/>
       <text x="550" y="235" text-anchor="middle" font-family="Times New Roman, serif" font-size="15">Diberikan kepada</text>
       <text x="550" y="290" text-anchor="middle" font-family="Times New Roman, serif" font-size="30" font-weight="700">${escapeXml(nama).toUpperCase()}</text>

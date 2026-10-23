@@ -128,8 +128,11 @@ router.post("/", cpUpload, async (req, res) => {
 
 router.desc = "Maker untuk membuat avatar berbingkai Fake Developer.";
 router.paramsConfig = {
-    avatarFile: "file gambar profil",
-    text: "contoh: ArulzDev"
+    avatarFile: {
+    type: "file",
+    desc: "file gambar profil"
+  },
+  text: "contoh: ArulzDev"
 };
 router.status = "ready";
 router.type = "free";

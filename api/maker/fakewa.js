@@ -55,7 +55,7 @@ router.post("/", cpUpload, async (req, res) => {
             });
         }
 
-        const nama = body.nama?.trim() || "Fauzan";
+        const nama = body.nama?.trim() || "arulzzxd";
         const nomor = formatNomor(body.nomor?.trim() || "08123456789");
         const status = body.status?.trim() || "Busy";
 
@@ -125,10 +125,14 @@ router.post("/", cpUpload, async (req, res) => {
 
 router.desc = "Maker untuk membuat tampilan Fake WhatsApp Profile.";
 router.paramsConfig = {
-    avatarFile: "file foto profil (wajib upload)",
-    nama: "contoh: Fauzan",
-    nomor: "contoh: 08123456789",
-    status: "contoh: Sibuk"
+    router.paramsConfig = {
+    avatarFile: {
+    type: "file",
+    desc: "file gambar profil"
+  },
+  nama: "contoh: Fauzan",
+  nomor: "contoh: 08123456789",
+  status: "contoh: Sibuk"
 };
 router.status = "ready";
 router.type = "free";
