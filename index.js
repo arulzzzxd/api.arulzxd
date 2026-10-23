@@ -3174,7 +3174,7 @@ app.get(['/api/server-status', '/api/status-server'], async (req, res) => {
     const usedMem = totalMem - freeMem;
 
     let totalUsers = 0;
-    let totalRequests = 0;
+    let totalRequests = 3000; // Base default 3000
 
     try {
         totalUsers = await User.countDocuments();
@@ -3183,16 +3183,16 @@ app.get(['/api/server-status', '/api/status-server'], async (req, res) => {
             { $group: { _id: null, total: { $sum: "$count" } } }
         ]);
         
-        // Base default 3000 request + jumlah dari database
+        // Tambahkan total request dari database ke base 3000
         const realTimeRequests = reqAggregate[0]?.total || 0;
-        totalRequests = 3000 + realTimeRequests;
+        totalRequests += realTimeRequests;
     } catch (err) {
         console.error("Gagal memuat statistik server:", err.message);
     }
 
     res.json({
         totalUsers,
-        totalRequests,
+        totalRequests, // Menghasilkan nilai realtime yang berawal dari 3000+
         platform: os.platform(),
         architecture: os.arch(),
         uptime: os.uptime(),
