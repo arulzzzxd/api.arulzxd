@@ -325,22 +325,22 @@ app.use(async (req, res, next) => {
             let ogImageUrl = `https://api.arulzzxd.my.id/og/${pathKey}`;
 
             if (req.path === '/pastecode' && req.query.id) {
-                ogImageUrl = `https://api.arulzzxd.my.id/og/snippet?id=${req.query.id}`;
-                try {
-                    const dbRes = await axios.get("https://raw.githubusercontent.com/arulzzzxd/api-arulzxd/main/database/data.js", { timeout: 3000 });
-                    let jsonString = dbRes.data.replace(/^(let|const|var|window)\s+\w+\s*=\s*/, '').trim();
-                    if (jsonString.endsWith(';')) jsonString = jsonString.slice(0, -1);
-                    const pastes = JSON.parse(jsonString);
-                    const snippet = pastes.find(p => String(p.id) === String(req.query.id));
+    ogImageUrl = `https://api.arulzzxd.my.id/og/snippet?id=${req.query.id}`;
+    try {
+        const { data: snippet, error } = await supabase
+            .from('pastes')
+            .select('*')
+            .eq('id', req.query.id)
+            .single();
 
-                    if (snippet) {
-                        title = `${snippet.title} - Pastecode Snippet`;
-                        desc = snippet.desc || `Snippet kode ${snippet.language || 'JS'} oleh ${snippet.author || 'arulzxd'}`;
-                    }
-                } catch (e) {
-                    title = "Pastecode Snippet | ArulzXD API";
-                }
-            }
+        if (snippet && !error) {
+            title = `${snippet.title} - Pastecode Snippet`;
+            desc = snippet.desc || `Snippet kode ${snippet.language || 'JS'} oleh ${snippet.author || 'arulzxd'}`;
+        }
+    } catch (e) {
+        title = "Pastecode Snippet | ArulzXD API";
+    }
+}
 
             const fullUrl = `https://api.arulzzxd.my.id${req.originalUrl}`;
 
@@ -2451,32 +2451,33 @@ app.get('/og/snippet', async (req, res) => {
 
         const snippetId = req.query.id;
         let snippetData = {
-            title: req.query.title || "Aio-Download",
+            title: req.query.title || "Pastecode Snippet",
             author: req.query.author || "arulzxd",
             language: req.query.lang || "scrape",
-            date: req.query.date || "29 Jun 2026",
-            code: req.query.code || "const axios = require('axios');\n\nasync function aioDownloader(targetUrl) {\n  const apiUrl = 'https://api-arulzxd-"
+            date: req.query.date || getFormattedDateToday(),
+            code: req.query.code || "const axios = require('axios');\n\nasync function main() {\n  console.log('ArulzXD API Pastecode');\n}"
         };
 
         if (snippetId) {
             try {
-                const dbRes = await axios.get("https://raw.githubusercontent.com/arulzzzxd/api-arulzxd/main/database/data.js", { timeout: 4000 });
-                let jsonString = dbRes.data.replace(/^(let|const|var|window)\s+\w+\s*=\s*/, '').trim();
-                if (jsonString.endsWith(';')) jsonString = jsonString.slice(0, -1);
-                const pastes = JSON.parse(jsonString);
-                const found = pastes.find(p => String(p.id) === String(snippetId));
+                // Ambil data langsung dari tabel pastes di Supabase
+                const { data, error } = await supabase
+                    .from('pastes')
+                    .select('*')
+                    .eq('id', snippetId)
+                    .single();
 
-                if (found) {
+                if (data && !error) {
                     snippetData = {
-                        title: found.title || snippetData.title,
-                        author: found.author || "arulzxd",
-                        language: found.language || "javascript",
-                        date: found.date || snippetData.date,
-                        code: found.content || snippetData.code
+                        title: data.title || snippetData.title,
+                        author: data.author || data.desc || "arulzxd",
+                        language: data.language || "javascript",
+                        date: data.date || snippetData.date,
+                        code: data.content || snippetData.code
                     };
                 }
             } catch (err) {
-                console.error("Gagal mengambil snippet data untuk OG:", err.message);
+                console.error("Gagal mengambil snippet data dari Supabase untuk OG:", err.message);
             }
         }
 
