@@ -989,7 +989,7 @@
                         <div class="flex justify-between items-start gap-3">
                             <div class="flex-1 min-w-0">
                                 <h2 class="text-lg font-black text-zinc-900 mb-1 truncate">${current.title}</h2>
-                                <p class="text-xs font-semibold text-zinc-600 mb-3">${current.desc || 'Tidak ada deskripsi.'}</p>
+                                <p class="text-xs font-semibold text-zinc-600 mb-3 whitespace-pre-wrap leading-relaxed">${current.desc || 'Tidak ada deskripsi.'}</p>
                             </div>
                             <span class="px-3 py-1 text-xs rounded-lg code-font" style="${getLanguageStyle(current.language)}">${current.language}</span>
                         </div>
@@ -1050,7 +1050,7 @@
                     langs[p.language] = true;
                 });
                 let totalLanguagesCount = Object.keys(langs).length;
-                if (totalLanguagesCount < 2) totalLanguagesCount = 2;
+                if (totalLanguagesCount < 1) totalLanguagesCount = 1;
 
                 target.innerHTML = `
                     <div class="light-card p-6 mb-6">
@@ -1130,7 +1130,7 @@
                         </div>
                         <div class="p-4 bg-[#FFFDF8]">
                             <h3 class="font-extrabold text-base text-zinc-900 mb-0.5 truncate">${p.title}</h3>
-                            <p class="text-[11px] font-semibold text-zinc-600 mb-2.5 truncate">${p.desc || 'Tidak ada deskripsi.'}</p>
+                            <p class="text-[11px] font-semibold text-zinc-600 mb-2.5 whitespace-pre-wrap leading-snug break-words">${p.desc || 'Tidak ada deskripsi.'}</p>
                             
                             <!-- BOX KODE -->
                             <div class="preview-box-light">${escapeHTML(contentPreview)}</div>
