@@ -20,6 +20,7 @@ import crypto from 'crypto';
 import compression from 'compression';
 import os from 'os';
 import webpush from 'web-push';
+import { createClient } from '@supabase/supabase-js';
 import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
 import { fileURLToPath, pathToFileURL } from 'url';
 
@@ -84,6 +85,16 @@ const getSmtpTransporter = () => {
         tls: { rejectUnauthorized: false }
     });
 };
+
+// configuration supabase
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.warn('⚠️ SUPABASE_URL atau SUPABASE_KEY belum dikonfigurasi di environment variables (.env)!');
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ====================================================
 // 2. MONGOOSE DATABASE CONNECTION & SCHEMAS
@@ -3205,6 +3216,46 @@ app.get(['/api/server-status', '/api/status-server'], async (req, res) => {
         cpuCores: os.cpus().length,
         loadAverage: os.loadavg()
     });
+});
+
+app.get('/api/pastecode', async (req, res) => {
+    try {
+        const { id, lang, search } = req.query;
+
+        // Ambil detail berdasarkan ID jika ada
+        if (id) {
+            const { data, error } = await supabase
+                .from('pastes')
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (error || !data) {
+                return res.status(404).json({ status: false, message: 'Pastecode tidak ditemukan.' });
+            }
+            return res.json({ status: true, data });
+        }
+
+        // Query list pastecode
+        let query = supabase.from('pastes').select('*');
+
+        if (lang && lang.toUpperCase() !== 'ALL') {
+            query = query.ilike('language', lang);
+        }
+
+        if (search) {
+            query = query.or(`title.ilike.%${search}%,desc.ilike.%${search}%,language.ilike.%${search}%`);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        return res.json({ status: true, data: data || [] });
+    } catch (err) {
+        console.error('❌ Gagal mengambil data pastecode dari Supabase:', err.message);
+        return res.status(500).json({ status: false, message: 'Gagal memuat data pastecode dari server.' });
+    }
 });
 
 // ====================================================
