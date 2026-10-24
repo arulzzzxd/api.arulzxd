@@ -1,10 +1,5 @@
 import express from "express";
-import axios from "axios";
-import {
-    createCanvas,
-    loadImage,
-    GlobalFonts
-} from "@napi-rs/canvas";
+import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 
 const router = express.Router();
 
@@ -16,32 +11,28 @@ let fontLoaded = false;
 let bgCache = null;
 let eyeCache = null;
 
-async function loadFont() {
-    if (fontLoaded) return;
-
-    const { data } = await axios.get(FONT_URL, {
-        responseType: "arraybuffer",
+async function getBuffer(url) {
+    const res = await fetch(url, {
         headers: { "User-Agent": "Mozilla/5.0" }
     });
-
-    GlobalFonts.register(
-        Buffer.from(data),
-        "DANA"
-    );
-
-    fontLoaded = true;
+    if (!res.ok) {
+        throw new Error(`Gagal mengunduh resource dari ${url}: ${res.statusText}`);
+    }
+    return Buffer.from(await res.arrayBuffer());
 }
 
-async function getBuffer(url) {
-    const { data } = await axios.get(url, {
-        responseType: "arraybuffer",
-        headers: { "User-Agent": "Mozilla/5.0" }
-    });
-    return Buffer.from(data);
+async function loadFont() {
+    if (fontLoaded) return;
+    try {
+        const fontBuffer = await getBuffer(FONT_URL);
+        GlobalFonts.register(fontBuffer, "DANA");
+        fontLoaded = true;
+    } catch (err) {
+        console.warn("Gagal memuat font DANA, menggunakan fallback:", err.message);
+    }
 }
 
 function cleanSaldo(input) {
-    // Hapus "Rp" atau "rp" jika dimasukkan oleh user karena background sudah memiliki teks "Rp"
     let text = input.trim().replace(/^rp\s*/i, "");
     if (/^\d+$/.test(text)) {
         text = parseInt(text, 10).toLocaleString("id-ID");
@@ -56,6 +47,7 @@ router.get("/", async (req, res) => {
         if (!rawSaldo) {
             return res.status(400).json({
                 status: false,
+                creator: "ArulzXD",
                 message: "Parameter saldo/nominal/text wajib diisi (contoh: ?saldo=123.456)"
             });
         }
@@ -78,20 +70,20 @@ router.get("/", async (req, res) => {
 
         // KOORDINAT PRESISI SAMA DENGAN BACKGROUND DANA
         const valX = 138;           // Posisi tepat setelah teks "Rp" bawaan gambar
-        const valY = 48;           // Posisi Y sejajar dengan teks "Rp" bawaan gambar
-        const maxFontSize = 35;     // Ukuran font yang pas dengan "Rp" bawaan
-        const eyeGap = 8;           // Jarak presisi antara angka dan ikon mata
-        const eyeScale = 0.45;      // Skala ikon mata yang pas & kecil seperti aplikasi asli
+        const valY = 48;            // Posisi Y sejajar dengan teks "Rp" bawaan gambar
+        const maxFontSize = 35;      // Ukuran font yang pas dengan "Rp" bawaan
+        const eyeGap = 8;            // Jarak presisi antara angka dan ikon mata
+        const eyeScale = 0.45;       // Skala ikon mata yang pas & kecil seperti aplikasi asli
 
         let currentFontSize = maxFontSize;
         const maxAllowedWidth = canvas.width - valX - 100;
 
-        ctx.font = `700 ${currentFontSize}px "DANA"`;
+        ctx.font = `700 ${currentFontSize}px "DANA", sans-serif`;
         let textWidth = ctx.measureText(saldo).width;
 
         while (textWidth > maxAllowedWidth && currentFontSize > 16) {
             currentFontSize -= 2;
-            ctx.font = `700 ${currentFontSize}px "DANA"`;
+            ctx.font = `700 ${currentFontSize}px "DANA", sans-serif`;
             textWidth = ctx.measureText(saldo).width;
         }
 
@@ -111,19 +103,21 @@ router.get("/", async (req, res) => {
 
         const buffer = await canvas.encode("png");
         res.setHeader("Content-Type", "image/png");
-        res.end(buffer);
+        return res.send(buffer);
 
     } catch (err) {
-        res.status(500).json({
+        console.error("Error pada maker/fakedana:", err);
+        return res.status(500).json({
             status: false,
-            message: err.message
+            creator: "ArulzXD",
+            message: err.message || "Internal Server Error"
         });
     }
 });
 
 router.desc = "Maker untuk membuat tampilan Fake Saldo DANA.";
 router.paramsConfig = {
-  saldo: "contoh: 123.456"
+    saldo: "contoh: 123.456"
 };
 router.status = "ready";
 router.type = "free";
