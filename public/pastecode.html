@@ -752,7 +752,7 @@
     </footer>
 
     <script>
-        const GITHUB_RAW_URL = "https://raw.githubusercontent.com/arulzzzxd/api-arulzxd/main/database/data.js";
+        const API_PASTECODE_URL = "/api/pastecode";
 
         let pastes = [];
         let currentPage = 1;
@@ -871,25 +871,31 @@
         }
 
         async function loadPastesFromServer() {
-            try {
-                const response = await fetch(GITHUB_RAW_URL);
-                if (!response.ok) throw new Error(`HTTP status: ${response.status}`);
-                const fileContent = await response.text();
+    try {
+        const response = await fetch(API_PASTECODE_URL);
+        if (!response.ok) throw new Error(`HTTP status: ${response.status}`);
 
-                let jsonString = fileContent.replace(/^(let|const|var|window)\s+\w+\s*=\s*/, '').trim();
-                if (jsonString.endsWith(';')) {
-                    jsonString = jsonString.slice(0, -1);
-                }
-
-                pastes = JSON.parse(jsonString);
-                localStorage.setItem('arulzxd_pastes', JSON.stringify(pastes));
-            } catch (err) {
-                const rawLocal = localStorage.getItem('arulzxd_pastes');
-                try { pastes = rawLocal ? JSON.parse(rawLocal) : []; } catch(e) { pastes = []; }
-            }
-            if (!pastes || !Array.isArray(pastes)) pastes = [];
-            renderPage();
+        const result = await response.json();
+        if (result.status && Array.isArray(result.data)) {
+            pastes = result.data;
+        } else {
+            pastes = [];
         }
+
+        localStorage.setItem('arulzxd_pastes', JSON.stringify(pastes));
+    } catch (err) {
+        console.error("Gagal mengambil data dari Supabase API:", err);
+        const rawLocal = localStorage.getItem('arulzxd_pastes');
+        try { 
+            pastes = rawLocal ? JSON.parse(rawLocal) : []; 
+        } catch(e) { 
+            pastes = []; 
+        }
+    }
+
+    if (!pastes || !Array.isArray(pastes)) pastes = [];
+    renderPage();
+}
 
         function openRawModal() {
             const idx = pastes.findIndex(p => p.id.toString() === viewId.toString());
