@@ -2,7 +2,8 @@ import express from "express";
 import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
 import path from "path";
 import os from "os";
-import { writeFileSync, existsSync, unlinkSync } = from "fs";
+// ✅ SINTAKS BENAR:
+import { writeFileSync, existsSync, unlinkSync } from "fs";
 
 const router = express.Router();
 
