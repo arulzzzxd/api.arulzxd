@@ -1,218 +1,236 @@
 import express from 'express';
 import axios from 'axios';
-import crypto from 'crypto';
+import * as cheerio from 'cheerio';
 
 const router = express.Router();
 
-const CONFIG = {
-  secretKeyHex: '34ac9a1aa6aaa7d69a7075611898f16a85d496b1d8f1c7aaa5640a2d93d7af80',
-  appVersionTS: '1770240123231',
-  userAgent: 'Mozilla/5.0 (Linux; Android 10; RMX2185 Build/QP1A.190711.020) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.7559.109 Mobile Safari/537.36',
+const BASE_URL = "https://saveinta.com";
+const DEFAULT_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  Accept: "application/json, text/javascript, */*; q=0.01",
+  "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
+  Referer: `${BASE_URL}/en`,
+  Origin: BASE_URL,
 };
 
-const CORS_PROXY = 'https://cors.yardansh.com/';
-
-async function fastDLDownload(igUrl) {
-  const isStory = igUrl.includes('/stories/');
-  let cleanUrl = igUrl.split('?')[0];
-  if (!cleanUrl.endsWith('/')) cleanUrl += '/';
-
-  const homeRes = await axios.get(CORS_PROXY + 'https://fastdl.app/id', {
-    headers: { 'User-Agent': CONFIG.userAgent },
-  });
-  const cookieStr = homeRes.headers['set-cookie']
-    ? homeRes.headers['set-cookie'].map((c) => c.split(';')[0]).join('; ')
-    : '';
-
-  const msecRes = await axios.get(CORS_PROXY + 'https://fastdl.app/msec', {
-    headers: { 'User-Agent': CONFIG.userAgent, Cookie: cookieStr },
-  });
-  const serverTime = Math.floor(msecRes.data.msec * 1000);
-  const ts = serverTime - 450;
-
-  const signatureSource = isStory
-    ? JSON.stringify({ url: cleanUrl }) + ts
-    : cleanUrl + ts;
-  const signature = crypto
-    .createHmac('sha256', Buffer.from(CONFIG.secretKeyHex, 'hex'))
-    .update(signatureSource)
-    .digest('hex');
-
-  let response;
-  if (isStory) {
-    response = await axios.post(
-      CORS_PROXY + 'https://api-wh.fastdl.app/api/v1/instagram/story',
-      {
-        url: cleanUrl,
-        ts,
-        _ts: CONFIG.appVersionTS,
-        _tsc: 0,
-        _sv: 2,
-        _s: signature,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': CONFIG.userAgent,
-          Origin: 'https://fastdl.app',
-          Referer: 'https://fastdl.app/id/story-saver',
-          Cookie: cookieStr,
-        },
-      }
-    );
-  } else {
-    const params = new URLSearchParams();
-    params.append('sf_url', cleanUrl);
-    params.append('ts', ts);
-    params.append('_ts', CONFIG.appVersionTS);
-    params.append('_tsc', '0');
-    params.append('_sv', '2');
-    params.append('_s', signature);
-
-    response = await axios.post(
-      CORS_PROXY + 'https://api-wh.fastdl.app/api/convert',
-      params.toString(),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-          'User-Agent': CONFIG.userAgent,
-          Origin: 'https://fastdl.app',
-          Referer: 'https://fastdl.app/id',
-          Cookie: cookieStr,
-        },
-      }
-    );
-  }
-  return response.data;
-}
-
-function formatStoryResult(data) {
-  if (!data?.result?.[0]) return null;
-  const result = data.result[0];
-  const media = [];
-  if (result.video_versions?.length > 0)
-    media.push({
-      type: 'video',
-      url: result.video_versions[0].url_wrapped || result.video_versions[0].url,
-    });
-  if (result.image_versions2?.candidates?.length > 0)
-    media.push({
-      type: 'image',
-      url:
-        result.image_versions2.candidates[0].url_wrapped ||
-        result.image_versions2.candidates[0].url,
-    });
-  return {
-    username: result.user?.username || '-',
-    id: result.user?.id || '-',
-    is_private: result.user?.is_private || false,
-    profile_url: result.user?.profile_pic_url || '-',
-    taken_at: result.taken_at || '-',
-    media,
-  };
-}
-
-function formatPostResult(data) {
-  if (!data) return null;
-  const isArray = Array.isArray(data);
-  const firstItem = isArray ? data[0] : data;
-  const media = [];
-  if (isArray) {
-    data.forEach((item) => {
-      if (item.url?.length > 0)
-        media.push({
-          type: item.url[0].type || '-',
-          url: item.url[0].url || item.hd || item.sd || '-',
-        });
-    });
-  } else {
-    if (data.url?.length > 0)
-      media.push({
-        type: data.url[0].type || '-',
-        url: data.url[0].url || data.hd || data.sd || '-',
-      });
-  }
-  const meta = firstItem.meta || null;
-  return {
-    title: meta?.title || '-',
-    likes: meta?.like_count || '-',
-    comment: meta?.comment_count || '-',
-    username: meta?.username || '-',
-    taken_at: meta?.taken_at || '-',
-    thumbnail: firstItem.thumb || '-',
-    media,
-    comments: meta?.comments || [],
-  };
-}
-
-async function instagramDownloader(url) {
+function decodeSnapTokenUrl(urlWithToken) {
+  if (!urlWithToken || typeof urlWithToken !== "string") return urlWithToken;
   try {
-    const data = await fastDLDownload(url);
-    const result = url.includes('/stories/')
-      ? formatStoryResult(data)
-      : formatPostResult(data);
+    const match = urlWithToken.match(/token=([a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+)/);
+    if (!match || !match[1]) return urlWithToken;
 
-    if (!result) {
-      return {
-        status: false,
-        message: 'Gagal mengambil data dari Instagram. Pastikan URL valid dan publik.',
-      };
+    const payloadPart = match[1].split(".")[1];
+    let base64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    while (base64.length % 4 !== 0) {
+      base64 += "=";
     }
+    const decoded = JSON.parse(Buffer.from(base64, "base64").toString("utf-8"));
+    if (decoded && decoded.url) {
+      return decoded.url;
+    }
+  } catch {}
+  return urlWithToken;
+}
 
-    return {
-      status: true,
-      result,
-    };
+function unpackSaveIntaJs(packedJs) {
+  if (!packedJs || typeof packedJs !== "string") return "";
+  try {
+    const executable = packedJs.replace(/eval\s*\(/, "return (");
+    const fn = new Function(executable);
+    return fn();
   } catch (err) {
+    throw new Error(`Gagal mendecode payload JavaScript SaveInta: ${err.message}`);
+  }
+}
+
+async function saveintaScraper(instagramUrl) {
+  const cleanUrl = String(instagramUrl || "").trim();
+  if (!cleanUrl) {
     return {
       status: false,
-      message: err.response?.data?.message || err.message || 'Terjadi kesalahan saat mengunduh media Instagram.',
+      message: "Parameter URL Instagram wajib diisi.",
     };
   }
+
+  if (!/instagram\.com\/(?:p|reel|reels|tv|share)\/[A-Za-z0-9_-]+/i.test(cleanUrl)) {
+    return {
+      status: false,
+      message: "URL tidak valid. Pastikan link berasal dari Instagram (post, reel, tv, atau share).",
+    };
+  }
+
+  const pageRes = await axios.get(`${BASE_URL}/en`, {
+    headers: DEFAULT_HEADERS,
+    timeout: 10000,
+  });
+
+  const pageHtml = pageRes.data;
+  const k_exp = pageHtml.match(/k_exp\s*=\s*["\x27]([^"\x27]+)["\x27]/)?.[1];
+  const k_token = pageHtml.match(/k_token\s*=\s*["\x27]([^"\x27]+)["\x27]/)?.[1];
+
+  if (!k_exp || !k_token) {
+    throw new Error("Gagal mengekstraksi token otorisasi dari SaveInta.");
+  }
+
+  let cftoken = "";
+  try {
+    const verifyRes = await axios.post(
+      `${BASE_URL}/api/userverify`,
+      new URLSearchParams({ url: cleanUrl }).toString(),
+      {
+        headers: {
+          ...DEFAULT_HEADERS,
+          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        timeout: 10000,
+      }
+    );
+    if (verifyRes.data?.token) {
+      cftoken = verifyRes.data.token;
+    }
+  } catch {}
+
+  const searchPayload = new URLSearchParams({
+    k_exp,
+    k_token,
+    q: cleanUrl,
+    t: "media",
+    lang: "en",
+    v: "v2",
+    cftoken,
+  });
+
+  const searchRes = await axios.post(
+    `${BASE_URL}/api/ajaxSearch`,
+    searchPayload.toString(),
+    {
+      headers: {
+        ...DEFAULT_HEADERS,
+        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      timeout: 15000,
+    }
+  );
+
+  const resJson = searchRes.data;
+  if (!resJson || resJson.status !== "ok") {
+    return {
+      status: false,
+      message: resJson?.mess || "Gagal memproses media Instagram. Cek apakah link privat atau dihapus.",
+    };
+  }
+
+  if (resJson.mess) {
+    const cleanMess = cheerio.load(resJson.mess).text().trim();
+    return {
+      status: false,
+      message: cleanMess || "Media Instagram bersifat privat atau tidak ditemukan.",
+    };
+  }
+
+  const rawJs = resJson.data;
+  if (!rawJs) {
+    throw new Error("Respon data kosong dari server SaveInta.");
+  }
+
+  const unpackedScript = unpackSaveIntaJs(rawJs);
+
+  const htmlMatch = unpackedScript.match(/innerHTML\s*=\s*"((?:[^"\\]|\\.)*)"/);
+  if (!htmlMatch || !htmlMatch[1]) {
+    throw new Error("Gagal mengekstraksi blok HTML media hasil pencarian.");
+  }
+
+  const rawHtml = JSON.parse(`"${htmlMatch[1]}"`);
+  const $ = cheerio.load(rawHtml);
+
+  const mediaList = [];
+
+  $(".download-items").each((_, itemEl) => {
+    const item = $(itemEl);
+    const rawThumb = item.find(".download-items__thumb img").attr("src") || "";
+    const downloadBtn = item.find("a.btn-download, a[href*='token=']");
+    const rawDownloadUrl = downloadBtn.attr("href") || "";
+    const title = downloadBtn.text().trim() || item.find("h3").text().trim() || "Download Media";
+
+    const directDownload = decodeSnapTokenUrl(rawDownloadUrl);
+    const directThumb = decodeSnapTokenUrl(rawThumb);
+
+    const isVideo =
+      title.toLowerCase().includes("video") ||
+      rawDownloadUrl.includes(".mp4") ||
+      directDownload.includes(".mp4");
+
+    mediaList.push({
+      type: isVideo ? "video" : "photo",
+      title,
+      thumbnail: directThumb,
+      download_url: directDownload,
+      proxy_url: rawDownloadUrl || null,
+    });
+  });
+
+  if (mediaList.length === 0) {
+    return {
+      status: false,
+      message: "Tidak ada tautan media yang berhasil diekstraksi.",
+    };
+  }
+
+  return {
+    status: true,
+    data: {
+      url: cleanUrl,
+      count: mediaList.length,
+      media: mediaList,
+    },
+  };
 }
 
 router.get('/', async (req, res) => {
+  const url = req.body?.url || req.query?.url;
+
+  if (!url) {
+    return res.status(400).json({
+      status: false,
+      creator: "Arulzxd",
+      message: "Parameter 'url' (Link Instagram) wajib diisi!"
+    });
+  }
+
   try {
-    const url = req.query.url?.trim();
-
-    if (!url) {
+    const result = await saveintaScraper(url);
+    if (!result.status) {
       return res.status(400).json({
         status: false,
-        creator: 'ArulzXD',
-        message: 'Masukkan parameter url (contoh: ?url=https://www.instagram.com/p/...)',
-      });
-    }
-
-    const resData = await instagramDownloader(url);
-
-    if (!resData.status) {
-      return res.status(400).json({
-        status: false,
-        creator: 'ArulzXD',
-        message: resData.message,
+        creator: "Arulzxd",
+        message: result.message
       });
     }
 
     return res.json({
       status: true,
-      creator: 'ArulzXD',
-      result: resData.result,
+      creator: "Arulzxd",
+      result: result.data
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
       status: false,
-      creator: 'ArulzXD',
-      message: err.message || 'Terjadi kesalahan pada server saat memproses unduhan Instagram.',
+      creator: "Arulzxd",
+      message: err.message || "Internal Server Error saat scraping SaveInta."
     });
   }
 });
 
-router.desc = 'Instagram Downloader (mendukung Post, Reel, & Story Instagram).';
 router.paramsConfig = {
-  url: 'contoh: https://www.instagram.com/p/CXXXXXX/',
+  url "contoh: https://www.instagram.com/reel/..."
 };
-router.status = 'ready';
-router.type = 'free';
+
+router.desc = "Downloader Media Instagram (Reels/Post/Carousel.";
+router.status = "ready";
+router.type = "free";
 
 export default router;
