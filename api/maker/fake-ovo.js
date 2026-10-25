@@ -6,7 +6,7 @@ import path from "path";
 
 const router = express.Router();
 
-const IMAGE_URL = "https://arulz-uploader.vercel.app/files/hGS1g9.jpeg";
+const IMAGE_URL = "https://cdn.arulzzxd.my.id/files/F4wRAsXO.jpeg";
 
 const WIDTH = 841;
 const HEIGHT = 1870;
