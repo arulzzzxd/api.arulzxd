@@ -1,87 +1,79 @@
 import express from 'express';
 import multer from 'multer';
+import axios from 'axios';
+import FormData from 'form-data';
 
 const router = express.Router();
+const upload = multer();
 
-// Batas maksimum ukuran berkas: 4.5 MB
-const MAX_SIZE_BYTES = Math.floor(4.5 * 1024 * 1024);
-
-// Konfigurasi Multer (Memory Storage & File Size Limit)
-const upload = multer({
-    limits: {
-        fileSize: MAX_SIZE_BYTES
-    }
-});
+const API_UPLOAD_URL = "https://api.arulzzxd.my.id/uploader";
+const MAX_SIZE_MB = 4.5;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 const cpUpload = upload.fields([
     { name: 'file', maxCount: 1 }
 ]);
 
-router.post('/', (req, res) => {
-    cpUpload(req, res, async (err) => {
-        // Handle Error khusus batas ukuran file Multer
-        if (err instanceof multer.MulterError) {
-            if (err.code === 'LIMIT_FILE_SIZE') {
-                return res.status(400).json({
-                    status: false,
-                    creator: 'Arulzxd',
-                    message: 'Ukuran file terlalu besar. Maksimal 4.5 MB.'
-                });
-            }
+router.post('/', cpUpload, async (req, res) => {
+    try {
+        const files = req.files || {};
+        const fileInput = files.file?.[0];
+
+        // 1. Validasi Keberadaan File
+        if (!fileInput || !fileInput.buffer) {
             return res.status(400).json({
                 status: false,
-                creator: 'Arulzxd',
-                message: err.message
-            });
-        } else if (err) {
-            return res.status(500).json({
-                status: false,
-                creator: 'Arulzxd',
-                message: err.message
+                message: "Berkas 'file' wajib diunggah!"
             });
         }
 
-        try {
-            const files = req.files || {};
-            const uploadedFile = files.file?.[0];
+        // 2. Validasi Ukuran File (Maksimal 4.5 MB)
+        if (fileInput.size > MAX_SIZE_BYTES) {
+            return res.status(400).json({
+                status: false,
+                message: `Ukuran file terlalu besar (${(fileInput.size / (1024 * 1024)).toFixed(2)} MB). Maksimal ${MAX_SIZE_MB} MB.`
+            });
+        }
 
-            if (!uploadedFile || !uploadedFile.buffer) {
-                return res.status(400).json({
-                    status: false,
-                    creator: 'Arulzxd',
-                    message: "Berkas 'file' wajib diunggah!"
-                });
+        // 3. Menyiapkan Form Data langsung dari Memory Buffer
+        const formData = new FormData();
+        formData.append('file', fileInput.buffer, {
+            filename: fileInput.originalname || `upload-${Date.now()}`,
+            contentType: fileInput.mimetype
+        });
+
+        // 4. Proses Upload via Request POST
+        const response = await axios.post(API_UPLOAD_URL, formData, {
+            headers: {
+                ...formData.getHeaders()
             }
+        });
 
-            // Informasi berkas yang berhasil diterima
-            const fileInfo = {
-                filename: uploadedFile.originalname,
-                mimetype: uploadedFile.mimetype,
-                size: `${(uploadedFile.size / (1024 * 1024)).toFixed(2)} MB`,
-                sizeBytes: uploadedFile.size,
-                uploadedAt: new Date().toISOString()
-            };
+        // 5. Mengembalikan Respons dari Uploader API
+        return res.json({
+            status: true,
+            creator: "Arulzxd",
+            result: response.data
+        });
 
-            return res.json({
-                status: true,
-                creator: 'Arulzxd',
-                message: 'File berhasil diunggah.',
-                result: fileInfo
-            });
-
-        } catch (error) {
-            return res.status(500).json({
+    } catch (err) {
+        if (err.response) {
+            return res.status(err.response.status || 500).json({
                 status: false,
-                creator: 'Arulzxd',
-                message: error.message || 'Internal Server Error saat memproses berkas'
+                message: `Gagal upload. HTTP Error ${err.response.status}`,
+                error: err.response.data
             });
         }
-    });
+        return res.status(500).json({
+            status: false,
+            message: err.message || "Terjadi kesalahan sistem saat mengunggah file"
+        });
+    }
 });
 
-router.desc = "API Endpoint File Uploader (Maksimal 4.5 MB).";
+router.desc = "Uploader berkas ke CDN (Maksimal 4.5 MB).";
 router.paramsConfig = {
-    file: "file berkas yang ingin diunggah (wajib upload, max 4.5 MB)"
+    file: "file berkas media/dokumen (wajib upload)"
 };
 router.status = "ready";
 router.type = "free";
