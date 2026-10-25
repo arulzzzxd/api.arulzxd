@@ -329,9 +329,9 @@ app.use(async (req, res, next) => {
     try {
         const { data: snippet, error } = await supabase
             .from('pastes')
-            .select('*')
+            .select('title, desc, language, author')
             .eq('id', req.query.id)
-            .single();
+            .maybeSingle();
 
         if (snippet && !error) {
             title = `${snippet.title} - Pastecode Snippet`;
@@ -2453,19 +2453,19 @@ app.get('/og/snippet', async (req, res) => {
         let snippetData = {
             title: req.query.title || "Pastecode Snippet",
             author: req.query.author || "arulzxd",
-            language: req.query.lang || "scrape",
-            date: req.query.date || getFormattedDateToday(),
-            code: req.query.code || "const axios = require('axios');\n\nasync function main() {\n  console.log('ArulzXD API Pastecode');\n}"
+            language: req.query.lang || "javascript",
+            date: "2026",
+            code: "const axios = require('axios');\n\nasync function main() {\n  console.log('ArulzXD API Pastecode');\n}"
         };
 
-        if (snippetId) {
+        if (snippetId && SUPABASE_URL && SUPABASE_KEY) {
             try {
                 // Ambil data langsung dari tabel pastes di Supabase
                 const { data, error } = await supabase
                     .from('pastes')
-                    .select('*')
+                    .select('title, author, desc, language, date, content')
                     .eq('id', snippetId)
-                    .single();
+                    .maybeSingle();
 
                 if (data && !error) {
                     snippetData = {
@@ -2486,9 +2486,11 @@ app.get('/og/snippet', async (req, res) => {
         const canvas = createCanvas(width, height);
         const ctx = canvas.getContext('2d');
 
+        // Background
         ctx.fillStyle = '#FAF7EF';
         ctx.fillRect(0, 0, width, height);
 
+        // Grid Dot Pattern
         ctx.fillStyle = 'rgba(18, 18, 18, 0.08)';
         for (let x = 0; x < width; x += 24) {
             for (let y = 0; y < height; y += 24) {
@@ -2555,7 +2557,7 @@ app.get('/og/snippet', async (req, res) => {
 
         ctx.fillStyle = '#121212';
         ctx.font = 'bold 44px "Plus Jakarta Sans", sans-serif';
-        ctx.fillText(snippetData.title, windowX + 50, windowY + 150);
+        ctx.fillText(snippetData.title.slice(0, 35), windowX + 50, windowY + 150);
 
         ctx.fillStyle = '#52525B';
         ctx.font = 'bold 24px "Plus Jakarta Sans", sans-serif';
@@ -2575,41 +2577,25 @@ app.get('/og/snippet', async (req, res) => {
         ctx.stroke();
 
         ctx.fillStyle = '#38BDF8';
-        ctx.font = 'bold 22px "JetBrains Mono", monospace';
+        ctx.font = 'bold 22px monospace';
 
-        const codeLines = snippetData.code.split('\n').slice(0, 4);
+        const codeLines = (snippetData.code || '').split('\n').slice(0, 4);
         codeLines.forEach((line, idx) => {
             let truncatedLine = line.length > 55 ? line.substring(0, 52) + '...' : line;
             ctx.fillText(truncatedLine, codeX + 35, codeY + 55 + (idx * 42));
         });
 
         const footerY = windowY + windowH - 45;
-
         ctx.fillStyle = '#121212';
         ctx.font = 'bold 22px "Plus Jakarta Sans", sans-serif';
         ctx.fillText(`📅  ${snippetData.date}`, codeX, footerY);
 
-        const rawW = 120;
-        const rawH = 48;
-        const rawX = codeX + codeW - rawW;
-        const rawY = footerY - 34;
-
-        ctx.fillStyle = '#121212';
-        ctx.beginPath();
-        ctx.roundRect(rawX, rawY, rawW, rawH, 14);
-        ctx.fill();
-
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('RAW', rawX + (rawW / 2), rawY + 31);
-        ctx.textAlign = 'left';
-
-        const buffer = await canvas.encode('png');
+        // Encode PNG Buffer untuk Express
+        const pngBuffer = Buffer.from(await canvas.encode('png'));
         res.setHeader('Content-Type', 'image/png');
-        res.setHeader('Content-Length', buffer.length);
+        res.setHeader('Content-Length', pngBuffer.length);
         res.setHeader('Cache-Control', 'public, max-age=86400');
-        return res.status(200).send(buffer);
+        return res.status(200).send(pngBuffer);
 
     } catch (error) {
         console.error('Error generating Pastecode OG Image:', error);
