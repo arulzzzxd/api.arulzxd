@@ -96,6 +96,18 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL
+const SENDER_EMAIL = process.env.SENDER_EMAIL
+
+// Rate Limiter khusus email agar aman dari SPAM & BOT Flooding
+const emailLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 menit
+    max: 5, // Maksimal 5 email per IP / 15 menit
+    message: { status: false, message: "Terlalu banyak permintaan kirim email. Silakan coba lagi nanti." }
+});
+
 // ====================================================
 // 2. MONGOOSE DATABASE CONNECTION & SCHEMAS
 // ====================================================
@@ -575,6 +587,248 @@ function sendSweetAlert(res, icon, title, text, redirectUrl) {
     `);
 }
 
+// 1. Template Email Feedback ke Admin Support
+function getFeedbackAdminEmailHtml({ email, type, message, timestamp, ip }) {
+    return `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Feedback Baru</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #FAF7EF; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 30px 15px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #FFFDF8; border: 2.5px solid #121212; border-radius: 20px; box-shadow: 6px 6px 0px rgba(18, 18, 18, 0.15); overflow: hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #FACC15; padding: 20px 24px; border-bottom: 2.5px solid #121212;">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td>
+                                        <div style="font-size: 10px; font-weight: 900; letter-spacing: 1.5px; color: #121212; font-family: monospace; text-transform: uppercase;">
+                                            SYSTEM FEEDBACK NOTIFICATION
+                                        </div>
+                                        <h1 style="margin: 4px 0 0 0; font-size: 20px; font-weight: 900; color: #121212;">
+                                            [${type.toUpperCase()}] LAPORAN BARU
+                                        </h1>
+                                    </td>
+                                    <td align="right" width="40">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#121212" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                        </svg>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Body Content -->
+                    <tr>
+                        <td style="padding: 24px;">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
+                                <tr>
+                                    <td style="padding: 12px; background-color: #FAF7EF; border: 2px solid #121212; border-radius: 12px;">
+                                        <div style="font-size: 11px; font-weight: 800; color: #71717A; font-family: monospace; text-transform: uppercase;">INFORMASI PENGIRIM</div>
+                                        <div style="font-size: 14px; font-weight: 800; color: #121212; margin-top: 2px;">${email}</div>
+                                        <div style="font-size: 11px; font-weight: 700; color: #52525B; margin-top: 4px;">IP: ${ip} | Waktu: ${timestamp}</div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <div style="font-size: 11px; font-weight: 800; color: #71717A; font-family: monospace; text-transform: uppercase; margin-bottom: 6px;">ISI PESAN / LAPORAN:</div>
+                            <div style="background-color: #FFFFFF; border: 2px solid #121212; border-radius: 12px; padding: 16px; font-size: 13px; font-weight: 600; color: #18181B; line-height: 1.6; white-space: pre-wrap;">${message}</div>
+
+                            <!-- Action Button -->
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 24px;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="mailto:${email}?subject=Re:%20[${type.toUpperCase()}]%20Feedback%20ArulzXD%20API" target="_blank" style="display: inline-block; padding: 14px 28px; background-color: #121212; color: #FFFFFF; font-size: 12px; font-weight: 900; text-decoration: none; text-transform: uppercase; border-radius: 12px; border: 2px solid #121212; letter-spacing: 1px; box-shadow: 3px 3px 0px rgba(250, 204, 21, 1);">
+                                            BALAS EMAIL PENGGUNA
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 16px 24px; background-color: #FAF7EF; border-top: 2px solid #E4E4E7; text-align: center; font-size: 10px; font-weight: 800; color: #71717A; font-family: monospace; text-transform: uppercase;">
+                            ARULZ-XD API GATEWAY AUTOMATED SUPPORT
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    `;
+}
+
+// 2. Template Email Konfirmasi ke Pengguna (Feedback Received)
+function getFeedbackUserEmailHtml({ email, type }) {
+    return `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback Diterima</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #FAF7EF; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 30px 15px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #FFFDF8; border: 2.5px solid #121212; border-radius: 20px; box-shadow: 6px 6px 0px rgba(18, 18, 18, 0.15); overflow: hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #3B82F6; padding: 24px; border-bottom: 2.5px solid #121212;">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td>
+                                        <div style="font-size: 10px; font-weight: 900; letter-spacing: 1.5px; color: #FFFFFF; font-family: monospace; text-transform: uppercase;">
+                                            ARULZXD API SUPPORT CENTER
+                                        </div>
+                                        <h1 style="margin: 4px 0 0 0; font-size: 20px; font-weight: 900; color: #FFFFFF;">
+                                            LAPORAN DITERIMA!
+                                        </h1>
+                                    </td>
+                                    <td align="right" width="40">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                        </svg>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Body Content -->
+                    <tr>
+                        <td style="padding: 24px;">
+                            <p style="margin: 0 0 16px 0; font-size: 14px; font-weight: 800; color: #121212;">Halo ${email},</p>
+                            <p style="margin: 0 0 20px 0; font-size: 13px; font-weight: 600; color: #3F3F46; line-height: 1.6;">
+                                Terima kasih telah menghubungi kami. Laporan/umpan balik Anda dengan kategori <strong style="color: #121212; text-transform: uppercase;">[${type}]</strong> telah kami terima dan masuk ke sistem tiket dukungan.
+                            </p>
+
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
+                                <tr>
+                                    <td style="padding: 14px; background-color: #EFF6FF; border: 2px solid #3B82F6; border-radius: 12px;">
+                                        <div style="font-size: 11px; font-weight: 800; color: #1D4ED8; font-family: monospace; text-transform: uppercase;">ESTIMASI PENANGANAN</div>
+                                        <div style="font-size: 13px; font-weight: 700; color: #1E40AF; margin-top: 2px;">Kurang dari 24 Jam Kerja (Prioritas Akun)</div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td align="center">
+                                        <a href="https://api.arulzzxd.my.id/api" target="_blank" style="display: inline-block; padding: 14px 28px; background-color: #FACC15; color: #121212; font-size: 12px; font-weight: 900; text-decoration: none; text-transform: uppercase; border-radius: 12px; border: 2.5px solid #121212; letter-spacing: 1px; box-shadow: 4px 4px 0px #121212;">
+                                            KEMBALI KE DOCUMENTATION
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 16px 24px; background-color: #FAF7EF; border-top: 2px solid #E4E4E7; text-align: center; font-size: 10px; font-weight: 800; color: #71717A; font-family: monospace; text-transform: uppercase;">
+                            &copy; 2026 ARULZ-XD API · ALL RIGHTS RESERVED
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    `;
+}
+
+// 3. Template Email Reset Password
+function getResetPasswordEmailHtml({ username, resetUrl }) {
+    return `
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Kata Sandi</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #FAF7EF; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 30px 15px;">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #FFFDF8; border: 2.5px solid #121212; border-radius: 20px; box-shadow: 6px 6px 0px rgba(18, 18, 18, 0.15); overflow: hidden;">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background-color: #EF4444; padding: 24px; border-bottom: 2.5px solid #121212;">
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                <tr>
+                                    <td>
+                                        <div style="font-size: 10px; font-weight: 900; letter-spacing: 1.5px; color: #FFFFFF; font-family: monospace; text-transform: uppercase;">
+                                            SECURITY VERIFICATION
+                                        </div>
+                                        <h1 style="margin: 4px 0 0 0; font-size: 20px; font-weight: 900; color: #FFFFFF;">
+                                            RESET KATA SANDI AKUN
+                                        </h1>
+                                    </td>
+                                    <td align="right" width="40">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                        </svg>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Body Content -->
+                    <tr>
+                        <td style="padding: 24px;">
+                            <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 800; color: #121212;">Halo ${username},</p>
+                            <p style="margin: 0 0 20px 0; font-size: 13px; font-weight: 600; color: #3F3F46; line-height: 1.6;">
+                                Kami menerima permintaan untuk mengatur ulang kata sandi akun ArulzXD API Anda. Silakan klik tombol aman di bawah ini untuk membuat kata sandi baru:
+                            </p>
+
+                            <!-- Button -->
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 24px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="${resetUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #121212; color: #FFFFFF; font-size: 13px; font-weight: 900; text-decoration: none; text-transform: uppercase; border-radius: 12px; border: 2px solid #121212; letter-spacing: 1px; box-shadow: 4px 4px 0px #FACC15;">
+                                            ATUR ULANG KATA SANDI
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 20px;">
+                                <tr>
+                                    <td style="padding: 12px; background-color: #FEF2F2; border: 2px solid #EF4444; border-radius: 12px;">
+                                        <div style="font-size: 11px; font-weight: 800; color: #991B1B; font-family: monospace; text-transform: uppercase;">PERINGATAN KEAMANAN</div>
+                                        <div style="font-size: 12px; font-weight: 600; color: #7F1D1D; margin-top: 2px;">Link ini hanya berlaku selama 1 jam. Jika Anda tidak merasa meminta reset ini, abaikan email ini.</div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 16px 24px; background-color: #FAF7EF; border-top: 2px solid #E4E4E7; text-align: center; font-size: 10px; font-weight: 800; color: #71717A; font-family: monospace; text-transform: uppercase;">
+                            ARULZ-XD API GATEWAY SECURITY SYSTEM
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    `;
+}
 // ====================================================
 // 5. PASSPORT STRATEGY & OAUTH AUTHENTICATION
 // ====================================================
@@ -863,7 +1117,7 @@ app.get('/auth/google/callback', async (req, res) => {
 });
 
 // --- LUPA & RESET PASSWORD ---
-app.post('/auth/forgot-password', async (req, res) => {
+app.post('/auth/forgot-password', emailLimiter, async (req, res) => {
     try {
         const email = req.body.email;
         if (!email) {
@@ -879,70 +1133,29 @@ app.post('/auth/forgot-password', async (req, res) => {
             return sendSweetAlert(res, 'error', 'Metode Login OAuth', `Akun ini mendaftar via ${user.provider.toUpperCase()}, tidak memerlukan reset password.`, '/login');
         }
 
-        const resetToken = crypto.randomBytes(20).toString('hex');
-
-        user.resetPasswordToken = resetToken;
-        user.resetPasswordExpires = Date.now() + 3600000; 
+        // Generate Secure Unhashed & Hashed Token (SHA-256)
+        const unhashedToken = crypto.randomBytes(32).toString('hex');
+        user.resetPasswordToken = crypto.createHash('sha256').update(unhashedToken).digest('hex');
+        user.resetPasswordExpires = Date.now() + 3600000; // 1 Jam
         await user.save();
 
-        const transporter = getSmtpTransporter();
         const host = req.get('host');
         const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-        const resetUrl = `${protocol}://${host}/reset-password/${resetToken}`;
+        const resetUrl = `${protocol}://${host}/reset-password/${unhashedToken}`;
 
-        const mailOptions = {
-            from: `"Support ArulzXD" <${process.env.SMTP_USER || 'supportarulzxd@gmail.com'}>`,
+        // Kirim email reset password via Resend SDK
+        await resend.emails.send({
+            from: SENDER_EMAIL,
             to: user.email,
-            subject: 'Permintaan Reset Kata Sandi',
-            html: `
-<div style="background-color: #f8fafc; padding: 40px 20px; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; min-height: 100%;">
-    <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 550px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);">
-        <tr>
-            <td style="padding: 32px 32px 24px 32px; text-align: center;">
-                <h1 style="margin: 0; color: #0f172a; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">
-                    Arulz<span style="color: #0284c7;">XD</span> API
-                </h1>
-            </td>
-        </tr>
-        <tr>
-            <td style="padding: 0 32px 24px 32px;">
-                <div style="height: 1px; background: linear-gradient(to right, transparent, rgba(2, 132, 199, 0.2), transparent);"></div>
-            </td>
-        </tr>
-        <tr>
-            <td style="padding: 0 32px 32px 32px; color: #475569; font-size: 14px; line-height: 24px;">
-                <p style="margin: 0 0 16px 0; color: #0f172a; font-size: 16px; font-weight: 600;">Halo ${user.username},</p>
-                <p style="margin: 0 0 16px 0;">Kami menerima permintaan untuk mengatur ulang kata sandi akun ArulzXD API Anda.</p>
-                <p style="margin: 0 0 24px 0;">Silakan klik tombol di bawah ini untuk membuat kata sandi baru:</p>
-                
-                <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto;">
-                    <tr>
-                        <td align="center" bgcolor="#0284c7" style="border-radius: 12px;">
-                            <a href="${resetUrl}" target="_blank" style="display: inline-block; padding: 14px 28px; font-size: 14px; font-weight: 700; color: #ffffff; text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em;">Reset Kata Sandi</a>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-        <tr>
-            <td style="padding: 0 32px 32px 32px; color: #64748b; font-size: 12px; line-height: 20px;">
-                <p style="margin: 0 0 12px 0; padding-top: 16px; border-top: 1px solid #f1f5f9;">
-                    <strong style="color: #dc2626;">Penting:</strong> Link ini hanya berlaku selama <span style="color: #334155; font-weight: 600;">1 jam</span> demi keamanan akun Anda.
-                </p>
-                <p style="margin: 0;">Jika Anda tidak merasa meminta reset password ini, Anda dapat mengabaikan email ini dengan aman.</p>
-            </td>
-        </tr>
-    </table>
-</div>
-`
-        };
+            subject: 'Permintaan Reset Kata Sandi - ArulzXD API',
+            html: getResetPasswordEmailHtml({ username: user.username, resetUrl })
+        });
 
-        await transporter.sendMail(mailOptions);
         return sendSweetAlert(res, 'success', 'Sukses!', 'Link reset password telah dikirim ke email Anda.', '/login');
 
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Gagal memproses lupa password.');
+        console.error("❌ Resend Reset Password Error:", error);
+        res.status(500).send('Gagal memproses lupa password via Resend.');
     }
 });
 
@@ -3136,33 +3349,40 @@ app.get('/sw.js', (req, res) => {
     `);
 });
 
-app.post('/api/feedback', async (req, res) => {
+app.post('/api/feedback', emailLimiter, async (req, res) => {
     const { email, type, message } = req.body;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({ status: false, message: "Format email tidak valid!" });
-    if (!type || !message) return res.status(400).json({ status: false, message: "Tipe & isi pesan wajib diisi!" });
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return res.status(400).json({ status: false, message: "Format email tidak valid!" });
+    }
+    if (!type || !message) {
+        return res.status(400).json({ status: false, message: "Tipe & isi pesan wajib diisi!" });
+    }
 
     try {
-        const transporter = getSmtpTransporter();
+        const timestamp = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+        const ip = req.ip || req.headers['x-forwarded-for'] || '127.0.0.1';
 
-        await Promise.all([
-            transporter.sendMail({
-                from: `"${email}" <${process.env.SMTP_USER || 'supportarulzxd@gmail.com'}>`, 
-                to: process.env.SMTP_USER || 'supportarulzxd@gmail.com', 
-                replyTo: email,
-                subject: `[${type.toUpperCase()}] Feedback Baru`,
-                html: `<p>Feedback dari ${email}:</p><p>${message}</p>`
-            }),
-            transporter.sendMail({
-                from: `"Support ArulzXD" <${process.env.SMTP_USER || 'supportarulzxd@gmail.com'}>`, 
-                to: email,
-                subject: `Terima Kasih atas Feedback Anda`,
-                html: `<p>Halo, feedback Anda telah kami terima.</p>`
-            })
-        ]);
+        // 1. Kirim Email Notifikasi ke SUPPORT_EMAIL (bukan ADMIN_EMAIL)
+        await resend.emails.send({
+            from: SENDER_EMAIL,
+            to: SUPPORT_EMAIL,
+            replyTo: email,
+            subject: `[${type.toUpperCase()}] Feedback Baru dari ${email}`,
+            html: getFeedbackAdminEmailHtml({ email, type, message, timestamp, ip })
+        });
 
-        return res.json({ status: true, message: "Feedback berhasil dikirim!" });
+        // 2. Kirim Email Konfirmasi ke Pengguna
+        await resend.emails.send({
+            from: SENDER_EMAIL,
+            to: email,
+            subject: `[ARULZXD API] Terima Kasih atas Laporan Anda`,
+            html: getFeedbackUserEmailHtml({ email, type })
+        });
+
+        return res.json({ status: true, message: "Feedback berhasil dikirim ke Support!" });
     } catch (error) {
-        return res.status(500).json({ status: false, message: "Gagal mengirim email feedback." });
+        console.error("❌ Resend Feedback Error:", error);
+        return res.status(500).json({ status: false, message: "Gagal mengirim email feedback via Resend." });
     }
 });
 
