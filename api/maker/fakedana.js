@@ -1,5 +1,10 @@
 import express from "express";
 import axios from "axios";
+import {
+    createCanvas,
+    loadImage,
+    GlobalFonts
+} from "@napi-rs/canvas";
 
 const router = express.Router();
 
@@ -7,23 +12,42 @@ const FONT_URL = "https://raw.githubusercontent.com/arulzzzxd/database/main/font
 const BG_URL = "https://cdn.arulzzxd.my.id/files/F4pjW08L.png";
 const EYE_URL = "https://cdn.arulzzxd.my.id/files/XqtOfI.png";
 
-let fontBase64 = null;
-let bgBase64 = null;
-let eyeBase64 = null;
+let fontLoaded = false;
+let bgCache = null;
+let eyeCache = null;
 
-// Helper untuk fetch & convert ke Base64 agar tidak terkena CORS/Cloudflare Block saat render
-async function getBase64(url, mimeType) {
-    const { data } = await axios.get(url, {
-        responseType: "arraybuffer",
-        headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "*/*"
-        }
-    });
-    return `data:${mimeType};base64,${Buffer.from(data).toString("base64")}`;
+// Header Browser agar request axios tidak diblokir oleh Cloudflare WAF / Bot Protection
+const AXIOS_CONFIG = {
+    responseType: "arraybuffer",
+    headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
+        "Cache-Control": "no-cache"
+    },
+    timeout: 10000
+};
+
+async function loadFont() {
+    if (fontLoaded) return;
+
+    const { data } = await axios.get(FONT_URL, AXIOS_CONFIG);
+
+    GlobalFonts.register(
+        Buffer.from(data),
+        "DANA"
+    );
+
+    fontLoaded = true;
+}
+
+async function getBuffer(url) {
+    const { data } = await axios.get(url, AXIOS_CONFIG);
+    return Buffer.from(data);
 }
 
 function cleanSaldo(input) {
+    // Hapus "Rp" atau "rp" jika dimasukkan oleh user karena background sudah memiliki teks "Rp"
     let text = input.trim().replace(/^rp\s*/i, "");
     if (/^\d+$/.test(text)) {
         text = parseInt(text, 10).toLocaleString("id-ID");
@@ -44,48 +68,65 @@ router.get("/", async (req, res) => {
 
         const saldo = cleanSaldo(rawSaldo);
 
-        // Pre-load & cache assets dalam bentuk Data URI
-        if (!fontBase64) fontBase64 = await getBase64(FONT_URL, "font/ttf");
-        if (!bgBase64) bgBase64 = await getBase64(BG_URL, "image/png");
-        if (!eyeBase64) eyeBase64 = await getBase64(EYE_URL, "image/png");
+        await loadFont();
 
-        // Estimasi kalkulasi posisi ikon mata berdasarkan panjang teks
-        const fontSize = 35;
-        const valX = 138;
-        const valY = 74; // Baseline adjustment untuk SVG
-        const estimatedTextWidth = saldo.length * 20; 
-        const eyeX = valX + estimatedTextWidth + 8;
-        const eyeY = 48 + 7;
+        if (!bgCache) bgCache = await getBuffer(BG_URL);
+        if (!eyeCache) eyeCache = await getBuffer(EYE_URL);
 
-        // Render via SVG (Ringan & Kompatibel Cloudflare)
-        const svgImage = `
-        <svg width="720" height="1280" viewBox="0 0 720 1280" xmlns="http://www.w3.org/2000/svg">
-            <style>
-                @font-face {
-                    font-family: 'DANA';
-                    src: url('${fontBase64}') format('truetype');
-                    font-weight: 700;
-                }
-                .saldo-text {
-                    font-family: 'DANA', sans-serif;
-                    font-weight: 700;
-                    font-size: ${fontSize}px;
-                    fill: #000000;
-                }
-            </style>
-            <image href="${bgBase64}" width="720" height="1280"/>
-            <text x="${valX}" y="${valY}" class="saldo-text">${saldo}</text>
-            <image href="${eyeBase64}" x="${eyeX}" y="${eyeY}" width="28" height="16"/>
-        </svg>`;
+        const bgImg = await loadImage(bgCache);
+        const eyeImg = await loadImage(eyeCache);
 
-        res.setHeader("Content-Type", "image/svg+xml");
+        const canvas = createCanvas(bgImg.width, bgImg.height);
+        const ctx = canvas.getContext("2d");
+
+        // Render Background
+        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+        // KOORDINAT PRESISI SAMA DENGAN BACKGROUND DANA
+        const valX = 138;           // Posisi tepat setelah teks "Rp" bawaan gambar
+        const valY = 48;            // Posisi Y sejajar dengan teks "Rp" bawaan gambar
+        const maxFontSize = 35;     // Ukuran font yang pas dengan "Rp" bawaan
+        const eyeGap = 8;           // Jarak presisi antara angka dan ikon mata
+        const eyeScale = 0.45;      // Skala ikon mata yang pas & kecil seperti aplikasi asli
+
+        let currentFontSize = maxFontSize;
+        const maxAllowedWidth = canvas.width - valX - 100;
+
+        ctx.font = `700 ${currentFontSize}px "DANA"`;
+        let textWidth = ctx.measureText(saldo).width;
+
+        while (textWidth > maxAllowedWidth && currentFontSize > 16) {
+            currentFontSize -= 2;
+            ctx.font = `700 ${currentFontSize}px "DANA"`;
+            textWidth = ctx.measureText(saldo).width;
+        }
+
+        // Tulis Angka Nominal Saldo
+        ctx.fillStyle = "#000000";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(saldo, valX, valY);
+
+        // Render Ikon Mata (Presisi Tegak Lurus & Sejajar di Tengah Angka)
+        const eyeHeight = currentFontSize * eyeScale;
+        const eyeWidth = (eyeImg.width / eyeImg.height) * eyeHeight;
+        const eyeX = valX + textWidth + eyeGap;
+        const eyeY = valY + (currentFontSize * 0.20);
+
+        ctx.drawImage(eyeImg, eyeX, eyeY, eyeWidth, eyeHeight);
+
+        const buffer = await canvas.encode("png");
+        
+        // Response Header Kompatibel dengan Cloudflare CDN
+        res.setHeader("Content-Type", "image/png");
         res.setHeader("Cache-Control", "public, max-age=86400");
-        res.send(svgImage);
+        res.end(buffer);
 
     } catch (err) {
+        console.error("[FAKE-DANA ERROR]", err.message);
         res.status(500).json({
             status: false,
-            message: err.message
+            message: err.message || "Gagal memproses gambar"
         });
     }
 });
