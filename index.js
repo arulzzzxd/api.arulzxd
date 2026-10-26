@@ -23,6 +23,7 @@ import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { Resend } from 'resend';
 
 // Pengganti __filename dan __dirname di ES Modules
 const __filename = fileURLToPath(import.meta.url);
