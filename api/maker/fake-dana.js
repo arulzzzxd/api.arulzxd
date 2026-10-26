@@ -1,5 +1,10 @@
 import express from "express";
-import { createCanvas, loadImage, GlobalFonts } from "@napi-rs/canvas";
+import axios from "axios";
+import {
+    createCanvas,
+    loadImage,
+    GlobalFonts
+} from "@napi-rs/canvas";
 
 const router = express.Router();
 
@@ -11,25 +16,36 @@ let fontLoaded = false;
 let bgCache = null;
 let eyeCache = null;
 
-async function getBuffer(url) {
-    const res = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0" }
-    });
-    if (!res.ok) {
-        throw new Error(`Gagal mengunduh resource dari ${url}: ${res.statusText}`);
-    }
-    return Buffer.from(await res.arrayBuffer());
-}
+// Header lengkap untuk melewati proteksi CDN / Cloudflare
+const defaultHeaders = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
+    "Referer": "https://cdn.arulzzxd.my.id/"
+};
 
 async function loadFont() {
     if (fontLoaded) return;
-    try {
-        const fontBuffer = await getBuffer(FONT_URL);
-        GlobalFonts.register(fontBuffer, "DANA");
-        fontLoaded = true;
-    } catch (err) {
-        console.warn("Gagal memuat font DANA, menggunakan fallback:", err.message);
-    }
+
+    const { data } = await axios.get(FONT_URL, {
+        responseType: "arraybuffer",
+        headers: defaultHeaders
+    });
+
+    GlobalFonts.register(
+        Buffer.from(data),
+        "DANA"
+    );
+
+    fontLoaded = true;
+}
+
+async function getBuffer(url) {
+    const { data } = await axios.get(url, {
+        responseType: "arraybuffer",
+        headers: defaultHeaders
+    });
+    return Buffer.from(data);
 }
 
 function cleanSaldo(input) {
@@ -47,7 +63,6 @@ router.get("/", async (req, res) => {
         if (!rawSaldo) {
             return res.status(400).json({
                 status: false,
-                creator: "ArulzXD",
                 message: "Parameter saldo/nominal/text wajib diisi (contoh: ?saldo=123.456)"
             });
         }
@@ -69,21 +84,21 @@ router.get("/", async (req, res) => {
         ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
         // KOORDINAT PRESISI SAMA DENGAN BACKGROUND DANA
-        const valX = 138;           // Posisi tepat setelah teks "Rp" bawaan gambar
-        const valY = 48;            // Posisi Y sejajar dengan teks "Rp" bawaan gambar
-        const maxFontSize = 35;      // Ukuran font yang pas dengan "Rp" bawaan
-        const eyeGap = 8;            // Jarak presisi antara angka dan ikon mata
-        const eyeScale = 0.45;       // Skala ikon mata yang pas & kecil seperti aplikasi asli
+        const valX = 138;
+        const valY = 48;
+        const maxFontSize = 35;
+        const eyeGap = 8;
+        const eyeScale = 0.45;
 
         let currentFontSize = maxFontSize;
         const maxAllowedWidth = canvas.width - valX - 100;
 
-        ctx.font = `700 ${currentFontSize}px "DANA", sans-serif`;
+        ctx.font = `700 ${currentFontSize}px "DANA"`;
         let textWidth = ctx.measureText(saldo).width;
 
         while (textWidth > maxAllowedWidth && currentFontSize > 16) {
             currentFontSize -= 2;
-            ctx.font = `700 ${currentFontSize}px "DANA", sans-serif`;
+            ctx.font = `700 ${currentFontSize}px "DANA"`;
             textWidth = ctx.measureText(saldo).width;
         }
 
@@ -93,7 +108,7 @@ router.get("/", async (req, res) => {
         ctx.textBaseline = "top";
         ctx.fillText(saldo, valX, valY);
 
-        // Render Ikon Mata (Presisi Tegak Lurus & Sejajar di Tengah Angka)
+        // Render Ikon Mata
         const eyeHeight = currentFontSize * eyeScale;
         const eyeWidth = (eyeImg.width / eyeImg.height) * eyeHeight;
         const eyeX = valX + textWidth + eyeGap;
@@ -103,21 +118,19 @@ router.get("/", async (req, res) => {
 
         const buffer = await canvas.encode("png");
         res.setHeader("Content-Type", "image/png");
-        return res.send(buffer);
+        res.end(buffer);
 
     } catch (err) {
-        console.error("Error pada maker/fakedana:", err);
-        return res.status(500).json({
+        res.status(500).json({
             status: false,
-            creator: "ArulzXD",
-            message: err.message || "Internal Server Error"
+            message: `Gagal mengunduh resource: ${err.message}`
         });
     }
 });
 
 router.desc = "Maker untuk membuat tampilan Fake Saldo DANA.";
 router.paramsConfig = {
-    saldo: "contoh: 123.456"
+  saldo: "contoh: 123.456"
 };
 router.status = "ready";
 router.type = "free";
