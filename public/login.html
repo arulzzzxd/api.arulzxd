@@ -32,9 +32,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Cloudflare Turnstile API Script -->
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-
     <style>
         :root {
             --bg-cream: #FAF7EF;
@@ -89,7 +86,7 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
         }
 
-        /* AKURASI UKURAN DROPDOWN BIODROPDOWN */
+        /* AKURASI UKURAN DROPDOWN BIODROPDOWN (AGAR TETAP SAMA DALAM BERBAGAI DPI) */
         #bioDropdown {
             width: 310px !important;
             max-width: 85vw !important;
@@ -542,7 +539,7 @@
             </button>
         </div>
 
-        <!-- Banner Video -->
+        <!-- Banner Video (Only https://cdn.arulzzxd.my.id/files/MPzS.mp4) -->
         <div class="mb-3.5 rounded-xl border-2 brutal-border overflow-hidden bg-black h-44 w-full relative shadow-sm">
             <video id="sidebarBannerVideo" autoplay loop muted playsinline webkit-playsinline preload="auto" class="w-full h-full object-cover">
                 <source src="https://cdn.arulzzxd.my.id/files/MPzS.mp4" type="video/mp4">
@@ -686,12 +683,7 @@
                     <button type="button" onclick="openForgotModal()" class="theme-text-accent hover:underline text-[11px] bg-transparent border-none cursor-pointer font-extrabold">Lupa Password?</button>
                 </div>
 
-                <!-- CLOUDFLARE TURNSTILE WIDGET (LOGIN) -->
-                <div class="flex justify-center my-2">
-                    <div class="cf-turnstile" data-sitekey="0x4AAAAAAFmYWq_0_cNzZzxv" data-theme="light"></div>
-                </div>
-
-                <!-- CHECKBOX PERSETUJUAN -->
+                <!-- CHECKBOX PERSERUJUAN SEKARANG DIBAWAH INGAT SAYA -->
                 <div class="p-3 bg-[#FAF7EF] border-2 brutal-border rounded-xl shadow-xs">
                     <label class="flex items-start gap-2.5 cursor-pointer select-none">
                         <input type="checkbox" id="termsAgree" class="mt-0.5 w-4 h-4 rounded border-2 brutal-border text-amber-500 focus:ring-0 cursor-pointer shrink-0">
@@ -747,12 +739,7 @@
                     </div>
                 </div>
 
-                <!-- CLOUDFLARE TURNSTILE WIDGET (REGISTER) -->
-                <div class="flex justify-center my-2">
-                    <div class="cf-turnstile" data-sitekey="0x4AAAAAAFmYWq_0_cNzZzxv" data-theme="light"></div>
-                </div>
-
-                <!-- CHECKBOX PERSETUJUAN DI FORM REGISTER -->
+                <!-- CHECKBOX PERSETUJUAN DI FORM REGISTER JUGA DIBAWAH INPUT -->
                 <div class="p-3 bg-[#FAF7EF] border-2 brutal-border rounded-xl shadow-xs">
                     <label class="flex items-start gap-2.5 cursor-pointer select-none">
                         <input type="checkbox" id="termsAgreeReg" class="mt-0.5 w-4 h-4 rounded border-2 brutal-border text-amber-500 focus:ring-0 cursor-pointer shrink-0">
@@ -856,10 +843,6 @@
                 <div>
                     <label class="block text-[10px] font-black code-font text-zinc-900 mb-1">EMAIL TERDAFTAR</label>
                     <input type="email" name="email" required placeholder="nama@email.com" class="theme-input w-full px-3.5 py-2.5 bg-white border-2 brutal-border rounded-xl text-xs font-bold text-zinc-900">
-                </div>
-                <!-- Turnstile Modal Lupa Password -->
-                <div class="flex justify-center my-1">
-                    <div class="cf-turnstile" data-sitekey="0x4AAAAAAFmYWq_0_cNzZzxv" data-theme="light"></div>
                 </div>
                 <button type="submit" class="btn-brutalism-light theme-bg-accent w-full py-2.5 text-xs mt-2">
                     <i class="fa-solid fa-paper-plane mr-1"></i> KIRIM LINK RESET
@@ -1003,7 +986,7 @@
             }
         });
 
-        // Auto-Play Banner Video
+        // Fungsi Khusus Auto-Play Hanya untuk Banner Sidebar Saja (Mencegah Layar Hitam)
         function playBannerVideo() {
             const sidebarBannerVideo = document.getElementById('sidebarBannerVideo');
             if (!sidebarBannerVideo) return;
@@ -1067,14 +1050,14 @@
                     e.stopPropagation();
                     bioDropdown.style.transform = 'translateX(0)';
                     menuOverlay.classList.remove('hidden');
-                    playBannerVideo();
+                    playBannerVideo(); // Memastikan video langsung diputar saat sidebar dibuka
                 });
                 if (closeMenuBtn) closeMenuBtn.addEventListener('click', closeSidebarMenu);
                 menuOverlay.addEventListener('click', closeSidebarMenu);
                 bioDropdown.addEventListener('click', (e) => { e.stopPropagation(); });
             }
 
-            // Event listener checkbox persetujuan
+            // Pasang event listener checkbox persetujuan di kedua form
             const termsCheckbox = document.getElementById('termsAgree');
             const termsCheckboxReg = document.getElementById('termsAgreeReg');
             
@@ -1091,9 +1074,9 @@
                 });
             }
 
-            handleTermsToggle();
+            handleTermsToggle(); // Inisialisasi awal
 
-            // Pasang event listener persetujuan ke form dan tombol OAuth
+            // Pasang event listener persetujuan ke form dan tombol OAuth (Google & GitHub)
             document.getElementById('loginForm').addEventListener('submit', validateTerms);
             document.getElementById('registerForm').addEventListener('submit', validateTerms);
             document.querySelectorAll('.oauth-link').forEach(link => {
@@ -1103,6 +1086,7 @@
             playBannerVideo();
         });
 
+        // Auto-recovery video banner saat berpindah tab atau interaksi awal
         window.addEventListener('load', playBannerVideo);
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) playBannerVideo();
