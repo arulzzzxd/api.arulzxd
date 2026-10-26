@@ -1,5 +1,4 @@
 import express from "express";
-import axios from "axios";
 import {
     createCanvas,
     loadImage,
@@ -16,38 +15,34 @@ let fontLoaded = false;
 let bgCache = null;
 let eyeCache = null;
 
-// Header Browser agar request axios tidak diblokir oleh Cloudflare WAF / Bot Protection
-const AXIOS_CONFIG = {
-    responseType: "arraybuffer",
-    headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
-        "Cache-Control": "no-cache"
-    },
-    timeout: 10000
-};
+// Menggunakan native fetch bawaan Node.js agar lolos TLS Fingerprint Cloudflare
+async function getBuffer(url) {
+    const res = await fetch(url, {
+        headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9,id;q=0.8"
+        }
+    });
+
+    if (!res.ok) {
+        throw new Error(`Gagal mengambil aset (${res.status} ${res.statusText}): ${url}`);
+    }
+
+    const arrayBuffer = await res.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+}
 
 async function loadFont() {
     if (fontLoaded) return;
 
-    const { data } = await axios.get(FONT_URL, AXIOS_CONFIG);
-
-    GlobalFonts.register(
-        Buffer.from(data),
-        "DANA"
-    );
+    const fontBuffer = await getBuffer(FONT_URL);
+    GlobalFonts.register(fontBuffer, "DANA");
 
     fontLoaded = true;
 }
 
-async function getBuffer(url) {
-    const { data } = await axios.get(url, AXIOS_CONFIG);
-    return Buffer.from(data);
-}
-
 function cleanSaldo(input) {
-    // Hapus "Rp" atau "rp" jika dimasukkan oleh user karena background sudah memiliki teks "Rp"
     let text = input.trim().replace(/^rp\s*/i, "");
     if (/^\d+$/.test(text)) {
         text = parseInt(text, 10).toLocaleString("id-ID");
@@ -83,11 +78,11 @@ router.get("/", async (req, res) => {
         ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
         // KOORDINAT PRESISI SAMA DENGAN BACKGROUND DANA
-        const valX = 138;           // Posisi tepat setelah teks "Rp" bawaan gambar
-        const valY = 48;            // Posisi Y sejajar dengan teks "Rp" bawaan gambar
-        const maxFontSize = 35;     // Ukuran font yang pas dengan "Rp" bawaan
-        const eyeGap = 8;           // Jarak presisi antara angka dan ikon mata
-        const eyeScale = 0.45;      // Skala ikon mata yang pas & kecil seperti aplikasi asli
+        const valX = 138;
+        const valY = 48;
+        const maxFontSize = 35;
+        const eyeGap = 8;
+        const eyeScale = 0.45;
 
         let currentFontSize = maxFontSize;
         const maxAllowedWidth = canvas.width - valX - 100;
@@ -107,7 +102,7 @@ router.get("/", async (req, res) => {
         ctx.textBaseline = "top";
         ctx.fillText(saldo, valX, valY);
 
-        // Render Ikon Mata (Presisi Tegak Lurus & Sejajar di Tengah Angka)
+        // Render Ikon Mata
         const eyeHeight = currentFontSize * eyeScale;
         const eyeWidth = (eyeImg.width / eyeImg.height) * eyeHeight;
         const eyeX = valX + textWidth + eyeGap;
@@ -116,14 +111,12 @@ router.get("/", async (req, res) => {
         ctx.drawImage(eyeImg, eyeX, eyeY, eyeWidth, eyeHeight);
 
         const buffer = await canvas.encode("png");
-        
-        // Response Header Kompatibel dengan Cloudflare CDN
         res.setHeader("Content-Type", "image/png");
         res.setHeader("Cache-Control", "public, max-age=86400");
         res.end(buffer);
 
     } catch (err) {
-        console.error("[FAKE-DANA ERROR]", err.message);
+        console.error("[FAKE-DANA ERROR]", err);
         res.status(500).json({
             status: false,
             message: err.message || "Gagal memproses gambar"
