@@ -67,27 +67,16 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "https://api.arulzzxd.my.id/auth/google/callback";
 
+// Cloudflare Turnstile Verification Config
+const CLOUDFLARE_TURNSTILE_SECRET_KEY = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY || '';
+
 // GitHub CDN Config
 const repoName = process.env.GITHUB_REPO || 'cdn';
 const githubToken = process.env.GITHUB_TOKEN || '';
 const owner = process.env.GITHUB_OWNER || 'arulzzzxd'; 
 const branch = process.env.GITHUB_BRANCH || 'main';
 
-// SMTP Transporter Helper
-const getSmtpTransporter = () => {
-    return nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true, 
-        auth: {
-            user: process.env.SMTP_USER || 'supportarulzxd@gmail.com',
-            pass: process.env.SMTP_PASS
-        },
-        tls: { rejectUnauthorized: false }
-    });
-};
-
-// configuration supabase
+// Configuration Supabase
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
@@ -97,10 +86,29 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-
+// Resend Configuration (Domain API Cloudflare Verified)
 const resend = new Resend(process.env.RESEND_API_KEY);
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL
-const SENDER_EMAIL = process.env.SENDER_EMAIL
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@arulzzxd.my.id';
+const SENDER_EMAIL = process.env.SENDER_EMAIL || 'ArulzXD API <noreply@api.arulzzxd.my.id>';
+
+// Helper Verifikasi Cloudflare Turnstile
+async function verifyCloudflareTurnstile(token, remoteIp) {
+    if (!CLOUDFLARE_TURNSTILE_SECRET_KEY) return true; // Skip jika tidak diset di env
+    try {
+        const formData = new URLSearchParams();
+        formData.append('secret', CLOUDFLARE_TURNSTILE_SECRET_KEY);
+        formData.append('response', token);
+        if (remoteIp) formData.append('remoteip', remoteIp);
+
+        const result = await axios.post('https://challenges.cloudflare.com/turnstile/v0/siteverify', formData.toString(), {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+        return result.data && result.data.success;
+    } catch (err) {
+        console.error("❌ Cloudflare Turnstile verification error:", err.message);
+        return false;
+    }
+}
 
 // Rate Limiter khusus email agar aman dari SPAM & BOT Flooding
 const emailLimiter = rateLimit({
@@ -158,6 +166,9 @@ const userSchema = new mongoose.Schema({
     providerId: { type: String, default: null },
     resetPasswordToken: String,
     resetPasswordExpires: Date,
+    verificationCode: String,
+    verificationCodeExpires: Date,
+    isVerified: { type: Boolean, default: true },
     apikey: { type: String, required: true, unique: true },
     role: { type: String, default: 'Free User' },
     roleExpiresAt: { type: Date, default: null },
@@ -338,22 +349,22 @@ app.use(async (req, res, next) => {
             let ogImageUrl = `https://api.arulzzxd.my.id/og/${pathKey}`;
 
             if (req.path === '/pastecode' && req.query.id) {
-    ogImageUrl = `https://api.arulzzxd.my.id/og/snippet?id=${req.query.id}`;
-    try {
-        const { data: snippet, error } = await supabase
-            .from('pastes')
-            .select('title, desc, language, author')
-            .eq('id', req.query.id)
-            .maybeSingle();
+                ogImageUrl = `https://api.arulzzxd.my.id/og/snippet?id=${req.query.id}`;
+                try {
+                    const { data: snippet, error } = await supabase
+                        .from('pastes')
+                        .select('title, desc, language, author')
+                        .eq('id', req.query.id)
+                        .maybeSingle();
 
-        if (snippet && !error) {
-            title = `${snippet.title} - Pastecode Snippet`;
-            desc = snippet.desc || `Snippet kode ${snippet.language || 'JS'} oleh ${snippet.author || 'arulzxd'}`;
-        }
-    } catch (e) {
-        title = "Pastecode Snippet | ArulzXD API";
-    }
-}
+                    if (snippet && !error) {
+                        title = `${snippet.title} - Pastecode Snippet`;
+                        desc = snippet.desc || `Snippet kode ${snippet.language || 'JS'} oleh ${snippet.author || 'arulzxd'}`;
+                    }
+                } catch (e) {
+                    title = "Pastecode Snippet | ArulzXD API";
+                }
+            }
 
             const fullUrl = `https://api.arulzzxd.my.id${req.originalUrl}`;
 
@@ -453,6 +464,10 @@ function generateId(length = 8) {
     id += alphabet[bytes[i] % alphabet.length];
   }
   return id;
+}
+
+function generateOtpCode() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 function calcCRC16(str) {
@@ -572,9 +587,9 @@ function sendSweetAlert(res, icon, title, text, redirectUrl) {
             <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
             <style>
                 body { background-color: #FAF7EF; font-family: 'Plus Jakarta Sans', sans-serif; }
-                .swal2-popup { background: #FFFDF8 !important; border: 2px solid #121212 !important; border-radius: 16px !important; }
-                .swal2-title { color: #121212 !important; font-weight: 700 !important; }
-                .swal2-confirm { background: #fde047 !important; color: #121212 !important; font-weight: 700 !important; border: 2px solid #121212 !important; border-radius: 12px !important; padding: 10px 24px !important; }
+                .swal2-popup { background: #FFFDF8 !important; border: 2.5px solid #121212 !important; border-radius: 20px !important; box-shadow: 6px 6px 0px rgba(18, 18, 18, 0.15) !important; }
+                .swal2-title { color: #121212 !important; font-weight: 900 !important; }
+                .swal2-confirm { background: #FACC15 !important; color: #121212 !important; font-weight: 900 !important; border: 2px solid #121212 !important; border-radius: 12px !important; padding: 10px 24px !important; box-shadow: 3px 3px 0px #121212 !important; }
             </style>
         </head>
         <body>
@@ -588,7 +603,11 @@ function sendSweetAlert(res, icon, title, text, redirectUrl) {
     `);
 }
 
-// 1. Template Email Feedback ke Admin Support
+// ====================================================
+// TEMPLATE EMAIL NEO-BRUTALISM (FULL SVG - NO EMOJI)
+// ====================================================
+
+// 1. Template Email Feedback ke Support (Dikirim ke SUPPORT_EMAIL)
 function getFeedbackAdminEmailHtml({ email, type, message, timestamp, ip }) {
     return `
 <!DOCTYPE html>
@@ -610,10 +629,10 @@ function getFeedbackAdminEmailHtml({ email, type, message, timestamp, ip }) {
                                 <tr>
                                     <td>
                                         <div style="font-size: 10px; font-weight: 900; letter-spacing: 1.5px; color: #121212; font-family: monospace; text-transform: uppercase;">
-                                            SYSTEM FEEDBACK NOTIFICATION
+                                            SYSTEM SUPPORT TICKET
                                         </div>
                                         <h1 style="margin: 4px 0 0 0; font-size: 20px; font-weight: 900; color: #121212;">
-                                            [${type.toUpperCase()}] LAPORAN BARU
+                                            [${type.toUpperCase()}] LAPORAN DARI USER
                                         </h1>
                                     </td>
                                     <td align="right" width="40">
@@ -668,7 +687,7 @@ function getFeedbackAdminEmailHtml({ email, type, message, timestamp, ip }) {
     `;
 }
 
-// 2. Template Email Konfirmasi ke Pengguna (Feedback Received)
+// 2. Template Email Konfirmasi Feedback Diterima oleh Support
 function getFeedbackUserEmailHtml({ email, type }) {
     return `
 <!DOCTYPE html>
@@ -693,7 +712,7 @@ function getFeedbackUserEmailHtml({ email, type }) {
                                             ARULZXD API SUPPORT CENTER
                                         </div>
                                         <h1 style="margin: 4px 0 0 0; font-size: 20px; font-weight: 900; color: #FFFFFF;">
-                                            LAPORAN DITERIMA!
+                                            LAPORAN DITERIMA
                                         </h1>
                                     </td>
                                     <td align="right" width="40">
@@ -711,14 +730,14 @@ function getFeedbackUserEmailHtml({ email, type }) {
                         <td style="padding: 24px;">
                             <p style="margin: 0 0 16px 0; font-size: 14px; font-weight: 800; color: #121212;">Halo ${email},</p>
                             <p style="margin: 0 0 20px 0; font-size: 13px; font-weight: 600; color: #3F3F46; line-height: 1.6;">
-                                Terima kasih telah menghubungi kami. Laporan/umpan balik Anda dengan kategori <strong style="color: #121212; text-transform: uppercase;">[${type}]</strong> telah kami terima dan masuk ke sistem tiket dukungan.
+                                Terima kasih telah menghubungi kami. Laporan/umpan balik Anda dengan kategori <strong style="color: #121212; text-transform: uppercase;">[${type}]</strong> telah kami terima dan masuk ke sistem tiket tim support kami.
                             </p>
 
                             <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 24px;">
                                 <tr>
                                     <td style="padding: 14px; background-color: #EFF6FF; border: 2px solid #3B82F6; border-radius: 12px;">
                                         <div style="font-size: 11px; font-weight: 800; color: #1D4ED8; font-family: monospace; text-transform: uppercase;">ESTIMASI PENANGANAN</div>
-                                        <div style="font-size: 13px; font-weight: 700; color: #1E40AF; margin-top: 2px;">Kurang dari 24 Jam Kerja (Prioritas Akun)</div>
+                                        <div style="font-size: 13px; font-weight: 700; color: #1E40AF; margin-top: 2px;">Kurang dari 24 Jam Kerja (Prioritas High)</div>
                                     </td>
                                 </tr>
                             </table>
@@ -749,15 +768,19 @@ function getFeedbackUserEmailHtml({ email, type }) {
     `;
 }
 
-// 3. Template Email Reset Password
-function getResetPasswordEmailHtml({ username, resetUrl }) {
+// 3. Template Email Kode OTP Verification (Register & Reset Password Tanpa Kadaluwarsa Link)
+function getOtpCodeEmailHtml({ username, otpCode, actionType }) {
+    const isReset = actionType === 'reset';
+    const headerTitle = isReset ? 'VERIFIKASI RESET PASSWORD' : 'KODE VERIFIKASI AKUN';
+    const headerBg = isReset ? '#EF4444' : '#10B981';
+    
     return `
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Kata Sandi</title>
+    <title>${headerTitle}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #FAF7EF; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
     <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="padding: 30px 15px;">
@@ -766,15 +789,15 @@ function getResetPasswordEmailHtml({ username, resetUrl }) {
                 <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #FFFDF8; border: 2.5px solid #121212; border-radius: 20px; box-shadow: 6px 6px 0px rgba(18, 18, 18, 0.15); overflow: hidden;">
                     <!-- Header -->
                     <tr>
-                        <td style="background-color: #EF4444; padding: 24px; border-bottom: 2.5px solid #121212;">
+                        <td style="background-color: ${headerBg}; padding: 24px; border-bottom: 2.5px solid #121212;">
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td>
                                         <div style="font-size: 10px; font-weight: 900; letter-spacing: 1.5px; color: #FFFFFF; font-family: monospace; text-transform: uppercase;">
-                                            SECURITY VERIFICATION
+                                            SECURITY AUTHENTICATION
                                         </div>
                                         <h1 style="margin: 4px 0 0 0; font-size: 20px; font-weight: 900; color: #FFFFFF;">
-                                            RESET KATA SANDI AKUN
+                                            ${headerTitle}
                                         </h1>
                                     </td>
                                     <td align="right" width="40">
@@ -792,16 +815,16 @@ function getResetPasswordEmailHtml({ username, resetUrl }) {
                         <td style="padding: 24px;">
                             <p style="margin: 0 0 12px 0; font-size: 14px; font-weight: 800; color: #121212;">Halo ${username},</p>
                             <p style="margin: 0 0 20px 0; font-size: 13px; font-weight: 600; color: #3F3F46; line-height: 1.6;">
-                                Kami menerima permintaan untuk mengatur ulang kata sandi akun ArulzXD API Anda. Silakan klik tombol aman di bawah ini untuk membuat kata sandi baru:
+                                Gunakan 6 digit kode OTP verifikasi di bawah ini untuk melanjutkan ${isReset ? 'proses reset kata sandi' : 'pendaftaran akun'} ArulzXD API Anda:
                             </p>
 
-                            <!-- Button -->
-                            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 24px 0;">
+                            <!-- Kode OTP Box -->
+                            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 20px 0;">
                                 <tr>
                                     <td align="center">
-                                        <a href="${resetUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #121212; color: #FFFFFF; font-size: 13px; font-weight: 900; text-decoration: none; text-transform: uppercase; border-radius: 12px; border: 2px solid #121212; letter-spacing: 1px; box-shadow: 4px 4px 0px #FACC15;">
-                                            ATUR ULANG KATA SANDI
-                                        </a>
+                                        <div style="display: inline-block; padding: 16px 36px; background-color: #FACC15; border: 2.5px solid #121212; border-radius: 16px; box-shadow: 4px 4px 0px #121212;">
+                                            <span style="font-family: monospace; font-size: 32px; font-weight: 900; letter-spacing: 8px; color: #121212;">${otpCode}</span>
+                                        </div>
                                     </td>
                                 </tr>
                             </table>
@@ -810,7 +833,7 @@ function getResetPasswordEmailHtml({ username, resetUrl }) {
                                 <tr>
                                     <td style="padding: 12px; background-color: #FEF2F2; border: 2px solid #EF4444; border-radius: 12px;">
                                         <div style="font-size: 11px; font-weight: 800; color: #991B1B; font-family: monospace; text-transform: uppercase;">PERINGATAN KEAMANAN</div>
-                                        <div style="font-size: 12px; font-weight: 600; color: #7F1D1D; margin-top: 2px;">Link ini hanya berlaku selama 1 jam. Jika Anda tidak merasa meminta reset ini, abaikan email ini.</div>
+                                        <div style="font-size: 12px; font-weight: 600; color: #7F1D1D; margin-top: 2px;">Kode ini hanya berlaku selama 15 menit. Jaga kerahasiaan kode dan jangan berikan kepada siapapun.</div>
                                     </td>
                                 </tr>
                             </table>
@@ -830,6 +853,7 @@ function getResetPasswordEmailHtml({ username, resetUrl }) {
 </html>
     `;
 }
+
 // ====================================================
 // 5. PASSPORT STRATEGY & OAUTH AUTHENTICATION
 // ====================================================
@@ -873,7 +897,13 @@ passport.use(new LocalStrategy({ usernameField: 'username', passwordField: 'pass
 ));
 
 // --- LOGIN LOCAL ---
-app.post('/auth/login', (req, res, next) => {
+app.post('/auth/login', async (req, res, next) => {
+    const turnstileToken = req.body['cf-turnstile-response'];
+    const isHuman = await verifyCloudflareTurnstile(turnstileToken, req.ip);
+    if (!isHuman) {
+        return sendSweetAlert(res, 'error', 'Verifikasi Gagal', 'Gagal verifikasi Cloudflare Turnstile bot protection.', '/login');
+    }
+
     passport.authenticate('local', async (err, user, info) => { 
         if (err) return next(err);
 
@@ -915,7 +945,7 @@ app.post('/auth/login', (req, res, next) => {
                     username: user.username,
                     email: user.email,
                     name: user.username,
-                    avatar: user.avatar || 'https://arulz-xd.my.id/files/X1F0Cn.png',
+                    avatar: user.avatar || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png',
                     role: user.role,     
                     apikey: user.apikey   
                 };
@@ -939,10 +969,17 @@ app.post('/auth/login', (req, res, next) => {
     })(req, res, next);
 });
 
-// --- REGISTER LOCAL ---
-app.post('/auth/register', async (req, res) => {
+// --- REGISTER LOCAL DENGAN VERIFIKASI KODE RESEND ---
+app.post('/auth/register', emailLimiter, async (req, res) => {
     try {
         const { username, email, password } = req.body;
+        const turnstileToken = req.body['cf-turnstile-response'];
+
+        const isHuman = await verifyCloudflareTurnstile(turnstileToken, req.ip);
+        if (!isHuman) {
+            return sendSweetAlert(res, 'error', 'Verifikasi Gagal', 'Verifikasi Cloudflare Turnstile tidak valid!', '/login');
+        }
+
         if (!username || !email || !password) {
             return sendSweetAlert(res, 'error', 'Pendaftaran Gagal', 'Semua data wajib diisi!', '/login');
         }
@@ -957,6 +994,7 @@ app.post('/auth/register', async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const defaultAvatar = 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png';
+        const otpCode = generateOtpCode();
 
         const newUser = new User({
             username: cleanUsername,
@@ -965,9 +1003,20 @@ app.post('/auth/register', async (req, res) => {
             provider: 'local',
             role: 'Free User',
             apikey: generateFreeApiKey(),
-            avatar: defaultAvatar
+            avatar: defaultAvatar,
+            verificationCode: otpCode,
+            verificationCodeExpires: Date.now() + 15 * 60 * 1000,
+            isVerified: true
         });
         await newUser.save();
+
+        // Kirim Kode Verifikasi via Resend SDK
+        await resend.emails.send({
+            from: SENDER_EMAIL,
+            to: cleanEmail,
+            subject: 'Kode Verifikasi Pendaftaran - ArulzXD API',
+            html: getOtpCodeEmailHtml({ username: cleanUsername, otpCode, actionType: 'register' })
+        });
 
         const token = jwt.sign({
             id: newUser._id, username: newUser.username, name: newUser.username, avatar: defaultAvatar, role: newUser.role, apikey: newUser.apikey
@@ -977,10 +1026,10 @@ app.post('/auth/register', async (req, res) => {
 
         req.logIn(newUser, (err) => {
             if (err) return res.redirect('/login');
-            return sendSweetAlert(res, 'success', 'Berhasil!', 'Pendaftaran berhasil! Selamat datang.', '/api');
+            return sendSweetAlert(res, 'success', 'Berhasil!', 'Pendaftaran berhasil! Kode verifikasi telah dikirim ke email Anda.', '/api');
         });
     } catch (error) {
-        console.error(error);
+        console.error("❌ Register Error:", error);
         res.status(500).send('Terjadi error internal saat pendaftaran.');
     }
 });
@@ -1117,10 +1166,17 @@ app.get('/auth/google/callback', async (req, res) => {
     }
 });
 
-// --- LUPA & RESET PASSWORD ---
+// --- LUPA & RESET PASSWORD VIA KODE OTP RESEND (MENCEGAH ERROR LINK KADALUWARSA) ---
 app.post('/auth/forgot-password', emailLimiter, async (req, res) => {
     try {
         const email = req.body.email;
+        const turnstileToken = req.body['cf-turnstile-response'];
+
+        const isHuman = await verifyCloudflareTurnstile(turnstileToken, req.ip);
+        if (!isHuman) {
+            return sendSweetAlert(res, 'error', 'Verifikasi Gagal', 'Verifikasi Cloudflare Turnstile tidak valid!', '/login');
+        }
+
         if (!email) {
             return sendSweetAlert(res, 'error', 'Wajib Diisi', 'Email wajib diisi!', '/login');
         }
@@ -1134,25 +1190,22 @@ app.post('/auth/forgot-password', emailLimiter, async (req, res) => {
             return sendSweetAlert(res, 'error', 'Metode Login OAuth', `Akun ini mendaftar via ${user.provider.toUpperCase()}, tidak memerlukan reset password.`, '/login');
         }
 
-        // Generate Secure Unhashed & Hashed Token (SHA-256)
-        const unhashedToken = crypto.randomBytes(32).toString('hex');
-        user.resetPasswordToken = crypto.createHash('sha256').update(unhashedToken).digest('hex');
-        user.resetPasswordExpires = Date.now() + 3600000; // 1 Jam
+        // Generate 6 Digit Kode Verifikasi OTP
+        const otpCode = generateOtpCode();
+        user.verificationCode = otpCode;
+        user.verificationCodeExpires = Date.now() + 15 * 60 * 1000; // 15 Menit
         await user.save();
 
-        const host = req.get('host');
-        const protocol = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
-        const resetUrl = `${protocol}://${host}/reset-password/${unhashedToken}`;
-
-        // Kirim email reset password via Resend SDK
+        // Kirim email kode OTP reset password via Resend SDK
         await resend.emails.send({
             from: SENDER_EMAIL,
             to: user.email,
-            subject: 'Permintaan Reset Kata Sandi - ArulzXD API',
-            html: getResetPasswordEmailHtml({ username: user.username, resetUrl })
+            subject: 'Kode OTP Reset Password - ArulzXD API',
+            html: getOtpCodeEmailHtml({ username: user.username, otpCode, actionType: 'reset' })
         });
 
-        return sendSweetAlert(res, 'success', 'Sukses!', 'Link reset password telah dikirim ke email Anda.', '/login');
+        // Redirect langsung ke form input OTP reset password
+        return res.redirect(`/reset-password?email=${encodeURIComponent(user.email)}`);
 
     } catch (error) {
         console.error("❌ Resend Reset Password Error:", error);
@@ -1160,85 +1213,81 @@ app.post('/auth/forgot-password', emailLimiter, async (req, res) => {
     }
 });
 
-app.get('/reset-password/:token', async (req, res) => {
-    try {
-        const user = await User.findOne({ 
-            resetPasswordToken: req.params.token, 
-            resetPasswordExpires: { $gt: Date.now() } 
-        });
-
-        if (!user) {
-            return sendSweetAlert(res, 'error', 'Link Kadaluwarsa', 'Link reset password tidak valid atau sudah kedaluwarsa. Silakan minta link baru.', '/login');
-        }
-
-        res.send(`
+app.get('/reset-password', async (req, res) => {
+    const userEmail = req.query.email || '';
+    res.send(`
     <!DOCTYPE html>
     <html lang="id">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Buat Password Baru - ArulzXD REST API</title>
+        <title>Reset Password Kode OTP - ArulzXD REST API</title>
         <script src="https://cdn.tailwindcss.com"></script>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet">
         <style>
-            body { background-color: #f8fafc; }
-            .solid-card { background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); }
+            body { background-color: #FAF7EF; font-family: 'Plus Jakarta Sans', sans-serif; }
+            .brutal-card { background: #FFFDF8; border: 2.5px solid #121212; box-shadow: 6px 6px 0px rgba(18, 18, 18, 0.15); }
         </style>
     </head>
-    <body class="flex flex-col items-center justify-center min-h-screen p-4 antialiased text-slate-800">
-        <div class="solid-card p-8 rounded-2xl w-full max-w-md relative overflow-hidden">
-            <div class="text-center mb-6 relative z-10">
-                <h1 class="text-xl font-extrabold tracking-tight text-slate-900 mb-1">
-                    Atur Ulang <span class="text-sky-600">Kata Sandi</span>
+    <body class="flex flex-col items-center justify-center min-h-screen p-4 antialiased text-zinc-900">
+        <div class="brutal-card p-6 sm:p-8 rounded-2xl w-full max-w-md relative">
+            <div class="text-center mb-6">
+                <h1 class="text-xl font-black uppercase tracking-tight text-zinc-900 mb-1">
+                    Reset <span class="text-amber-500">Kata Sandi</span>
                 </h1>
-                <p class="text-xs text-slate-500 font-medium">Silakan masukkan kata sandi baru Anda yang aman.</p>
+                <p class="text-xs text-zinc-600 font-bold">Masukkan kode OTP 6-digit yang dikirimkan ke email Anda.</p>
             </div>
 
-            <form action="/reset-password/${req.params.token}" method="POST" class="space-y-4 relative z-10">
+            <form action="/reset-password" method="POST" class="space-y-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Password Baru</label>
-                    <input id="new-password" type="password" name="password" required placeholder="••••••••" 
-                        class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:bg-white font-medium transition">
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-zinc-800 mb-1">ALAMAT EMAIL</label>
+                    <input type="email" name="email" value="${userEmail}" required placeholder="nama@email.com" 
+                        class="w-full bg-white border-2 border-zinc-900 rounded-xl px-4 py-2.5 text-xs font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Konfirmasi Password Baru</label>
-                    <input id="confirm-password" type="password" name="confirmPassword" required placeholder="••••••••" 
-                        class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:bg-white font-medium transition">
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-zinc-800 mb-1">KODE VERIFIKASI (OTP)</label>
+                    <input type="text" name="otpCode" required maxlength="6" placeholder="123456" 
+                        class="w-full bg-white border-2 border-zinc-900 rounded-xl px-4 py-2.5 text-center text-lg font-black tracking-widest text-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
 
-                <button type="submit" class="w-full mt-2 bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl text-sm tracking-wide uppercase transition shadow-sm">Simpan Password Baru</button>
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-zinc-800 mb-1">PASSWORD BARU</label>
+                    <input type="password" name="password" required placeholder="••••••••" 
+                        class="w-full bg-white border-2 border-zinc-900 rounded-xl px-4 py-2.5 text-xs font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
+                </div>
+
+                <button type="submit" class="w-full mt-2 bg-amber-300 hover:bg-amber-400 text-zinc-900 border-2 border-zinc-900 font-black py-3 rounded-xl text-xs uppercase tracking-wider transition shadow-[3px_3px_0px_#121212]">
+                    VERIFIKASI & SIMPAN PASSWORD
+                </button>
             </form>
         </div>
     </body>
     </html>
-`);
-
-    } catch (err) {
-        res.status(500).send("Error server.");
-    }
+    `);
 });
 
-app.post('/reset-password/:token', async (req, res) => {
+app.post('/reset-password', async (req, res) => {
     try {
-        const { password, confirmPassword } = req.body;
+        const { email, otpCode, password } = req.body;
 
-        if (password !== confirmPassword) {
-            return sendSweetAlert(res, 'warning', 'Tidak Cocok', 'Password dan konfirmasi password tidak cocok!', '/login');
+        if (!email || !otpCode || !password) {
+            return sendSweetAlert(res, 'warning', 'Data Kurang', 'Semua kolom wajib diisi!', '/reset-password');
         }
 
         const user = await User.findOne({ 
-            resetPasswordToken: req.params.token, 
-            resetPasswordExpires: { $gt: Date.now() } 
+            email: email.toLowerCase().trim(),
+            verificationCode: otpCode.trim(),
+            verificationCodeExpires: { $gt: Date.now() } 
         });
 
         if (!user) {
-            return sendSweetAlert(res, 'error', 'Gagal', 'Link reset password tidak valid atau sudah kedaluwarsa.', '/login');
+            return sendSweetAlert(res, 'error', 'Gagal Verifikasi', 'Kode verifikasi OTP salah atau sudah kedaluwarsa.', '/reset-password');
         }
 
         user.password = await bcrypt.hash(password, 10);
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpires = undefined;
+        user.verificationCode = undefined;
+        user.verificationCodeExpires = undefined;
         await user.save();
 
         return sendSweetAlert(res, 'success', 'Berhasil!', 'Password berhasil diubah! Silakan login dengan password baru Anda.', '/login');
@@ -1559,7 +1608,7 @@ app.post('/api/admin/subscribe-push', checkAdminAccess, async (req, res) => {
 app.post('/api/admin/test-push', checkAdminAccess, async (req, res) => {
     try {
         await sendBackgroundPushNotification({
-            title: '🔔 TES NOTIFIKASI WEB PUSH',
+            title: 'TES NOTIFIKASI WEB PUSH',
             body: 'Notifikasi latar belakang berhasil dikonfigurasi!',
             icon: 'https://cdn.arulzzxd.my.id/files/1wh5do.png',
             orderId: 'TRX-TEST-' + Math.floor(1000 + Math.random() * 9000)
@@ -1615,7 +1664,7 @@ app.post('/api/admin/transactions/:orderId/approve', checkAdminAccess, async (re
         }
 
         sendBackgroundPushNotification({
-            title: '✅ TRANSAKSI LUNAS!',
+            title: 'TRANSAKSI LUNAS',
             body: `Order: ${trx.orderId}\nUser: ${trx.username}\nRole berhasil diperbarui!`,
             icon: buyerAvatar,
             orderId: trx.orderId
@@ -1888,7 +1937,7 @@ app.post('/api/transactions/upload-proof', async (req, res) => {
         const buyerAvatar = buyer?.avatar || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png';
 
         sendBackgroundPushNotification({
-            title: '⚡ BUKTI TRANSAKSI BARU!',
+            title: 'BUKTI TRANSAKSI BARU',
             body: `Order: ${trx.orderId}\nUser: ${trx.username}\nTotal: Rp ${trx.amount.toLocaleString('id-ID')}`,
             icon: buyerAvatar,
             orderId: trx.orderId
@@ -2802,7 +2851,7 @@ app.get('/og/snippet', async (req, res) => {
         const footerY = windowY + windowH - 45;
         ctx.fillStyle = '#121212';
         ctx.font = 'bold 22px "Plus Jakarta Sans", sans-serif';
-        ctx.fillText(`📅  ${snippetData.date}`, codeX, footerY);
+        ctx.fillText(`${snippetData.date}`, codeX, footerY);
 
         // Encode PNG Buffer untuk Express
         const pngBuffer = Buffer.from(await canvas.encode('png'));
@@ -3301,7 +3350,7 @@ app.get('/sw.js', (req, res) => {
                 catch (e) { data = { title: 'Notifikasi', body: event.data.text() }; } 
             }
 
-            const title = data.title || '⚡ NOTIFIKASI TRANSAKSI';
+            const title = data.title || 'NOTIFIKASI TRANSAKSI';
             const userAvatar = data.icon || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png';
 
             const options = {
@@ -3314,7 +3363,7 @@ app.get('/sw.js', (req, res) => {
                 requireInteraction: true,
                 data: { orderId: data.orderId },
                 actions: [
-                    { action: 'approve', title: '⚡ KONFIRMASI LUNAS' }
+                    { action: 'approve', title: 'KONFIRMASI LUNAS' }
                 ]
             };
 
@@ -3332,7 +3381,7 @@ app.get('/sw.js', (req, res) => {
                     fetch('/api/admin/transactions/' + data.orderId + '/approve', { method: 'POST' })
                         .then(res => res.json())
                         .then(() => {
-                            self.registration.showNotification('✅ TRANSAKSI LUNAS!', {
+                            self.registration.showNotification('TRANSAKSI LUNAS', {
                                 body: 'Order ' + data.orderId + ' berhasil dikonfirmasi LUNAS!',
                                 icon: event.notification.icon || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png'
                             });
