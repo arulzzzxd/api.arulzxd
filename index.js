@@ -2081,7 +2081,7 @@ function getCdnFolder(mimetype, ext) {
 }
 
 function getRandomIdLength() {
-    const lengths = [4, 6, 8, 10];
+    const lengths = [4, 6, 8, 10, 12, 14, 16, 18, 20];
     return lengths[Math.floor(Math.random() * lengths.length)];
 }
 
@@ -2282,7 +2282,6 @@ const routeModuleCache = new Map();
 const validateApiKey = async (req, res, next) => {
     const systemExemptions = [
         '/', '/api', '/api/',
-        '/apilist', '/api/apilist',
         '/og', '/api/og',
         '/server-status', '/api/server-status',
         '/status-server', '/api/status-server',
@@ -2362,7 +2361,6 @@ const validateApiKey = async (req, res, next) => {
 const trackAndEnforceLimit = async (req, res, next) => {
     const systemEndpoints = [
         '/', '/api', '/api/',
-        '/apilist', '/api/apilist',
         '/user-limit', '/api/user-limit',
         '/user-activity', '/api/user-activity',
         '/user-status', '/api/user-status',
@@ -2402,7 +2400,7 @@ const apiKeyLimiter = rateLimit({
     validate: { keyGeneratorIpFallback: false },
     skip: (req) => {
         if (getApiKeyType(req.user) === 'vip') return true;
-        const systemEndpoints = ['/', '/api', '/api/', '/apilist', '/api/apilist', '/user-limit', '/api/user-limit', '/user-activity', '/api/user-activity', '/user-status', '/api/user-status', '/server-status', '/api/server-status', '/status-server', '/api/status-server'];
+        const systemEndpoints = ['/', '/api', '/api/', '/user-limit', '/api/user-limit', '/user-activity', '/api/user-activity', '/user-status', '/api/user-status', '/server-status', '/api/server-status', '/status-server', '/api/status-server'];
         const fullPath = req.originalUrl ? req.originalUrl.split('?')[0] : req.path;
         return systemEndpoints.some(endpoint => req.path === endpoint || fullPath === endpoint || fullPath.startsWith(endpoint));
     },
@@ -2423,8 +2421,6 @@ const logApiActivity = async (req, res, next) => {
             '/',
             '/api',
             '/api/',
-            '/apilist',
-            '/api/apilist',
             '/api/user-activity',
             '/api/user-limit',
             '/api/server-status',
@@ -2558,59 +2554,6 @@ if (fs.existsSync(apiPath)) {
         }
     }
 }
-
-router.get('/apilist', async (req, res) => {
-    try {
-        const categories = [];
-
-        if (fs.existsSync(apiPath)) {
-            const endpointDirs = fs.readdirSync(apiPath)
-                .filter(f => fs.statSync(path.join(apiPath, f)).isDirectory());
-
-            for (const category of endpointDirs) {
-                const categoryPath = path.join(apiPath, category);
-                const files = fs.readdirSync(categoryPath).filter(f => f.endsWith('.js'));
-                const endpoints = [];
-
-                for (const file of files) {
-                    try {
-                        const parsedEndpoints = await getEndpointsFromRouter(category, file);
-                        if (Array.isArray(parsedEndpoints)) {
-                            endpoints.push(...parsedEndpoints);
-                        }
-                    } catch (fileErr) {
-                        console.error(`❌ Gagal memuat API file [${category}/${file}]:`, fileErr.message);
-                    }
-                }
-
-                if (endpoints.length > 0) {
-                    categories.push({ 
-                        name: category.toUpperCase(), 
-                        items: endpoints 
-                    });
-                }
-            }
-        }
-
-        categories.push({ 
-            name: "OTHER", 
-            items: [{ 
-                name: "/apilist", 
-                path: "/api/apilist", 
-                desc: "/apilist", 
-                status: "ready", 
-                type: "free", 
-                params: { apikey: "" }, 
-                methods: ["GET"] 
-            }] 
-        });
-
-        return res.json({ categories });
-    } catch (err) {
-        console.error("❌ Error pada /apilist route:", err.message);
-        return res.status(500).json({ error: "Failed to load API list", details: err.message });
-    }
-});
 
 // ====================================================
 // INITIALIZATION FONT
@@ -3263,8 +3206,6 @@ app.get('/api/user-activity', async (req, res) => {
             '/',
             '/api',
             '/api/',
-            '/apilist',
-            '/api/apilist',
             '/api/server-status',
             '/api/status-server',
             '/api/user-activity',
