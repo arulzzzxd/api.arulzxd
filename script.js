@@ -10,26 +10,26 @@ const body = document.body;
 const themeBg = document.getElementById('themeBg');
 
 const categoryIcons = {
-    'ai': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73A2 2 0 1 1 12 2zm-2 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm4 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>',
-    'download': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M12 16l-5-5h3V4h4v7h3l-5 5zm9 4H3v-2h18v2z"/></svg>',
-    'search': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>',
-    'image': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>',
-    'tools': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.1L9 6 6 9 1.8 4.7C.5 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"/></svg>',
-    'maker': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>',
-    'stalker': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
-    'canvas': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>',
-    'security': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>',
-    'news': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 16H5V5h14v14zm-9-2h8v-2h-8v2zm0-4h8v-2h-8v2zm0-4h8V7h-8v2zm-4 8h2v-8H6v8z"/></svg>',
-    'random': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M10.59 9.17L5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41l-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/></svg>',
-    'islam': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>',
-    'game': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M7 8h10a4 4 0 0 1 4 4v4a3 3 0 0 1-5.12 2.12L13.76 16H10.24l-2.12 2.12A3 3 0 0 1 3 16v-4a4 4 0 0 1 4-4zm0 3v2H5v2h2v2h2v-2h2v-2H9v-2H7zm9 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm3 2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/></svg>',
-    'quotes': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M7 17H3V9h6v6c0 1.1-.9 2-2 2zm10 0h-4V9h6v6c0 1.1-.9 2-2 2z"/></svg>',
-    'sticker': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M5 3h10l4 4v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm9 1v4h4M8 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm8 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm-4 5c2.2 0 4-1.3 4-3H8c0 1.7 1.8 3 4 3z"/></svg>',
-    'anime': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-4.5 5L10 10.5H5.5V7zm9 0v3.5H14L16.5 7zM8.5 13a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm7 0a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm-3.5 4.5c-2 0-3.5-1.2-3.5-2.5h7c0 1.3-1.5 2.5-3.5 2.5z"/></svg>',
-    'komiku': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/></svg>',
-    'movie': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>',
-    'nsfw': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M12 2.69c.8 1.2 1.8 2.31 2.8 3.32 2.3 2.3 3.2 5.3 2.5 8.3-.5 2.1-1.8 3.9-3.7 4.9-2.5 1.3-5.6.9-7.7-1-1.6-1.5-2.4-3.6-2.1-5.7.3-2.1 1.5-4 3.2-5.2.3 1.1 1 2.1 2 2.8.2-.8.5-1.6.9-2.3.6-1 1.3-1.9 2.1-2.92z"/></svg>',
-    'default': '<svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-cyan-600"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>'
+    'ai': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 12L2.5 7.5"/><path d="m10 15 5-3-5-3v6z"/><path d="M12 2v10l8.5 5"/></svg>',
+    'download': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="3" y2="15"/></svg>',
+    'search': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+    'image': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>',
+    'tools': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+    'maker': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>',
+    'stalker': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+    'canvas': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/></svg>',
+    'security': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>',
+    'news': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>',
+    'random': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3.15l-4.27-4.27a2.24 2.24 0 0 0-3.15 0L10.5 6.58"/><circle cx="6" cy="14" r="1"/><circle cx="10" cy="18" r="1"/></svg>',
+    'islam': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/><path d="M19 3v4"/><path d="M21 5h-4"/></svg>',
+    'game': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="6"/></svg>',
+    'quotes': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h3c0 4-2 6-4 7Z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h3c0 4-2 6-4 7Z"/></svg>',
+    'sticker': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M14 3v4a2 2 0 0 0 2 2h4"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/><path d="M10 17c.5.5 1.5 1 2 1s1.5-.5 2-1"/></svg>',
+    'anime': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><circle cx="12" cy="12" r="10"/><path d="M8 9h.01"/><path d="M16 9h.01"/><path d="M9 16c1.5 1 4.5 1 6 0"/><path d="M12 2a7 7 0 0 0-7 7c0 2 1 3.5 2 4.5"/></svg>',
+    'komiku': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 10h6"/><path d="M9 6h6"/></svg>',
+    'movie': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>',
+    'nsfw': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>',
+    'default': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-cyan-600"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L8.6 3.3A2 2 0 0 0 6.93 2.5H4a2 2 0 0 0-2 2v13.5a2 2 0 0 0 2 2Z"/></svg>'
 };
 
 const i18n = {
@@ -775,6 +775,15 @@ function clearResponse(catIdx, epIdx, endpointType) {
     const form = document.getElementById(`form-${catIdx}-${epIdx}`);
     if (form) {
         form.reset(); 
+        
+        // Reset seluruh komponen UI file upload yang ada di dalam form ini
+        form.querySelectorAll('input[type="file"]').forEach(fileInput => {
+            const fileContainerId = fileInput.id.replace('input-', '');
+            if (fileContainerId) {
+                updateFileUI(fileContainerId, null);
+            }
+        });
+
         const urlContainer = document.getElementById(`live-url-${catIdx}-${epIdx}`);
         if (urlContainer) {
             const basePath = urlContainer.textContent.split('?')[0];
@@ -1073,18 +1082,18 @@ function loadApis() {
                         let inputPlaceholder = `Masukkan ${paramName}`;
 
                         if (paramName.toLowerCase() === 'apikey') {
-    const isUserLoggedIn = (typeof displayApiKey !== 'undefined' && displayApiKey !== 'Silakan Login' && displayApiKey !== '');
+                            const isUserLoggedIn = (typeof displayApiKey !== 'undefined' && displayApiKey !== 'Silakan Login' && displayApiKey !== '');
 
-    inputValue = isUserLoggedIn ? displayApiKey : '';
+                            inputValue = isUserLoggedIn ? displayApiKey : '';
 
-    if (epType === 'vip') {
-        inputPlaceholder = isUserLoggedIn ? displayApiKey : 'Masukkan apikey VIP Anda';
-    } else if (epType === 'premium') {
-        inputPlaceholder = isUserLoggedIn ? displayApiKey : 'Masukkan apikey Premium Anda';
-    } else {
-        inputPlaceholder = isUserLoggedIn ? displayApiKey : 'Silakan login terlebih dahulu';
-    }
-}
+                            if (epType === 'vip') {
+                                inputPlaceholder = isUserLoggedIn ? displayApiKey : 'Masukkan apikey VIP Anda';
+                            } else if (epType === 'premium') {
+                                inputPlaceholder = isUserLoggedIn ? displayApiKey : 'Masukkan apikey Premium Anda';
+                            } else {
+                                inputPlaceholder = isUserLoggedIn ? displayApiKey : 'Silakan login terlebih dahulu';
+                            }
+                        }
                         html += `
                         <div>
                             <div class="flex items-center justify-between mb-1.5">
@@ -1095,7 +1104,64 @@ function loadApis() {
                             </div>`;
 
                         if ((pType && pType.type === 'file') || pType === 'file' || paramName.toLowerCase() === 'file') {
-                            html += `<input type="file" name="${paramName}" onchange="updateLivePreview(${catIdx}, ${epIdx}, '${method}', '${path}', '${epType}')" class="w-full px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 focus:outline-none focus:border-cyan-600 code-font text-sm file:mr-3 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-cyan-100 file:text-cyan-700 hover:file:bg-cyan-200 cursor-pointer" ${isRequired ? 'required' : ''}>`;
+                            const fileContainerId = `file-dropzone-${catIdx}-${epIdx}-${paramName}`;
+                            html += `
+                            <div id="${fileContainerId}" class="relative w-full">
+                                <input type="file" 
+                                       id="input-${fileContainerId}" 
+                                       name="${paramName}" 
+                                       class="hidden" 
+                                       ${isRequired ? 'required' : ''}
+                                       onchange="handleFileSelect(event, '${fileContainerId}', '${paramName}', ${catIdx}, ${epIdx}, '${method}', '${path}', '${epType}')">
+
+                                <!-- State 1: Belum Upload -->
+                                <div id="dropzone-${fileContainerId}" 
+                                     onclick="document.getElementById('input-${fileContainerId}').click()"
+                                     ondragover="handleDragOver(event, '${fileContainerId}')"
+                                     ondragleave="handleDragLeave(event, '${fileContainerId}')"
+                                     ondrop="handleFileDrop(event, '${fileContainerId}', '${paramName}', ${catIdx}, ${epIdx}, '${method}', '${path}', '${epType}')"
+                                     class="w-full py-6 px-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 hover:bg-slate-100 hover:border-cyan-500 transition-all cursor-pointer flex flex-col items-center justify-center text-center group">
+                                    
+                                    <div class="w-10 h-10 rounded-full bg-slate-200 group-hover:bg-cyan-100 flex items-center justify-center text-slate-600 group-hover:text-cyan-600 mb-2 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                        </svg>
+                                    </div>
+                                    
+                                    <p class="text-xs font-bold text-slate-800">
+                                        Pilih File <span class="text-cyan-600">${paramName}</span>
+                                    </p>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">
+                                        atau seret & lepas file ke sini
+                                    </p>
+                                </div>
+
+                                <!-- State 2: Sudah Upload -->
+                                <div id="preview-${fileContainerId}" 
+                                     class="hidden w-full p-3 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 flex items-center justify-between gap-3">
+                                    
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center text-slate-700 shrink-0">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p id="name-${fileContainerId}" class="text-xs font-mono font-bold text-slate-800 truncate"></p>
+                                            <p id="size-${fileContainerId}" class="text-[10px] font-mono text-slate-500"></p>
+                                        </div>
+                                    </div>
+
+                                    <button type="button" 
+                                            onclick="removeSelectedFile('${fileContainerId}', ${catIdx}, ${epIdx}, '${method}', '${path}', '${epType}')"
+                                            class="px-2.5 py-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-xs font-bold border border-red-300 flex items-center gap-1 transition-all active:scale-95 shrink-0">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                        <span>Hapus</span>
+                                    </button>
+                                </div>
+                            </div>`;
                         } else if (pType && pType.type === 'select' && Array.isArray(pType.options)) {
                             const defaultVal = pType.default || pType.options[0] || '';
                             const uniqueId = `custom-select-${catIdx}-${epIdx}-${paramName}`;
@@ -1280,6 +1346,82 @@ async function fetchAndUpdateUserLimit() {
     }
 }
 
+/* --- HAPUS & HANDLER FILE UPLOAD DRAG/DROP --- */
+function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function updateFileUI(containerId, file) {
+    const dropzone = document.getElementById(`dropzone-${containerId}`);
+    const preview = document.getElementById(`preview-${containerId}`);
+    const nameEl = document.getElementById(`name-${containerId}`);
+    const sizeEl = document.getElementById(`size-${containerId}`);
+
+    if (file) {
+        if (nameEl) nameEl.textContent = file.name;
+        if (sizeEl) sizeEl.textContent = formatBytes(file.size);
+        if (dropzone) dropzone.classList.add('hidden');
+        if (preview) preview.classList.remove('hidden');
+    } else {
+        if (dropzone) dropzone.classList.remove('hidden');
+        if (preview) preview.classList.add('hidden');
+    }
+}
+
+function handleFileSelect(e, containerId, paramName, catIdx, epIdx, method, path, epType) {
+    const file = e.target.files[0];
+    updateFileUI(containerId, file);
+    if (typeof updateLivePreview === 'function') {
+        updateLivePreview(catIdx, epIdx, method, path, epType);
+    }
+}
+
+function handleDragOver(e, containerId) {
+    e.preventDefault();
+    const dropzone = document.getElementById(`dropzone-${containerId}`);
+    if (dropzone) {
+        dropzone.classList.add('border-cyan-500', 'bg-cyan-50');
+    }
+}
+
+function handleDragLeave(e, containerId) {
+    e.preventDefault();
+    const dropzone = document.getElementById(`dropzone-${containerId}`);
+    if (dropzone) {
+        dropzone.classList.remove('border-cyan-500', 'bg-cyan-50');
+    }
+}
+
+function handleFileDrop(e, containerId, paramName, catIdx, epIdx, method, path, epType) {
+    e.preventDefault();
+    const dropzone = document.getElementById(`dropzone-${containerId}`);
+    if (dropzone) {
+        dropzone.classList.remove('border-cyan-500', 'bg-cyan-50');
+    }
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const input = document.getElementById(`input-${containerId}`);
+        input.files = e.dataTransfer.files;
+        updateFileUI(containerId, e.dataTransfer.files[0]);
+        if (typeof updateLivePreview === 'function') {
+            updateLivePreview(catIdx, epIdx, method, path, epType);
+        }
+    }
+}
+
+function removeSelectedFile(containerId, catIdx, epIdx, method, path, epType) {
+    const input = document.getElementById(`input-${containerId}`);
+    if (input) input.value = '';
+    updateFileUI(containerId, null);
+    if (typeof updateLivePreview === 'function') {
+        updateLivePreview(catIdx, epIdx, method, path, epType);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     body.classList.add('light-mode');
     updateThemeBackground('light');
@@ -1387,7 +1529,7 @@ if (searchInputEl) {
     });
 }
 
-// Mengekspos fungsi ke cakupan global (window) agar dapat diakses oleh atribut event inline HTML (onclick, onsubmit, dll)
+// Mengekspos fungsi ke cakupan global (window)
 Object.assign(window, {
     toggleCategory,
     toggleEndpoint,
@@ -1401,5 +1543,10 @@ Object.assign(window, {
     filterByCategory,
     openCustomSelectModal,
     closeCustomSelectModal,
-    selectCustomOption
+    selectCustomOption,
+    handleFileSelect,
+    handleDragOver,
+    handleDragLeave,
+    handleFileDrop,
+    removeSelectedFile
 });
