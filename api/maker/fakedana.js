@@ -1,4 +1,5 @@
 import express from "express";
+import axios from "axios";
 import {
     createCanvas,
     loadImage,
@@ -8,41 +9,39 @@ import {
 const router = express.Router();
 
 const FONT_URL = "https://raw.githubusercontent.com/arulzzzxd/database/main/font/plus-jakarta-sans_5.3.0_latin-700-normal.ttf";
-const BG_URL = "https://cdn.arulzzxd.my.id/files/F4pjW08L.png";
+const BG_URL = "https://raw.githubusercontent.com/arulzzzxd/cdn/main/foto/F4pjW08L.png";
 const EYE_URL = "https://cdn.arulzzxd.my.id/files/XqtOfI.png";
 
 let fontLoaded = false;
 let bgCache = null;
 let eyeCache = null;
 
-// Menggunakan native fetch bawaan Node.js agar lolos TLS Fingerprint Cloudflare
-async function getBuffer(url) {
-    const res = await fetch(url, {
-        headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9,id;q=0.8"
-        }
-    });
-
-    if (!res.ok) {
-        throw new Error(`Gagal mengambil aset (${res.status} ${res.statusText}): ${url}`);
-    }
-
-    const arrayBuffer = await res.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-}
-
 async function loadFont() {
     if (fontLoaded) return;
 
-    const fontBuffer = await getBuffer(FONT_URL);
-    GlobalFonts.register(fontBuffer, "DANA");
+    const { data } = await axios.get(FONT_URL, {
+        responseType: "arraybuffer",
+        headers: { "User-Agent": "Mozilla/5.0" }
+    });
+
+    GlobalFonts.register(
+        Buffer.from(data),
+        "DANA"
+    );
 
     fontLoaded = true;
 }
 
+async function getBuffer(url) {
+    const { data } = await axios.get(url, {
+        responseType: "arraybuffer",
+        headers: { "User-Agent": "Mozilla/5.0" }
+    });
+    return Buffer.from(data);
+}
+
 function cleanSaldo(input) {
+    // Hapus "Rp" atau "rp" jika dimasukkan oleh user karena background sudah memiliki teks "Rp"
     let text = input.trim().replace(/^rp\s*/i, "");
     if (/^\d+$/.test(text)) {
         text = parseInt(text, 10).toLocaleString("id-ID");
@@ -78,11 +77,11 @@ router.get("/", async (req, res) => {
         ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
         // KOORDINAT PRESISI SAMA DENGAN BACKGROUND DANA
-        const valX = 138;
-        const valY = 48;
-        const maxFontSize = 35;
-        const eyeGap = 8;
-        const eyeScale = 0.45;
+        const valX = 138;           // Posisi tepat setelah teks "Rp" bawaan gambar
+        const valY = 48;           // Posisi Y sejajar dengan teks "Rp" bawaan gambar
+        const maxFontSize = 35;     // Ukuran font yang pas dengan "Rp" bawaan
+        const eyeGap = 8;           // Jarak presisi antara angka dan ikon mata
+        const eyeScale = 0.45;      // Skala ikon mata yang pas & kecil seperti aplikasi asli
 
         let currentFontSize = maxFontSize;
         const maxAllowedWidth = canvas.width - valX - 100;
@@ -102,7 +101,7 @@ router.get("/", async (req, res) => {
         ctx.textBaseline = "top";
         ctx.fillText(saldo, valX, valY);
 
-        // Render Ikon Mata
+        // Render Ikon Mata (Presisi Tegak Lurus & Sejajar di Tengah Angka)
         const eyeHeight = currentFontSize * eyeScale;
         const eyeWidth = (eyeImg.width / eyeImg.height) * eyeHeight;
         const eyeX = valX + textWidth + eyeGap;
@@ -112,21 +111,19 @@ router.get("/", async (req, res) => {
 
         const buffer = await canvas.encode("png");
         res.setHeader("Content-Type", "image/png");
-        res.setHeader("Cache-Control", "public, max-age=86400");
         res.end(buffer);
 
     } catch (err) {
-        console.error("[FAKE-DANA ERROR]", err);
         res.status(500).json({
             status: false,
-            message: err.message || "Gagal memproses gambar"
+            message: err.message
         });
     }
 });
 
 router.desc = "Maker untuk membuat tampilan Fake Saldo DANA.";
 router.paramsConfig = {
-    saldo: "contoh: 123.456"
+  saldo: "contoh: 123.456"
 };
 router.status = "ready";
 router.type = "free";
