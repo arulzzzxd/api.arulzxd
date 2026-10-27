@@ -1,88 +1,84 @@
 import express from 'express';
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 import FormData from 'form-data';
-import crypto from 'node:crypto';
 import multer from 'multer';
-import {fileTypeFromBuffer} from 'file-type';
 
 const router = express.Router();
-const config = ['2', '4'];
-
-// ❌ Hapus `limits` agar Multer tidak membatasi ukuran file yang diunggah
 const upload = multer();
+const validScales = ['2', '4'];
 
-// --- SCRAPER FUNCTIONS ---
+const SERVERS = [
+  "api1g", "api2g", "api3g", "api8g", "api9g", "api10g", "api11g",
+  "api12g", "api13g", "api14g", "api15g", "api16g", "api17g", "api18g",
+  "api19g", "api20g", "api21g", "api22g", "api24g", "api25g"
+];
 
-async function gettoken() {
-    const html = await axios.get('https://www.iloveimg.com/upscale-image').then(r => r.data);
-    const token = html.match(/"token":"(eyJ[^"]+)"/)?.[1];
-    const task = html.match(/ilovepdfConfig\.taskId\s*=\s*'([^']+)'/)?.[1];
-    return { token, task };
+const TASK = "r68zl88mq72xq94j2d5p66bn2z9lrbx20njsbw2qsAvgmzr11lvfhAx9kl87pp6yqgx7c8vg7sfbqnrr42qb16v0gj8jl5s0kq1kgp26mdyjjspd8c5A2wk8b4Adbm6vf5tpwbqlqdr8A9tfn7vbqvy28ylphlxdl379psxpd8r70nzs3sk1";
+
+async function getToken() {
+  const html = await axios.get("https://www.iloveimg.com/upscale-image");
+  const $ = cheerio.load(html.data);
+
+  const script = $("script")
+    .filter((_, el) => $(el).html()?.includes("ilovepdfConfig ="))
+    .html();
+  if (!script) throw new Error("Config iLoveIMG tidak ditemukan");
+
+  const jsonStr = script.split("ilovepdfConfig = ")[1].split(";")[0];
+  const json = JSON.parse(jsonStr);
+  const csrf = $('meta[name="csrf-token"]').attr("content");
+
+  if (!json?.token || !csrf) throw new Error("Token/CSRF iLoveIMG gagal diambil");
+  return { token: json.token, csrf };
 }
 
-async function upimage(fileBuffer, mimetype, originalName, token, task) {
-    const mimeInfo = await fileTypeFromBuffer(fileBuffer);
-    const contentType = mimeInfo ? mimeInfo.mime : (mimetype || 'image/jpeg');
+async function uploadImage(server, headers, buffer, task, fileName = "image.jpg") {
+  const form = new FormData();
+  form.append("name", fileName);
+  form.append("chunk", "0");
+  form.append("chunks", "1");
+  form.append("task", task);
+  form.append("preview", "1");
+  form.append("file", buffer, fileName);
 
-    const filename = originalName || `${crypto.randomBytes(6).toString('hex')}.jpg`;
-
-    const form = new FormData();
-    form.append('name', filename);
-    form.append('chunk', '0');
-    form.append('chunks', '1');
-    form.append('task', task);
-    form.append('preview', '1');
-    form.append('v', 'web.0');
-
-    form.append('file', fileBuffer, {
-        filename: filename,
-        contentType: contentType,
-        knownLength: fileBuffer.length
-    });
-
-    const r = await axios.post('https://api29g.iloveimg.com/v1/upload', form, {
-        headers: {
-            ...form.getHeaders(),
-            Authorization: `Bearer ${token}`,
-            Origin: 'https://www.iloveimg.com',
-            Referer: 'https://www.iloveimg.com/'
-        },
-        maxContentLength: Infinity, // Tanpa batas respon axios
-        maxBodyLength: Infinity     // Tanpa batas body request axios
-    });
-
-    return r.data.server_filename;
+  const res = await axios.post(`https://${server}.iloveimg.com/v1/upload`, form, {
+    headers: { ...headers, ...form.getHeaders() }
+  });
+  return res.data;
 }
 
-async function doUpscale(serverfilename, token, task, scale) {
-    if (!config.includes(String(scale))) throw new Error('Scale tidak valid! Gunakan kualitas: 2 atau 4');
+async function imageHD(buffer, fileName = "image.jpg", scale = "4") {
+  const { token, csrf } = await getToken();
+  const server = SERVERS[Math.floor(Math.random() * SERVERS.length)];
 
-    const form = new FormData();
-    form.append('task', task);
-    form.append('server_filename', serverfilename);
-    form.append('scale', scale);
+  const headers = {
+    Authorization: "Bearer " + token,
+    Origin: "https://www.iloveimg.com/",
+    Cookie: "_csrf=" + csrf,
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+  };
 
-    const r = await axios.post('https://api29g.iloveimg.com/v1/upscale', form, {
-        headers: {
-            ...form.getHeaders(),
-            Authorization: `Bearer ${token}`,
-            Origin: 'https://www.iloveimg.com',
-            Referer: 'https://www.iloveimg.com/'
-        },
-        responseType: 'arraybuffer',
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity
-    });
+  const uploadRes = await uploadImage(server, headers, buffer, TASK, fileName);
 
-    return r.data;
+  const form = new FormData();
+  form.append("task", TASK);
+  form.append("server_filename", uploadRes.server_filename);
+  form.append("scale", scale);
+
+  const res = await axios.post(`https://${server}.iloveimg.com/v1/upscale`, form, {
+    headers: { ...headers, ...form.getHeaders() },
+    responseType: "arraybuffer"
+  });
+
+  return res.data;
 }
 
-// --- ENDPOINT ROUTE (METHOD POST) ---
-
+// Endpoint POST untuk mengunggah dan meningkatkan kualitas gambar
 router.post('/', upload.single('fileupload'), async (req, res) => {
     try {
         const file = req.file;
-        const scale = req.body.scale?.toString().trim() || '4';
+        const scaleParam = req.body.scale?.toString().trim() || '4';
 
         if (!file) {
             return res.status(400).json({
@@ -92,21 +88,18 @@ router.post('/', upload.single('fileupload'), async (req, res) => {
             });
         }
 
-        if (!config.includes(String(scale))) {
+        if (!validScales.includes(scaleParam)) {
             return res.status(400).json({
                 status: false,
                 creator: "Arulzxd",
-                message: `Scale tidak valid! Gunakan salah satu opsi: ${config.join(', ')}`
+                message: `Scale tidak valid! Gunakan salah satu opsi: ${validScales.join(', ')}`
             });
         }
 
-        // Alur Eksekusi Scraper
-        const { token, task } = await gettoken();
-        const serverfilename = await upimage(file.buffer, file.mimetype, file.originalname, token, task);
-        const imageBuffer = await doUpscale(serverfilename, token, task, scale);
+        // Jalankan proses upscale menggunakan iLoveIMG
+        const imageBuffer = await imageHD(file.buffer, file.originalname, scaleParam);
 
-        // Kirimkan respons langsung berupa file gambar
-        res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Content-Type', file.mimetype || 'image/jpeg');
         return res.send(Buffer.from(imageBuffer));
 
     } catch (err) {
@@ -120,22 +113,19 @@ router.post('/', upload.single('fileupload'), async (req, res) => {
     }
 });
 
-router.desc = "Meningkatkan resolusi dan kualitas gambar secara otomatis.";
-// --- CONFIG PARAMETERS UNTUK DASHBOARD UI ---
+router.desc = "Meningkatkan resolusi dan memperjelas gambar secara otomatis.";
 router.paramsConfig = {
     fileupload: {
         type: "file",
-        desc: "Berkas gambar yang akan ditingkatkan resolusinya"
+        desc: "Berkas gambar yang akan di-upscale"
     },
     scale: {
         type: "select",
-        options: ["2", "4"],
-        default: "4",
-        desc: "Tingkat pembesaran gambar"
+        options: ["2", "4"]
     }
 };
 
-router.status = "ready"; 
+router.status = "ready";
 router.type = "free";
 
 export default router;
