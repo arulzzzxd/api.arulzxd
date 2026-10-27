@@ -9,24 +9,24 @@
     
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://api.arulzzxd.my.id/profile" />
+    <meta property="og:url" content="https://api.arulz.biz.id/profile" />
     <meta property="og:title" content="ArulzXD API - Profil & Settings" />
     <meta property="og:description" content="Kelola informasi pengguna, kredensial API Key, kuota limit, dan riwayat aktivitas." />
-    <meta property="og:image" content="https://api.arulzzxd.my.id/og/profile" />
-    <meta property="og:image:secure_url" content="https://api.arulzzxd.my.id/og/profile" />
+    <meta property="og:image" content="https://api.arulz.biz.id/og/profile" />
+    <meta property="og:image:secure_url" content="https://api.arulz.biz.id/og/profile" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="600" />
     <meta property="og:image:height" content="300" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:url" content="https://api.arulzzxd.my.id/profile" />
+    <meta name="twitter:url" content="https://api.arulz.biz.id/profile" />
     <meta name="twitter:title" content="ArulzXD API - Profil & Settings" />
     <meta name="twitter:description" content="Kelola informasi pengguna, kredensial API Key, kuota limit, dan riwayat aktivitas." />
-    <meta name="twitter:image" content="https://api.arulzzxd.my.id/og/profile" />
+    <meta name="twitter:image" content="https://api.arulz.biz.id/og/profile" />
 
     <title>Arulz-XD API - PROFIL & SETTINGS</title>
-    <link rel="icon" href="https://cdn.arulzzxd.my.id/files/1wh5do.png" type="image/png">
+    <link rel="icon" href="https://cdn.arulz.biz.id/files/1wh5do.png" type="image/png">
 
     <!-- Tailwind CSS, SweetAlert2, Google Fonts & FontAwesome -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -300,7 +300,7 @@
         <div class="cyber-loader-box">
             <div class="cyber-avatar-wrap mb-4">
                 <div class="cyber-ring"></div>
-                <img src="https://cdn.arulzzxd.my.id/files/1wh5do.png" alt="Logo" class="w-14 h-14 rounded-full object-cover border-2 border-zinc-900 shadow-sm">
+                <img src="https://cdn.arulz.biz.id/files/1wh5do.png" alt="Logo" class="w-14 h-14 rounded-full object-cover border-2 border-zinc-900 shadow-sm">
             </div>
             <div class="text-center">
                 <div id="loader-title-text" class="cyber-text-glitch uppercase mb-0.5">
@@ -327,7 +327,7 @@
         <div class="max-w-2xl mx-auto px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between">
             <div class="flex items-center gap-2.5 sm:gap-3">
                 <a href="/api" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 brutal-border bg-black flex items-center justify-center shadow-sm active:scale-95 transition-transform shrink-0">
-                    <img src="https://cdn.arulzzxd.my.id/files/1wh5do.png" alt="Logo" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover">
+                    <img src="https://cdn.arulz.biz.id/files/1wh5do.png" alt="Logo" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover">
                 </a>
                 <div>
                     <span class="text-sm sm:text-base font-black text-zinc-900 tracking-tight block leading-none">Arulzxd API</span>
@@ -389,7 +389,7 @@
         <!-- Banner Video HD -->
         <div class="mb-3.5 rounded-xl border-2 brutal-border overflow-hidden bg-black h-44 w-full relative shadow-sm">
             <video id="sidebarBannerVideo" autoplay loop muted playsinline webkit-playsinline preload="auto" class="w-full h-full object-cover">
-                <source src="https://cdn.arulzzxd.my.id/files/MPzS.mp4" type="video/mp4">
+                <source src="https://cdn.arulz.biz.id/files/MPzS.mp4" type="video/mp4">
             </video>
         </div>
 
@@ -479,7 +479,7 @@
                     <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadAvatarFile(this)">
                     <div class="relative cursor-pointer w-full h-full group" onclick="document.getElementById('avatarInput').click()" title="Klik untuk ubah foto profil">
                         <div class="w-full h-full rounded-full border-2 border-zinc-900 shadow-sm overflow-hidden bg-emerald-500 p-0.5">
-                            <img id="userAvatar" src="https://cdn.arulzzxd.my.id/files/X1F0Cn.png" class="w-full h-full rounded-full object-cover">
+                            <img id="userAvatar" src="https://cdn.arulz.biz.id/files/X1F0Cn.png" class="w-full h-full rounded-full object-cover">
                         </div>
                         <div class="absolute bottom-0 right-0 bg-zinc-900 text-white w-7 h-7 rounded-full border-2 border-white flex items-center justify-center shadow-md hover:bg-zinc-800 transition-all">
                             <i class="fa-solid fa-camera text-[11px]"></i>
@@ -1205,7 +1205,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.loggedIn && data.user) {
-                        const avatarUrl = data.user.avatar || 'https://cdn.arulzzxd.my.id/files/X1F0Cn.png';
+                        const avatarUrl = data.user.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png';
                         document.getElementById('userAvatar').src = avatarUrl;
                         document.getElementById('userName').innerText = data.user.username || 'User';
                         document.getElementById('userEmail').innerText = data.user.email || 'no-email@mail.com';
