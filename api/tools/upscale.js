@@ -1,7 +1,7 @@
 import express from 'express';
 import axios from 'axios';
 import FormData from 'form-data';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import multer from 'multer';
 import { fromBuffer } from 'file-type';
 
@@ -82,7 +82,7 @@ async function doUpscale(serverfilename, token, task, scale) {
 router.post('/', upload.single('fileupload'), async (req, res) => {
     try {
         const file = req.file;
-        const scaleParam = req.body.scale?.toString().trim() || '2';
+        const scale = req.body.scale?.toString().trim() || '4';
 
         if (!file) {
             return res.status(400).json({
@@ -92,7 +92,7 @@ router.post('/', upload.single('fileupload'), async (req, res) => {
             });
         }
 
-        if (!config.includes(String(scaleParam))) {
+        if (!config.includes(String(scale))) {
             return res.status(400).json({
                 status: false,
                 creator: "Arulzxd",
@@ -103,7 +103,7 @@ router.post('/', upload.single('fileupload'), async (req, res) => {
         // Alur Eksekusi Scraper
         const { token, task } = await gettoken();
         const serverfilename = await upimage(file.buffer, file.mimetype, file.originalname, token, task);
-        const imageBuffer = await doUpscale(serverfilename, token, task, scaleParam);
+        const imageBuffer = await doUpscale(serverfilename, token, task, scale);
 
         // Kirimkan respons langsung berupa file gambar
         res.setHeader('Content-Type', 'image/png');
@@ -125,11 +125,13 @@ router.desc = "Meningkatkan resolusi dan kualitas gambar secara otomatis.";
 router.paramsConfig = {
     fileupload: {
         type: "file",
-        desc: "Berkas gambar yang akan di-upscale"
+        desc: "Berkas gambar yang akan ditingkatkan resolusinya"
     },
     scale: {
         type: "select",
-        options: ["2", "4"]
+        options: ["2", "4"],
+        default: "4",
+        desc: "Tingkat pembesaran gambar"
     }
 };
 
