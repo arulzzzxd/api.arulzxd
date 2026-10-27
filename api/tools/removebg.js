@@ -1,122 +1,119 @@
-/**
- * NAMA SCRAPE  :: REMOVAL.AI BACKGROUND REMOVER (JSON METADATA)
- * [•] BASIS    :: removal.ai
- */
-
-import express from "express";
-import axios from "axios";
-import FormData from "form-data";
-import multer from "multer";
-import { fromBuffer } from "file-type";
+import express from 'express';
+import axios from 'axios';
+import FormData from 'form-data';
+import multer from 'multer';
 
 const router = express.Router();
 const upload = multer();
 
-const commonHeaders = {
-  'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36',
-  'sec-ch-ua': '"Chromium";v="139", "Not;A=Brand";v="99"',
-  'sec-ch-ua-mobile': '?1',
-  'sec-ch-ua-platform': '"Android"',
-  'Accept-Language': 'id-ID,id;q=0.9,en-AU;q=0.8,en;q=0.7,en-US;q=0.6'
-};
+const UA = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36";
 
-async function getWebToken() {
-  const response = await axios.get('https://removal.ai/wp-admin/admin-ajax.php', {
-    headers: commonHeaders,
-    params: {
-      action: 'ajax_get_webtoken',
-      security: '4acc8a2f93'
-    },
-    timeout: 10000
-  });
-
-  if (!response.data?.data?.webtoken) {
-    throw new Error("Gagal mengambil Web-Token dari Removal.ai");
-  }
-
-  return response.data.data.webtoken;
-}
-
-async function removeBgRemovalAi(fileBuffer, mimetype, originalName) {
-  const mimeInfo = await fromBuffer(fileBuffer);
-  const contentType = mimeInfo ? mimeInfo.mime : (mimetype || "image/jpeg");
-  const filename = originalName || "input.jpg";
-
-  const webToken = await getWebToken();
-
+async function removebg(buffer, filename, mimetype) {
   const form = new FormData();
-  form.append('image_file', fileBuffer, {
-    filename: filename,
-    contentType: contentType,
-    knownLength: fileBuffer.length
+  form.append("mode", "general_v2");
+  form.append("image_file", buffer, {
+    filename: filename || "image.jpg",
+    contentType: mimetype || "image/jpeg"
   });
 
-  const response = await axios.post('https://api.removal.ai/3.0/remove', form, {
-    headers: {
-      ...commonHeaders,
-      ...form.getHeaders(),
-      'Web-Token': webToken,
-      'Origin': 'https://removal.ai',
-      'Referer': 'https://removal.ai/'
-    },
-    maxContentLength: Infinity,
-    maxBodyLength: Infinity
-  });
+  const createRes = await axios.post(
+    "https://api.ezremove.ai/api/ez-remove/v3/background-remove/create-job",
+    form,
+    {
+      headers: {
+        ...form.getHeaders(),
+        "Product-Serial": "5382f8a0338a3262b3c04d5aa3633396",
+        "User-Agent": UA,
+        "Referer": "https://ezremove.ai/",
+        "Origin": "https://ezremove.ai",
+        "Accept": "application/json, text/plain, */*"
+      },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity
+    }
+  );
 
-  if (!response.data || response.data.status !== 200) {
-    throw new Error("Gagal memproses gambar pada server Removal.ai");
+  const jobId = createRes.data?.result?.job_id;
+  if (!jobId) {
+    throw new Error("Gagal mendapatkan job_id dari server ezremove");
   }
 
-  return response.data;
+  let attempts = 0;
+  const maxAttempts = 30; // Batas percobaan polling (maksimal ~90 detik)
+
+  while (attempts < maxAttempts) {
+    attempts++;
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    const statusRes = await axios.get(
+      `https://api.ezremove.ai/api/ez-remove/v3/background-remove/get-job/${jobId}`,
+      {
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+          "User-Agent": UA,
+          "Referer": "https://ezremove.ai/"
+        }
+      }
+    );
+
+    const jobResult = statusRes.data?.result;
+
+    // Status 2: Selesai / Sukses
+    if (jobResult?.status === 2) {
+      const outputUrl = jobResult?.output?.preview?.[0];
+      if (!outputUrl) throw new Error("URL gambar hasil tidak ditemukan.");
+      return outputUrl;
+    }
+
+    // Status selain 1 (In Progress) mengindikasikan kegagalan
+    if (jobResult?.status !== 1) {
+      throw new Error(jobResult?.error || "Proses penghapusan latar belakang gagal di server.");
+    }
+  }
+
+  throw new Error("Timeout: Pemrosesan menghapus latar belakang memakan waktu terlalu lama.");
 }
 
-// --- ENDPOINT ROUTE (METHOD POST) ---
-router.post("/", upload.single("fileupload"), async (req, res) => {
+// Endpoint POST untuk mengunggah file gambar
+router.post('/', upload.single('fileupload'), async (req, res) => {
   try {
     const file = req.file;
 
     if (!file) {
       return res.status(400).json({
         status: false,
-        creator: "ArulzXD",
+        creator: "Arulzxd",
         message: "Berkas 'fileupload' wajib diunggah!"
       });
     }
 
-    const result = await removeBgRemovalAi(file.buffer, file.mimetype, file.originalname);
+    // Jalankan fungsi hapus background
+    const downloadUrl = await removebg(file.buffer, file.originalname, file.mimetype);
 
-    return res.json({
-      status: true,
-      creator: 'ArulzXD',
-      result: {
-        url: result.url,
-        lowResolution: result.low_resolution,
-        highResolution: result.high_resolution,
-        originalUrl: result.original,
-        dimensions: {
-          originalWidth: result.original_width,
-          originalHeight: result.original_height,
-          previewWidth: result.preview_width,
-          previewHeight: result.preview_height
-        }
-      }
+    // Ambil gambar hasil dalam bentuk buffer
+    const imageResponse = await axios.get(downloadUrl, {
+      responseType: 'arraybuffer'
     });
 
-  } catch (err) {
-    console.error("====== SCRAPER ERROR LOG ======");
-    console.error(err.response?.data || err.message);
-    console.error("===============================");
+    res.setHeader(
+      'Content-Type',
+      imageResponse.headers['content-type'] || 'image/png'
+    );
 
+    return res.send(Buffer.from(imageResponse.data));
+
+  } catch (err) {
+    console.error(err);
     return res.status(500).json({
       status: false,
-      creator: "ArulzXD",
-      message: err.message,
-      detail: err.response?.data || null
+      creator: "Arulzxd",
+      message: "Internal Server Error saat memproses penghapusan latar belakang",
+      error: err.message
     });
   }
 });
 
-// --- CONFIG PARAMETERS UNTUK DASHBOARD UI ---
+router.desc = "Menghapus latar belakang (background) gambar secara otomatis via EzRemove AI.";
 router.paramsConfig = {
   fileupload: {
     type: "file",
@@ -124,7 +121,6 @@ router.paramsConfig = {
   }
 };
 
-router.desc = "Menghapus background gambar via Removal.ai dan mengembalikan JSON URL metadata hasil pemrosesan.";
 router.status = "ready";
 router.type = "free";
 
