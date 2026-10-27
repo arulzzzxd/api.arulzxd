@@ -110,21 +110,34 @@ function drawFlagCircle(ctx, img, cfg) {
 }
 
 function drawUsername(ctx, username, cfg) {
-  const { a, b, c, d, centerX, fontSize, maxChars, color } = cfg;
-  const y = a;
-  const w = d - c;
-  const h = b - a;
+  const { a, b, fontSize, maxChars, color } = cfg;
+  
+  // Titik Mulai Teks (Di sebelah kanan ikon bintang)
+  const textStartX = 445; 
+  // Batas Maksimal Kanan Teks (Agar tidak menembus border banner)
+  const maxRightX = 555; 
+  const maxAllowedWidth = maxRightX - textStartX; // Lebar maksimal ruang teks (~110px)
+
   const name = username.slice(0, maxChars);
   let size = fontSize;
-  ctx.textAlign = 'center';
+
+  // Atur rata kiri agar teks tumbuh ke arah kanan (di samping bintang)
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+
+  // Kecilkan ukuran font jika lebar teks melebihi area yang tersedia
   while (size > 8) {
     ctx.font = `${size}px NotoSans`;
-    if (ctx.measureText(name).width <= w) break;
+    if (ctx.measureText(name).width <= maxAllowedWidth) break;
     size -= 1;
   }
+
+  // Posisi Y di tengah-tengah banner username
+  const centerY = a + (b - a) / 2;
+
   ctx.fillStyle = color;
   ctx.font = `${size}px NotoSans`;
-  ctx.fillText(name, centerX, y + h / 2 + size / 3);
+  ctx.fillText(name, textStartX, centerY);
 }
 
 async function handleGenerator(req, res) {
