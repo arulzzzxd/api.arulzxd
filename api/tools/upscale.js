@@ -3,7 +3,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 import crypto from 'node:crypto';
 import multer from 'multer';
-import { fromBuffer } from 'file-type';
+import {fileTypeFromBuffer} from 'file-type';
 
 const router = express.Router();
 const config = ['2', '4'];
@@ -21,7 +21,7 @@ async function gettoken() {
 }
 
 async function upimage(fileBuffer, mimetype, originalName, token, task) {
-    const mimeInfo = await fromBuffer(fileBuffer);
+    const mimeInfo = await fileTypeFromBuffer(fileBuffer);
     const contentType = mimeInfo ? mimeInfo.mime : (mimetype || 'image/jpeg');
 
     const filename = originalName || `${crypto.randomBytes(6).toString('hex')}.jpg`;
