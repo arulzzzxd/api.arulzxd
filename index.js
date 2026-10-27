@@ -11,7 +11,7 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs-extra'
 import axios from 'axios';
 import mime from 'mime-types';
 import multer from 'multer';
@@ -2473,62 +2473,6 @@ const router = express.Router();
 const apiPath = path.join(__dirname, 'api');
 router.use(validateApiKey);
 
-function formatEndpointTitle(filename) {
-    return filename.replace(/\.js$/, "").replace(/[-_]/g, " ")
-        .split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-}
-
-async function getEndpointsFromRouter(category, file) {
-    const endpoints = [];
-    const routePath = path.join(apiPath, category, file);
-    let routeModule;
-    try { 
-        routeModule = await import(pathToFileURL(routePath).href); 
-    } catch (e) { 
-        console.error(`❌ Gagal import file route [${category}/${file}]:`, e.message);
-        return endpoints; 
-    }
-
-    const route = routeModule.default || routeModule;
-    const subRouter = route.stack ? route : route.router || route;
-    if (!subRouter || !subRouter.stack) return endpoints;
-
-    const endpointTitle = route.title || (route.name && route.name !== 'router' ? route.name : formatEndpointTitle(file));
-    const routeDesc = route.desc || subRouter.desc || `/${category}/${file.replace(/\.js$/, "")}`;
-
-    subRouter.stack.forEach(layer => {
-        if (layer.route) {
-            const methods = Object.keys(layer.route.methods).map(m => m.toUpperCase());
-            let params = { apikey: "" }; 
-
-            if (route.paramsConfig) params = { apikey: "", ...route.paramsConfig };
-            else if (layer.route.stack && layer.route.stack.length) {
-                layer.route.stack.forEach(mw => {
-                    if (!mw.handle) return;
-                    const fnString = mw.handle.toString();
-                    [...fnString.matchAll(/req\.query\.([a-zA-Z0-9_]+)/g)].forEach(m => { params[m[1]] = ""; });
-                    [...fnString.matchAll(/req\.body\.([a-zA-Z0-9_]+)/g)].forEach(m => { params[m[1]] = ""; });
-                });
-            }
-
-            if (methods.some(m => ["POST", "PUT", "PATCH"].includes(m)) && Object.keys(params).length <= 1) {
-                params.fileToUpload = "file";
-            }
-
-            endpoints.push({
-                name: endpointTitle, 
-                path: `/api/${category}/${file.replace(/\.js$/, "")}`,
-                desc: routeDesc, 
-                status: route.status || "ready", 
-                type: route.type || "free", 
-                params, 
-                methods
-            });
-        }
-    });
-    return endpoints;
-}
-
 if (fs.existsSync(apiPath)) {
     const endpointDirs = fs.readdirSync(apiPath).filter(f => fs.statSync(path.join(apiPath, f)).isDirectory());
 
@@ -2538,72 +2482,81 @@ if (fs.existsSync(apiPath)) {
         for (const file of files) {
             const routeName = path.basename(file, '.js');
             const routeFilePath = path.join(categoryPath, file);
-            try {
-                const routeModule = await import(pathToFileURL(routeFilePath).href);
-                const route = routeModule.default || routeModule;
-                if (route) {
-                    routeModuleCache.set(`${category}/${routeName}`, route);
-                    router.use(`/${category}/${routeName}`, route);
-                }
-            } catch (err) {
-                console.error(`❌ Gagal memuat router ${category}/${routeName}:`, err.message);
-            }
+            
+            // ESM dynamic import menggunakan URL path
+            const routeModule = await import(pathToFileURL(routeFilePath).href);
+            const route = routeModule.default || routeModule;
+
+            routeModuleCache.set(`${category}/${routeName}`, route);
+            router.use(`/${category}/${routeName}`, route);
         }
     }
-}
 
-router.get('/apilist', async (req, res) => {
-    try {
-        const categories = [];
+    function formatEndpointTitle(filename) {
+        return filename.replace(/\.js$/, "").replace(/[-_]/g, " ")
+            .split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+    }
 
-        if (fs.existsSync(apiPath)) {
-            const endpointDirs = fs.readdirSync(apiPath)
-                .filter(f => fs.statSync(path.join(apiPath, f)).isDirectory());
+    async function getEndpointsFromRouter(category, file) {
+        const endpoints = [];
+        const routePath = path.join(apiPath, category, file);
+        let route;
+        try { 
+            const routeModule = await import(pathToFileURL(routePath).href);
+            route = routeModule.default || routeModule;
+        } catch (e) { 
+            return endpoints; 
+        }
 
-            for (const category of endpointDirs) {
-                const categoryPath = path.join(apiPath, category);
-                const files = fs.readdirSync(categoryPath).filter(f => f.endsWith('.js'));
-                const endpoints = [];
+        const subRouter = route.stack ? route : route.router || route;
+        if (!subRouter || !subRouter.stack) return endpoints;
 
-                for (const file of files) {
-                    try {
-                        const parsedEndpoints = await getEndpointsFromRouter(category, file);
-                        if (Array.isArray(parsedEndpoints)) {
-                            endpoints.push(...parsedEndpoints);
-                        }
-                    } catch (fileErr) {
-                        console.error(`❌ Gagal memuat API file [${category}/${file}]:`, fileErr.message);
-                    }
-                }
+        const endpointTitle = route.title || (route.name && route.name !== 'router' ? route.name : formatEndpointTitle(file));
+        const routeDesc = route.desc || subRouter.desc || `/${category}/${file.replace(/\.js$/, "")}`;
 
-                if (endpoints.length > 0) {
-                    categories.push({ 
-                        name: category.toUpperCase(), 
-                        items: endpoints 
+        subRouter.stack.forEach(layer => {
+            if (layer.route) {
+                const methods = Object.keys(layer.route.methods).map(m => m.toUpperCase());
+                let params = { apikey: "" }; 
+
+                if (route.paramsConfig) params = { apikey: "", ...route.paramsConfig };
+                else if (layer.route.stack && layer.route.stack.length) {
+                    layer.route.stack.forEach(mw => {
+                        if (!mw.handle) return;
+                        const fnString = mw.handle.toString();
+                        [...fnString.matchAll(/req\.query\.([a-zA-Z0-9_]+)/g)].forEach(m => { params[m[1]] = ""; });
+                        [...fnString.matchAll(/req\.body\.([a-zA-Z0-9_]+)/g)].forEach(m => { params[m[1]] = ""; });
                     });
                 }
+
+                if (methods.some(m => ["POST", "PUT", "PATCH"].includes(m)) && Object.keys(params).length <= 1) {
+                    params.fileToUpload = "file";
+                }
+
+                endpoints.push({
+                    name: endpointTitle, path: `/api/${category}/${file.replace(/\.js$/, "")}`,
+                    desc: routeDesc, status: route.status || "ready", type: route.type || "free", params, methods
+                });
             }
-        }
-
-        categories.push({ 
-            name: "OTHER", 
-            items: [{ 
-                name: "/apilist", 
-                path: "/api/apilist", 
-                desc: "/apilist", 
-                status: "ready", 
-                type: "free", 
-                params: { apikey: "" }, 
-                methods: ["GET"] 
-            }] 
         });
-
-        return res.json({ categories });
-    } catch (err) {
-        console.error("❌ Error pada /apilist route:", err.message);
-        return res.status(500).json({ error: "Failed to load API list", details: err.message });
+        return endpoints;
     }
-});
+
+    router.get('/apilist', async (req, res) => {
+        const categories = [];
+        for (const category of endpointDirs) {
+            const files = fs.readdirSync(path.join(apiPath, category)).filter(f => f.endsWith('.js'));
+            const endpoints = [];
+            for (const file of files) {
+                const eps = await getEndpointsFromRouter(category, file);
+                endpoints.push(...eps);
+            }
+            if (endpoints.length) categories.push({ name: `${category.toUpperCase()}`, items: endpoints });
+        }
+        categories.push({ name: "OTHER", items: [{ name: "/apilist", path: "/api/apilist", desc: "/apilist", status: "ready", type: "free", params: { apikey: "" }, methods: ["GET"] }] });
+        res.json({ categories });
+    });
+}
 
 // ====================================================
 // INITIALIZATION FONT
