@@ -1,7 +1,7 @@
 import express from 'express';
 import axios from 'axios';
 import FormData from 'form-data';
-import crypto from 'node:crypto';
+import crypto from 'crypto';
 import multer from 'multer';
 import { fromBuffer } from 'file-type';
 
