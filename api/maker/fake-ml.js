@@ -43,7 +43,6 @@ async function loadFromUrl(url) {
   return loadImage(Buffer.from(res.data));
 }
 
-// Memuat font remote menggunakan GlobalFonts.register dari @napi-rs/canvas
 async function loadFontRemote() {
   if (fontLoaded) return;
   try {
@@ -51,7 +50,6 @@ async function loadFontRemote() {
     const res = await axios.get(fontUrl, { responseType: 'arraybuffer' });
     const fontBuffer = Buffer.from(res.data);
     
-    // Registrasi font untuk @napi-rs/canvas
     GlobalFonts.register(fontBuffer, 'NotoSans');
     fontLoaded = true;
   } catch (err) {
@@ -64,23 +62,32 @@ function calcHeight(img, size) {
   return size * (img.height / img.width);
 }
 
+// Fungsi menggambar avatar dengan Center-Crop agar simetris persegi (tidak gepeng)
 function drawAvatar(ctx, img, cfg, outlineCfg = null) {
   const { x, y, size, borderRadius } = cfg;
-  const height = calcHeight(img, size);
   const r = borderRadius || 0;
+
+  // Hitung cropping tengah (center-crop)
+  const minDim = Math.min(img.width, img.height);
+  const sx = (img.width - minDim) / 2;
+  const sy = (img.height - minDim) / 2;
+
   ctx.save();
   if (outlineCfg) {
     const { color, thickness } = outlineCfg;
     ctx.beginPath();
-    ctx.roundRect(x - thickness, y - thickness, size + thickness * 2, height + thickness * 2, r + thickness);
+    ctx.roundRect(x - thickness, y - thickness, size + thickness * 2, size + thickness * 2, r + thickness);
     ctx.strokeStyle = color;
     ctx.lineWidth = thickness * 2;
     ctx.stroke();
   }
+
   ctx.beginPath();
-  ctx.roundRect(x, y, size, height, r);
+  ctx.roundRect(x, y, size, size, r);
   ctx.clip();
-  ctx.drawImage(img, x, y, size, height);
+
+  // Gambar bagian tengah foto secara persegi sempurna (size x size)
+  ctx.drawImage(img, sx, sy, minDim, minDim, x, y, size, size);
   ctx.restore();
 }
 
@@ -174,7 +181,6 @@ async function handleGenerator(req, res) {
     drawFlagCircle(ctx, flagImg, config.flag);
     drawUsername(ctx, username, config.username);
 
-    // Encoding buffer gambar khusus untuk @napi-rs/canvas
     const buffer = await canvas.encode('png');
 
     res.setHeader('Content-Type', 'image/png');
