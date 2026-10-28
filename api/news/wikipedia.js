@@ -218,10 +218,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.title = "Wikipedia";
+router.title = "Wikipedia Search";
 router.desc = "Mencari dan mengambil detail lengkap artikel dari Wikipedia.";
 router.paramsConfig = {
-  query: "text (contoh: Rendang)"
+  query: "contoh: Rendang"
 };
 
 router.status = "ready";
