@@ -1,8 +1,3 @@
-/**
- * NAMA SCRAPE  :: ILOVEIMG IMAGE COMPRESSOR
- * [•] BASIS        :: iloveimg.com
- */
-
 import express from 'express';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
@@ -10,7 +5,7 @@ import FormData from 'form-data';
 import crypto from 'node:crypto';
 import path from 'node:path';
 import multer from 'multer';
-import { fromBuffer } from 'file-type';
+import { fileTypeFromBuffer } from 'file-type'; // Gunakan fileTypeFromBuffer untuk file-type v19/v22
 
 const router = express.Router();
 const upload = multer();
@@ -91,7 +86,7 @@ async function getToken() {
 }
 
 async function uploadImageBuffer(server, headers, imageBuffer, filename, mimetype, task) {
-  const mimeInfo = await fromBuffer(imageBuffer);
+  const mimeInfo = await fileTypeFromBuffer(imageBuffer);
   const contentType = mimeInfo ? mimeInfo.mime : (mimetype || getContentType(filename));
 
   const form = new FormData();
@@ -218,8 +213,7 @@ router.post('/', upload.single('fileupload'), async (req, res) => {
       throw new Error(errors.slice(0, 3).join(" | "));
     }
 
-    // Kirimkan respons langsung berupa file gambar terkompresi
-    const mimeInfo = await fromBuffer(compressedBuffer);
+    const mimeInfo = await fileTypeFromBuffer(compressedBuffer);
     res.setHeader('Content-Type', mimeInfo ? mimeInfo.mime : getContentType(filename));
     return res.send(Buffer.from(compressedBuffer));
 
@@ -234,7 +228,7 @@ router.post('/', upload.single('fileupload'), async (req, res) => {
   }
 });
 
-// --- CONFIG PARAMETERS UNTUK DASHBOARD UI ---
+router.title = "Image Compressor";
 router.desc = "Mengompresi ukuran file gambar tanpa mengorbankan kualitas secara signifikan.";
 router.paramsConfig = {
   fileupload: {
