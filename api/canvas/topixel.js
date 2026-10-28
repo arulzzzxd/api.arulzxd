@@ -12,7 +12,7 @@ function getBlock(level) {
   return 41 - value;
 }
 
-async function pixelArt(fileBuffer, pixelLevel = 20) {
+async function pixelArt(fileBuffer, pixelLevel = 30) {
   try {
     const image = sharp(fileBuffer, { limitInputPixels: false }).rotate().ensureAlpha();
     const meta = await image.metadata();
@@ -94,7 +94,7 @@ async function pixelArt(fileBuffer, pixelLevel = 20) {
 router.post('/', upload.single('fileupload'), async (req, res) => {
   try {
     const file = req.file;
-    const pixelLevel = parseInt(req.body.pixelLevel) || 20;
+    const pixelLevel = parseInt(req.body.pixelLevel) || 30;
 
     if (!file) {
       return res.status(400).json({
@@ -151,7 +151,7 @@ router.paramsConfig = {
     type: "select",
     desc: "Tingkat pixelasi (1-40, semakin kecil semakin detail)",
     options: Array.from({ length: 40 }, (_, i) => String(i + 1)),
-    default: 20
+    default: 30
   }
 };
 
