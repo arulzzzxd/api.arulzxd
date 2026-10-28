@@ -1,5 +1,5 @@
-const express = require('express');
-const axios = require('axios');
+import express from 'express';
+import axios from 'axios';
 
 const router = express.Router();
 
@@ -51,8 +51,12 @@ async function scrapePikwy(targetUrl) {
     return {
       status: true,
       data: {
+        date: resData.date || new Date().toLocaleString('id-ID'),
+        ourl: resData.ourl || targetUrl,
         author: hostName || targetUrl,
-        title: resData.ourl || targetUrl,
+        curl: resData.curl || null,
+        durl: resData.durl || null,
+        iurl: resData.iurl || null,
         media: media
       }
     };
@@ -109,11 +113,13 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.desc = "Web Screenshot Tool (Pikwy) untuk mengambil tangkapan layar dari sebuah URL web.";
+// Parameter metadata untuk parser otomatis /apilist
+router.title = "sswebv2";
+router.desc = "Web Screenshot Tool untuk mengambil tangkapan layar dari sebuah URL web.";
 router.paramsConfig = {
-  url: "contoh: https://google.com"
+  url: "https://google.com"
 };
 router.status = "ready";
 router.type = "free";
 
-module.exports = router;
+export default router;
