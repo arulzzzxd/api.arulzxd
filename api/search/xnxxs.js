@@ -51,10 +51,10 @@ async function xnxxSearch(searchQuery) {
     $p('.mozaique .thumb-block').each((index, element) => {
         if (results.length >= limit) return false;
         
-        const title = $p(element).find('.thumb-under a').first().text().trim() \vert{}\vert{}$p(element).find('a').attr('title');
-        let link = $p(element).find('.thumb-under a').attr('href') \vert{}\vert{}$p(element).find('a').attr('href');
+        const title = $p(element).find('.thumb-under a').first().text().trim() || $p(element).find('a').attr('title');
+        let link = $p(element).find('.thumb-under a').attr('href') || $p(element).find('a').attr('href');
         if (link && !link.startsWith('http')) link = `https://www.xnxx.com${link}`;
-        const thumbnail = $p(element).find('img').attr('data-src') \vert{}\vert{}$p(element).find('img').attr('src');
+        const thumbnail = $p(element).find('img').attr('data-src') || $p(element).find('img').attr('src');
         
         let rawDuration = $p(element).find('.metadata').text();
         let matchedDuration = rawDuration.match(/(\d+\s*min|\d+\s*h\s*\d+\s*min|\d+:\d+(?::\d+)?)/i);
@@ -93,7 +93,12 @@ router.get('/', async (req, res) => {
     }
 });
 
+// Deklarasikan paramsConfig agar dapat di-parse otomatis oleh index.js
+router.title = "XNXX Search";
 router.desc = "Mencari video dari XNXX berdasarkan kata kunci.";
+router.paramsConfig = {
+    query: "contoh: japanese"
+};
 router.status = "ready"; 
 router.type = "premium";
 
