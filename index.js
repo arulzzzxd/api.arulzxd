@@ -346,10 +346,14 @@ app.use(async (req, res, next) => {
 
             let title = req.query.title || baseConfig.title;
             let desc = req.query.desc || baseConfig.desc;
-            let ogImageUrl = `https://api.arulz.biz.id/og/${pathKey}`;
+
+            // Gunakan req.headers.host agar domain dinamis sesuai domain aktif di Cloudflare
+            const hostDomain = req.headers['x-forwarded-host'] || req.headers.host || 'api.arulz.biz.id';
+            const protocol = req.headers['x-forwarded-proto'] || 'https';
+            let ogImageUrl = `${protocol}://${hostDomain}/og/${pathKey}`;
 
             if (req.path === '/pastecode' && req.query.id) {
-                ogImageUrl = `https://api.arulz.biz.id/og/snippet?id=${req.query.id}`;
+                ogImageUrl = `${protocol}://${hostDomain}/og/snippet?id=${req.query.id}`;
                 try {
                     const { data: snippet, error } = await supabase
                         .from('pastes')
@@ -366,17 +370,21 @@ app.use(async (req, res, next) => {
                 }
             }
 
-            const fullUrl = `https://api.arulz.biz.id${req.originalUrl}`;
+            const fullUrl = `${protocol}://${hostDomain}${req.originalUrl}`;
+
+            // Set Header agar Cloudflare dan Client tidak melakukan caching berlebih saat perbaikan
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
 
             return res.send(`
                 <!DOCTYPE html>
                 <html lang="id">
                 <head>
                     <meta charset="UTF-8">
-                    <title>${title} | ArulzXD API</title>
-                    <meta name="title" content="${title} | ArulzXD API" />
+                    <title>${title}</title>
+                    <meta name="title" content="${title}" />
                     <meta name="description" content="${desc}" />
 
+                    <!-- Open Graph / Facebook / WhatsApp -->
                     <meta property="og:type" content="website" />
                     <meta property="og:url" content="${fullUrl}" />
                     <meta property="og:site_name" content="ArulzXD API Gateway" />
@@ -388,6 +396,7 @@ app.use(async (req, res, next) => {
                     <meta property="og:image:width" content="1200" />
                     <meta property="og:image:height" content="630" />
 
+                    <!-- Twitter -->
                     <meta name="twitter:card" content="summary_large_image" />
                     <meta name="twitter:url" content="${fullUrl}" />
                     <meta name="twitter:title" content="${title}" />
