@@ -1,1 +1,76 @@
-1
+import axios from 'axios';
+import express from 'express';
+
+const router = express.Router();
+
+// Fungsi untuk mengambil gambar anime nsfw secara acak (langsung buffer CDN)
+async function randomNsfw() {
+    try {
+        // Request API waifu.im dengan tanda asli (timeout & headers)
+        const api = await axios.get("https://api.waifu.best/images?IsNsfw=True", {
+            headers: {
+                "User-Agent": "Mozilla/5.0",
+                "Accept": "application/json"
+            },
+            timeout: 10000
+        });
+
+        const data = api.data;
+
+        // Validasi data tetap dipertahankan
+        if (!data || !data.items || !Array.isArray(data.items) || !data.items[0]) {
+            throw new Error("Gagal mengambil gambar nsfw");
+        }
+
+        const imageUrl = data.items[0].url;
+
+        // Download image CDN dengan responseType arraybuffer
+        const image = await axios.get(imageUrl, {
+            responseType: "arraybuffer",
+            timeout: 15000,
+            headers: {
+                "User-Agent": "Mozilla/5.0"
+            }
+        });
+
+        const contentType = image.headers["content-type"] || "image/jpeg";
+
+        // Mengembalikan Buffer dan Content-Type secara dinamis
+        return {
+            buffer: Buffer.from(image.data),
+            contentType: contentType
+        };
+    } catch (error) {
+        throw error;
+    }
+}
+
+// Endpoint utama Router
+router.get('/', async (req, res) => {
+    try {
+        const nsfw = await randomNsfw();
+        
+        res.writeHead(200, {
+            'Content-Type': nsfw.contentType,
+            'Content-Length': nsfw.buffer.length,
+        });
+        
+        res.end(nsfw.buffer);
+    } catch (error) {
+        console.error(error);
+        
+        // Response error dengan format JSON & data creator
+        return res.status(500).json({
+            status: false,
+            creator: "Arulzxd",
+            message: error.response?.data?.detail || error.message || "Terjadi kesalahan server"
+        });
+    }
+});
+
+router.title = "nsfw anime 18";
+router.desc = "Mengambil gambar anime 🔞 acak.";
+router.status = "ready"; 
+router.type = "premium";
+
+export default router;
