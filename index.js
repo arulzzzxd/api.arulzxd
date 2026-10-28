@@ -2709,35 +2709,42 @@ const PAGE_CONFIGS = {
     }
 };
 
-// Endpoint OpenGraph Khusus Snippet Pastecode
+// Endpoint OpenGraph Khusus Snippet Pastecode (Desain 1:1 Pastecode UI)
 app.get('/og/snippet', async (req, res) => {
     try {
         await initCustomFont();
 
         const snippetId = req.query.id;
         let snippetData = {
-            title: req.query.title || "Pastecode Snippet",
+            title: req.query.title || "FAKE WHATSAPP",
+            desc: req.query.desc || "Deskripsi: Fitur simulasi screenshot tampilan profil WhatsApp kustom.",
             author: req.query.author || "arulzxd",
             language: req.query.lang || "javascript",
-            date: "2026",
-            code: "const axios = require('axios');\n\nasync function main() {\n  console.log('ArulzXD API Pastecode');\n}"
+            date: "25 Okt 2026",
+            code: "const axios = require('axios');\nconst FormData = require('form-data');\n\n/**\n * Fungsi simulasi Fake WhatsApp\n */"
         };
 
         if (snippetId && SUPABASE_URL && SUPABASE_KEY) {
             try {
-                // Ambil data langsung dari tabel pastes di Supabase
                 const { data, error } = await supabase
                     .from('pastes')
-                    .select('title, author, desc, language, date, content')
+                    .select('title, author, desc, language, date, content, created_at')
                     .eq('id', snippetId)
                     .maybeSingle();
 
                 if (data && !error) {
+                    let formattedDate = data.date;
+                    if (!formattedDate && data.created_at) {
+                        const d = new Date(data.created_at);
+                        formattedDate = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' });
+                    }
+
                     snippetData = {
                         title: data.title || snippetData.title,
-                        author: data.author || data.desc || "arulzxd",
-                        language: data.language || "javascript",
-                        date: data.date || snippetData.date,
+                        desc: data.desc || snippetData.desc,
+                        author: data.author || "arulzxd",
+                        language: data.language || snippetData.language,
+                        date: formattedDate || snippetData.date,
                         code: data.content || snippetData.code
                     };
                 }
@@ -2751,111 +2758,150 @@ app.get('/og/snippet', async (req, res) => {
         const canvas = createCanvas(width, height);
         const ctx = canvas.getContext('2d');
 
-        // Background
+        // 1. Background Cream dengan Grid Dot Pattern (Sesuai pastecode.html)
         ctx.fillStyle = '#FAF7EF';
         ctx.fillRect(0, 0, width, height);
 
-        // Grid Dot Pattern
-        ctx.fillStyle = 'rgba(18, 18, 18, 0.08)';
-        for (let x = 0; x < width; x += 24) {
-            for (let y = 0; y < height; y += 24) {
+        ctx.fillStyle = 'rgba(18, 18, 18, 0.12)';
+        for (let x = 0; x < width; x += 20) {
+            for (let y = 0; y < height; y += 20) {
                 ctx.beginPath();
-                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.arc(x, y, 1.8, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
 
-        const windowX = 40;
-        const windowY = 35;
-        const windowW = 1120;
-        const windowH = 560;
+        // 2. Kartu Utama Neo-Brutalist
+        const cardX = 50;
+        const cardY = 40;
+        const cardW = 1100;
+        const cardH = 550;
 
-        ctx.fillStyle = '#121212';
+        // Shadow Kartu (Hitam)
+        ctx.fillStyle = 'rgba(18, 18, 18, 0.15)';
         ctx.beginPath();
-        ctx.roundRect(windowX + 12, windowY + 12, windowW, windowH, 28);
+        ctx.roundRect(cardX + 16, cardY + 16, cardW, cardH, 24);
         ctx.fill();
 
+        // Body Kartu (Putih)
         ctx.fillStyle = '#FFFDF8';
         ctx.lineWidth = 6;
-        ctx.strokeStyle = '#EAB308';
+        ctx.strokeStyle = '#EAB308'; // Warna border tema kuning/amber
         ctx.beginPath();
-        ctx.roundRect(windowX, windowY, windowW, windowH, 28);
+        ctx.roundRect(cardX, cardY, cardW, cardH, 24);
         ctx.fill();
         ctx.stroke();
 
+        // 3. Header Kartu (Top Bar)
+        const headerH = 70;
+        ctx.fillStyle = '#FAF7EF';
         ctx.beginPath();
-        ctx.moveTo(windowX, windowY + 80);
-        ctx.lineTo(windowX + windowW, windowY + 80);
+        ctx.roundRect(cardX, cardY, cardW, headerH, [24, 24, 0, 0]);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(cardX, cardY + headerH);
+        ctx.lineTo(cardX + cardW, cardY + headerH);
         ctx.strokeStyle = '#EAB308';
         ctx.lineWidth = 4;
         ctx.stroke();
 
+        // Tiga Titik Mac (Red, Amber, Green)
         const dots = ['#EF4444', '#F59E0B', '#10B981'];
         dots.forEach((color, i) => {
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.arc(windowX + 45 + (i * 30), windowY + 40, 11, 0, Math.PI * 2);
+            ctx.arc(cardX + 40 + (i * 26), cardY + (headerH / 2), 9, 0, Math.PI * 2);
             ctx.fill();
             ctx.strokeStyle = '#121212';
             ctx.lineWidth = 2.5;
             ctx.stroke();
         });
 
+        // Badge Bahasa (Kanan Atas)
         const langText = String(snippetData.language).toLowerCase();
-        const langBadgeW = Math.max(120, ctx.measureText(langText).width + 50);
-        const langBadgeX = windowX + windowW - langBadgeW - 35;
-        const langBadgeY = windowY + 20;
+        ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
+        const langTextWidth = ctx.measureText(langText).width;
+        const langBadgeW = Math.max(130, langTextWidth + 40);
+        const langBadgeH = 38;
+        const langBadgeX = cardX + cardW - langBadgeW - 25;
+        const langBadgeY = cardY + ((headerH - langBadgeH) / 2);
 
-        ctx.fillStyle = '#CCFBF1';
+        ctx.fillStyle = '#FDE047'; // Yellow Accent
         ctx.beginPath();
-        ctx.roundRect(langBadgeX, langBadgeY, langBadgeW, 40, 12);
+        ctx.roundRect(langBadgeX, langBadgeY, langBadgeW, langBadgeH, 10);
         ctx.fill();
         ctx.strokeStyle = '#121212';
         ctx.lineWidth = 3;
         ctx.stroke();
 
         ctx.fillStyle = '#121212';
-        ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(langText, langBadgeX + (langBadgeW / 2), langBadgeY + 27);
+        ctx.fillText(langText, langBadgeX + (langBadgeW / 2), langBadgeY + 26);
         ctx.textAlign = 'left';
 
+        // 4. Judul Snippet
         ctx.fillStyle = '#121212';
-        ctx.font = 'bold 44px "Plus Jakarta Sans", sans-serif';
-        ctx.fillText(snippetData.title.slice(0, 35), windowX + 50, windowY + 150);
+        ctx.font = '900 40px "Plus Jakarta Sans", sans-serif';
+        const truncatedTitle = snippetData.title.length > 40 ? snippetData.title.substring(0, 37) + '...' : snippetData.title;
+        ctx.fillText(truncatedTitle, cardX + 40, cardY + headerH + 60);
 
+        // 5. Deskripsi Snippet
         ctx.fillStyle = '#52525B';
-        ctx.font = 'bold 24px "Plus Jakarta Sans", sans-serif';
-        ctx.fillText(`By ${snippetData.author}`, windowX + 50, windowY + 195);
+        ctx.font = '600 22px "Plus Jakarta Sans", sans-serif';
+        const rawDesc = snippetData.desc || 'Tidak ada deskripsi.';
+        const truncatedDesc = rawDesc.length > 85 ? rawDesc.substring(0, 82) + '...' : rawDesc;
+        ctx.fillText(truncatedDesc, cardX + 40, cardY + headerH + 100);
 
-        const codeX = windowX + 50;
-        const codeY = windowY + 230;
-        const codeW = windowW - 100;
-        const codeH = 220;
+        // 6. Preview Box Kode (Dark Mode Style)
+        const codeX = cardX + 40;
+        const codeY = cardY + headerH + 125;
+        const codeW = cardW - 80;
+        const codeH = 210;
 
         ctx.fillStyle = '#121212';
         ctx.beginPath();
-        ctx.roundRect(codeX, codeY, codeW, codeH, 20);
+        ctx.roundRect(codeX, codeY, codeW, codeH, 16);
         ctx.fill();
         ctx.strokeStyle = '#EAB308';
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3.5;
         ctx.stroke();
 
-        ctx.fillStyle = '#38BDF8';
+        ctx.fillStyle = '#38BDF8'; // Cyan Text Code
         ctx.font = 'bold 22px monospace';
 
         const codeLines = (snippetData.code || '').split('\n').slice(0, 4);
         codeLines.forEach((line, idx) => {
-            let truncatedLine = line.length > 55 ? line.substring(0, 52) + '...' : line;
-            ctx.fillText(truncatedLine, codeX + 35, codeY + 55 + (idx * 42));
+            let truncatedLine = line.length > 60 ? line.substring(0, 57) + '...' : line;
+            ctx.fillText(truncatedLine, codeX + 30, codeY + 48 + (idx * 40));
         });
 
-        const footerY = windowY + windowH - 45;
-        ctx.fillStyle = '#121212';
-        ctx.font = 'bold 22px "Plus Jakarta Sans", sans-serif';
-        ctx.fillText(`${snippetData.date}`, codeX, footerY);
+        // 7. Footer Kartu (Tanggal & Badge RAW)
+        const footerY = cardY + cardH - 35;
+        
+        // Icon Kalender & Tanggal
+        ctx.fillStyle = '#71717A';
+        ctx.font = 'bold 20px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText(`📅  ${snippetData.date}`, codeX, footerY);
 
-        // Encode PNG Buffer untuk Express
+        // Badge RAW (Kanan Bawah)
+        const rawBadgeW = 90;
+        const rawBadgeH = 36;
+        const rawBadgeX = cardX + cardW - rawBadgeW - 40;
+        const rawBadgeY = footerY - 26;
+
+        ctx.fillStyle = '#121212';
+        ctx.beginPath();
+        ctx.roundRect(rawBadgeX, rawBadgeY, rawBadgeW, rawBadgeH, 8);
+        ctx.fill();
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '900 18px "Plus Jakarta Sans", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('RAW', rawBadgeX + (rawBadgeW / 2), rawBadgeY + 24);
+        ctx.textAlign = 'left';
+
+        // Response PNG Output
         const pngBuffer = Buffer.from(await canvas.encode('png'));
         res.setHeader('Content-Type', 'image/png');
         res.setHeader('Content-Length', pngBuffer.length);
