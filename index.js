@@ -1644,10 +1644,13 @@ app.delete('/api/pastecode/:id', async (req, res) => {
         const { id } = req.params;
         const { userEmail } = req.body;
 
-        if (userEmail !== ADMIN_EMAILS) {
+        const cleanUserEmail = (userEmail || '').toLowerCase().trim();
+        const isAdmin = ADMIN_EMAILS.includes(cleanUserEmail) || cleanUserEmail === "haqqi.official13@gmail.com";
+
+        if (!isAdmin) {
             return res.status(403).json({ 
                 status: false, 
-                message: 'Akses ditolak! Hanya Admin yang dapat menghapus snippet.' 
+                message: 'Akses ditolak! Hanya Admin  yang dapat menghapus snippet.' 
             });
         }
 
