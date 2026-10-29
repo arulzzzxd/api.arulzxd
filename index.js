@@ -1586,59 +1586,6 @@ app.post('/api/user/delete-account', checkAuthSession, async (req, res) => {
         return res.status(500).json({ status: false, message: 'Terjadi kesalahan pada server saat menghapus akun.' });
     }
 });
-// --- ENDPOINT ADD PASTECODE SNIPPET ---
-app.post('/api/pastecode', checkAuthSession, async (req, res) => {
-    try {
-        if (!req.user) {
-            return res.status(401).json({ status: false, message: 'Anda harus login terlebih dahulu untuk menambah snippet!' });
-        }
-
-        const { title, desc, language, content } = req.body;
-
-        if (!title || !title.trim()) {
-            return res.status(400).json({ status: false, message: 'Judul snippet wajib diisi!' });
-        }
-        if (!content || !content.trim()) {
-            return res.status(400).json({ status: false, message: 'Isi kode/snippet wajib diisi!' });
-        }
-
-        const snippetId = generateId(20); // 20 Karakter Acak ID
-        const dateStr = new Date().toLocaleDateString('id-ID', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            timeZone: 'Asia/Jakarta'
-        });
-
-        const newPaste = {
-            id: snippetId,
-            title: title.trim(),
-            desc: desc ? desc.trim() : '',
-            language: (language || 'JavaScript').trim(),
-            content: content.trim(),
-            author: req.user.username || 'Pengembang',
-            author_avatar: req.user.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png',
-            date: dateStr,
-            created_at: new Date().toISOString()
-        };
-
-        const { data, error } = await supabase
-            .from('pastes')
-            .insert([newPaste])
-            .select()
-            .single();
-
-        if (error) {
-            console.error("Gagal simpan snippet ke Supabase:", error.message);
-            return res.status(500).json({ status: false, message: 'Gagal menyimpan snippet ke database.' });
-        }
-
-        return res.json({ status: true, message: 'Snippet berhasil ditambahkan!', data });
-    } catch (err) {
-        console.error("Error add pastecode:", err.message);
-        return res.status(500).json({ status: false, message: 'Terjadi kesalahan pada server.' });
-    }
-});
 
 // ====================================================
 // 7. ADMIN MIDDLEWARE & ADMIN ENDPOINTS
