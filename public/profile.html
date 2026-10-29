@@ -755,31 +755,33 @@
         });
 
         // Render Banner Profil Discord Style (MP4, GIF, PNG, JPG, URL)
-        function renderProfileBanner(bannerUrl) {
-            const defaultBanner = 'https://cdn.arulz.biz.id/files/Tk4GavOaHEEP2ykm.mp4';
-            const url = bannerUrl || defaultBanner;
-            const imgEl = document.getElementById('userBannerImg');
-            const videoEl = document.getElementById('userBannerVideo');
-            const videoSrc = document.getElementById('userBannerVideoSrc');
+        // Render Banner Profil Discord Style (Dukungan MP4/GIF/PNG/JPG/Base64 Data URL)
+function renderProfileBanner(bannerUrl) {
+    const defaultBanner = 'https://cdn.arulz.biz.id/files/MPzS.mp4';
+    const url = bannerUrl || defaultBanner;
+    const imgEl = document.getElementById('userBannerImg');
+    const videoEl = document.getElementById('userBannerVideo');
+    const videoSrc = document.getElementById('userBannerVideoSrc');
 
-            if (!imgEl || !videoEl) return;
+    if (!imgEl || !videoEl) return;
 
-            const isVideo = url.match(/\.(mp4|webm|m4v)(\?.*)?$/i);
+    // Deteksi format video (MP4/WebM atau Base64 data:video)
+    const isVideo = url.startsWith('data:video/') || url.match(/\.(mp4|webm|m4v)(\?.*)?$/i);
 
-            if (isVideo) {
-                imgEl.classList.add('hidden');
-                videoEl.classList.remove('hidden');
-                if (videoSrc.src !== url) {
-                    videoSrc.src = url;
-                    videoEl.load();
-                    videoEl.play().catch(e => console.log("Banner autoplay:", e));
-                }
-            } else {
-                videoEl.classList.add('hidden');
-                imgEl.classList.remove('hidden');
-                imgEl.src = url;
-            }
+    if (isVideo) {
+        imgEl.classList.add('hidden');
+        videoEl.classList.remove('hidden');
+        if (videoSrc.src !== url) {
+            videoSrc.src = url;
+            videoEl.load();
+            videoEl.play().catch(e => console.log("Banner autoplay error:", e));
         }
+    } else {
+        videoEl.classList.add('hidden');
+        imgEl.classList.remove('hidden');
+        imgEl.src = url;
+    }
+}
 
         // Upload File Banner ke Server / CDN
         async function uploadBannerFile(input) {
@@ -817,7 +819,7 @@
                 title: 'URL BANNER PROFILE',
                 input: 'url',
                 inputLabel: 'Masukkan link URL gambar/video banner (MP4, GIF, PNG, JPG):',
-                inputPlaceholder: 'https://domain.com/banner.gif',
+                inputPlaceholder: 'https://domain.com/banner.mp4',
                 showCancelButton: true,
                 confirmButtonText: 'SIMPAN',
                 cancelButtonText: 'BATAL'
