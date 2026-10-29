@@ -99,9 +99,7 @@
         .dropdown-nav-card,
         header,
         #bioDropdown,
-        #themeMenuDropdown,
-        .cyber-loader-box,
-        .cyber-bar {
+        #themeMenuDropdown {
             border-color: var(--theme-border) !important;
             transition: border-color 0.15s ease;
         }
@@ -169,9 +167,7 @@
         .rgb-mode-active .light-card,
         .rgb-mode-active .light-card-box,
         .rgb-mode-active .dropdown-nav-card,
-        .rgb-mode-active #themeMenuDropdown,
-        .rgb-mode-active .cyber-loader-box,
-        .rgb-mode-active .cyber-bar {
+        .rgb-mode-active #themeMenuDropdown {
             border-color: transparent !important;
             background-image: linear-gradient(var(--card-bg), var(--card-bg)), 
                               conic-gradient(from var(--rgb-angle), #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
@@ -208,119 +204,11 @@
             background-clip: padding-box, border-box !important;
         }
 
-        /* CYBER LOADER OVERLAY */
-        #cyber-loader-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 99999;
-            background-color: var(--bg-cream);
-            background-image: radial-gradient(rgba(0, 0, 0, 0.12) 1.5px, transparent 1.5px) !important;
-            background-size: 16px 16px !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.4s ease, visibility 0.4s ease;
-        }
-
-        #cyber-loader-overlay.fade-out {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-
-        .cyber-loader-box {
-            background: var(--card-bg);
-            border: 2.5px solid var(--theme-border);
-            box-shadow: 6px 6px 0px rgba(18, 18, 18, 0.15);
-            border-radius: 24px;
-            padding: 32px 28px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-            width: min(320px, 90vw);
-        }
-
-        .cyber-avatar-wrap {
-            position: relative;
-            width: 76px;
-            height: 76px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .cyber-ring {
-            position: absolute;
-            inset: -6px;
-            border: 3.5px solid #e4e4e7;
-            border-top-color: var(--theme-border);
-            border-right-color: #3b82f6;
-            border-radius: 50%;
-            animation: spinCyber 1s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
-        }
-
-        @keyframes spinCyber {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .cyber-text-glitch {
-            color: #121212;
-            font-weight: 900;
-            font-size: 13px;
-            letter-spacing: 2px;
-        }
-
-        .cyber-bar {
-            width: 100%;
-            height: 10px;
-            background: #e4e4e7;
-            border: 2px solid var(--theme-border);
-            border-radius: 9999px;
-            overflow: hidden;
-        }
-
-        .cyber-bar-fill {
-            height: 100%;
-            background: var(--theme-border);
-            width: 0%;
-            transition: width 0.15s ease;
-            border-radius: 9999px;
-        }
-
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="min-h-screen relative flex flex-col justify-between antialiased">
-
-    <!-- Loader Overlay Cyberpunk Light Style -->
-    <div id="cyber-loader-overlay">
-        <div class="cyber-loader-box">
-            <div class="cyber-avatar-wrap mb-4">
-                <div class="cyber-ring"></div>
-                <img src="https://cdn.arulz.biz.id/files/1wh5do.png" alt="Logo" class="w-14 h-14 rounded-full object-cover border-2 border-zinc-900 shadow-sm">
-            </div>
-            <div class="text-center">
-                <div id="loader-title-text" class="cyber-text-glitch uppercase mb-0.5">
-                    INITIALIZING PROFILE...
-                </div>
-                <div class="text-[9px] font-mono text-zinc-600 font-bold uppercase tracking-widest">
-                    ARULZ-XD API REST CORE
-                </div>
-            </div>
-            <div class="w-full mt-5">
-                <div class="flex items-center justify-between text-[10px] font-mono mb-1.5 text-zinc-800 font-bold">
-                    <span>USER DATA SYNC</span>
-                    <span id="loader-percentage" class="font-black">0%</span>
-                </div>
-                <div class="cyber-bar">
-                    <div id="loader-progress-fill" class="cyber-bar-fill"></div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Header Top Bar (Paling Atas = Solid 100%, Scroll = Transparan) -->
     <header id="mainHeader" class="fixed top-0 left-0 right-0 w-full header-translucent border-b-2 brutal-border z-30">
@@ -470,32 +358,59 @@
     <!-- Main Content Container -->
     <main class="w-full max-w-2xl mx-auto px-3.5 sm:px-6 pt-20 pb-10 relative z-10 flex-1 flex flex-col items-center space-y-5">
 
-        <!-- KARTU 1: HEADER PROFIL & DETAIL KELOLA AKUN -->
-        <div class="w-full light-card p-5 sm:p-6">
+        <!-- KARTU 1: HEADER PROFIL DISCORD BANNER STYLE & DETAIL KELOLA AKUN -->
+        <div class="w-full light-card overflow-hidden p-0">
             
-            <!-- Top Section: Avatar & Info Header -->
-            <div class="flex flex-col gap-3 mb-5">
-                <div class="relative w-20 h-20 flex-shrink-0">
-                    <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadAvatarFile(this)">
-                    <div class="relative cursor-pointer w-full h-full group" onclick="document.getElementById('avatarInput').click()" title="Klik untuk ubah foto profil">
-                        <div class="w-full h-full rounded-full border-2 border-zinc-900 shadow-sm overflow-hidden bg-emerald-500 p-0.5">
-                            <img id="userAvatar" src="https://cdn.arulz.biz.id/files/X1F0Cn.png" class="w-full h-full rounded-full object-cover">
-                        </div>
-                        <div class="absolute bottom-0 right-0 bg-zinc-900 text-white w-7 h-7 rounded-full border-2 border-white flex items-center justify-center shadow-md hover:bg-zinc-800 transition-all">
-                            <i class="fa-solid fa-camera text-[11px]"></i>
+            <!-- DISCORD STYLE PROFILE BANNER -->
+            <div class="relative w-full h-40 sm:h-52 bg-zinc-900 border-b-2 border-zinc-900 overflow-hidden">
+                <input type="file" id="bannerFileInput" accept="image/*,video/mp4" class="hidden" onchange="uploadBannerFile(this)">
+                
+                <!-- Container Banner Dynamic (MP4 / GIF / PNG / JPG) -->
+                <div id="bannerContainer" class="w-full h-full">
+                    <img id="userBannerImg" src="https://cdn.arulz.biz.id/files/MPzS.mp4" class="w-full h-full object-cover hidden">
+                    <video id="userBannerVideo" autoplay loop muted playsinline webkit-playsinline class="w-full h-full object-cover hidden">
+                        <source id="userBannerVideoSrc" src="" type="video/mp4">
+                    </video>
+                </div>
+
+                <!-- Action Button Ubah Banner -->
+                <div class="absolute top-3 right-3 flex gap-2">
+                    <button onclick="promptBannerUrl()" title="Gunakan URL Banner" class="bg-zinc-900/80 hover:bg-zinc-900 text-white backdrop-blur-md px-2.5 py-1.5 rounded-xl border-2 border-white/80 text-[11px] font-black uppercase flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer">
+                        <i class="fa-solid fa-link text-xs"></i> <span class="hidden sm:inline">URL</span>
+                    </button>
+                    <button onclick="document.getElementById('bannerFileInput').click()" title="Ugah File Banner (MP4, GIF, PNG, JPG)" class="theme-bg-accent text-zinc-900 px-3 py-1.5 rounded-xl border-2 border-zinc-900 text-[11px] font-black uppercase flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer">
+                        <i class="fa-solid fa-image text-xs"></i> <span>UBAH BANNER</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Profile Info Section dengan Avatar Overlap Discord Style -->
+            <div class="p-5 sm:p-6 pt-0 relative">
+                <!-- Avatar Overlap Discord Style -->
+                <div class="flex justify-between items-end -mt-12 sm:-mt-16 mb-4">
+                    <div class="relative w-20 h-20 sm:w-28 sm:h-28 flex-shrink-0">
+                        <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadAvatarFile(this)">
+                        <div class="relative cursor-pointer w-full h-full group" onclick="document.getElementById('avatarInput').click()" title="Klik untuk ubah foto profil">
+                            <div class="w-full h-full rounded-full border-4 border-[#FFFDF8] shadow-md overflow-hidden bg-emerald-500 p-0.5">
+                                <img id="userAvatar" src="https://cdn.arulz.biz.id/files/X1F0Cn.png" class="w-full h-full rounded-full object-cover">
+                            </div>
+                            <div class="absolute bottom-0 right-0 bg-zinc-900 text-white w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-white flex items-center justify-center shadow-md hover:bg-zinc-800 transition-all">
+                                <i class="fa-solid fa-camera text-[11px]"></i>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div>
+                <!-- Username & Status Badge -->
+                <div class="flex flex-col gap-1 mb-5">
                     <div class="flex items-center gap-2.5 flex-wrap">
-                        <h2 id="userName" class="text-xl font-black text-zinc-900 tracking-tight truncate">Loading...</h2>
+                        <h2 id="userName" class="text-xl sm:text-2xl font-black text-zinc-900 tracking-tight truncate">Loading...</h2>
                         <span id="roleBadge" class="text-[10px] font-black border-2 border-zinc-900 px-2.5 py-0.5 rounded-full uppercase shadow-xs bg-zinc-200 text-zinc-800">
                             FREE
                         </span>
                     </div>
 
-                    <div class="flex items-center gap-2 text-xs font-bold text-zinc-600 mt-1 flex-wrap">
+                    <div class="flex items-center gap-2 text-xs font-bold text-zinc-600 mt-0.5 flex-wrap">
                         <span id="userEmail" class="truncate">loading_email@gmail.com</span>
                         <span class="text-zinc-400">•</span>
                         <span class="text-emerald-600 flex items-center gap-1 font-extrabold">
@@ -504,42 +419,42 @@
                         </span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Sub-Box Detail Profil -->
-            <div class="light-card-box p-4 space-y-3 bg-[#FFFDF8]">
-                <div class="flex items-center justify-between text-xs font-bold border-b border-zinc-200/80 pb-2.5 gap-2">
-                    <span class="text-zinc-500 uppercase code-font text-[11px]">Username:</span>
-                    <div class="flex items-center gap-2 truncate max-w-[70%] justify-end">
-                        <span id="detailUsername" class="text-zinc-900 font-extrabold truncate">loading...</span>
-                        <button onclick="toggleEditUsernameModal()" title="Edit Username" class="p-1.5 rounded-lg border-2 border-zinc-900 theme-bg-accent hover:opacity-80 active:scale-95 transition-all text-[11px] leading-none flex-shrink-0 cursor-pointer">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </button>
+                <!-- Sub-Box Detail Profil -->
+                <div class="light-card-box p-4 space-y-3 bg-[#FFFDF8]">
+                    <div class="flex items-center justify-between text-xs font-bold border-b border-zinc-200/80 pb-2.5 gap-2">
+                        <span class="text-zinc-500 uppercase code-font text-[11px]">Username:</span>
+                        <div class="flex items-center gap-2 truncate max-w-[70%] justify-end">
+                            <span id="detailUsername" class="text-zinc-900 font-extrabold truncate">loading...</span>
+                            <button onclick="toggleEditUsernameModal()" title="Edit Username" class="p-1.5 rounded-lg border-2 border-zinc-900 theme-bg-accent hover:opacity-80 active:scale-95 transition-all text-[11px] leading-none flex-shrink-0 cursor-pointer">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="flex items-center justify-between text-xs font-bold border-b border-zinc-200/80 pb-2.5">
-                    <span class="text-zinc-500 uppercase code-font text-[11px]">Status Plan:</span>
-                    <span id="detailPlanBadge" class="text-[10px] font-black border-2 border-zinc-900 px-3 py-0.5 rounded-full uppercase shadow-xs bg-zinc-200 text-zinc-800">
-                        FREE
-                    </span>
-                </div>
-
-                <div class="flex items-center justify-between text-xs font-bold border-b border-zinc-200/80 pb-2.5">
-                    <span class="text-zinc-500 uppercase code-font text-[11px]">Masa Aktif Role:</span>
-                    <span id="detailRoleExpire" class="text-zinc-900 font-extrabold truncate">Selamanya (Free)</span>
-                </div>
-
-                <div class="flex items-center justify-between text-xs font-bold gap-2">
-                    <span id="providerLabel" class="text-zinc-500 uppercase code-font text-[11px]">Email:</span>
-                    <div class="flex items-center gap-2 truncate max-w-[70%] justify-end">
-                        <span id="providerIcon" class="flex-shrink-0 flex items-center">
-                            <i class="fa-solid fa-envelope text-amber-600"></i>
+                    <div class="flex items-center justify-between text-xs font-bold border-b border-zinc-200/80 pb-2.5">
+                        <span class="text-zinc-500 uppercase code-font text-[11px]">Status Plan:</span>
+                        <span id="detailPlanBadge" class="text-[10px] font-black border-2 border-zinc-900 px-3 py-0.5 rounded-full uppercase shadow-xs bg-zinc-200 text-zinc-800">
+                            FREE
                         </span>
-                        <span id="detailEmail" class="text-zinc-900 font-extrabold truncate">loading_email@gmail.com</span>
-                        <button onclick="toggleEditEmailModal()" title="Edit Email" class="p-1.5 rounded-lg border-2 border-zinc-900 theme-bg-accent hover:opacity-80 active:scale-95 transition-all text-[11px] leading-none flex-shrink-0 cursor-pointer">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </button>
+                    </div>
+
+                    <div class="flex items-center justify-between text-xs font-bold border-b border-zinc-200/80 pb-2.5">
+                        <span class="text-zinc-500 uppercase code-font text-[11px]">Masa Aktif Role:</span>
+                        <span id="detailRoleExpire" class="text-zinc-900 font-extrabold truncate">Selamanya (Free)</span>
+                    </div>
+
+                    <div class="flex items-center justify-between text-xs font-bold gap-2">
+                        <span id="providerLabel" class="text-zinc-500 uppercase code-font text-[11px]">Email:</span>
+                        <div class="flex items-center gap-2 truncate max-w-[70%] justify-end">
+                            <span id="providerIcon" class="flex-shrink-0 flex items-center">
+                                <i class="fa-solid fa-envelope text-amber-600"></i>
+                            </span>
+                            <span id="detailEmail" class="text-zinc-900 font-extrabold truncate">loading_email@gmail.com</span>
+                            <button onclick="toggleEditEmailModal()" title="Edit Email" class="p-1.5 rounded-lg border-2 border-zinc-900 theme-bg-accent hover:opacity-80 active:scale-95 transition-all text-[11px] leading-none flex-shrink-0 cursor-pointer">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -838,6 +753,95 @@
                 }
             }
         });
+
+        // Render Banner Profil Discord Style (MP4, GIF, PNG, JPG, URL)
+        function renderProfileBanner(bannerUrl) {
+            const defaultBanner = 'https://cdn.arulz.biz.id/files/MPzS.mp4';
+            const url = bannerUrl || defaultBanner;
+            const imgEl = document.getElementById('userBannerImg');
+            const videoEl = document.getElementById('userBannerVideo');
+            const videoSrc = document.getElementById('userBannerVideoSrc');
+
+            if (!imgEl || !videoEl) return;
+
+            const isVideo = url.match(/\.(mp4|webm|m4v)(\?.*)?$/i);
+
+            if (isVideo) {
+                imgEl.classList.add('hidden');
+                videoEl.classList.remove('hidden');
+                if (videoSrc.src !== url) {
+                    videoSrc.src = url;
+                    videoEl.load();
+                    videoEl.play().catch(e => console.log("Banner autoplay:", e));
+                }
+            } else {
+                videoEl.classList.add('hidden');
+                imgEl.classList.remove('hidden');
+                imgEl.src = url;
+            }
+        }
+
+        // Upload File Banner ke Server / CDN
+        async function uploadBannerFile(input) {
+            if (!input.files || !input.files[0]) return;
+            const formData = new FormData();
+            formData.append('banner', input.files[0]);
+
+            try {
+                Swal.fire({
+                    title: 'MENGUNGGAH BANNER...',
+                    text: 'Mohon tunggu sebentar',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                const response = await fetch('/api/user/update-banner', { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (result.status) {
+                    renderProfileBanner(result.banner);
+                    Swal.fire({ icon: 'success', title: 'BANNER DISIMPAN', text: 'Banner profil berhasil diperbarui!' });
+                } else {
+                    Swal.fire({ icon: 'error', title: 'GAGAL', text: result.message || 'Gagal mengunggah banner.' });
+                }
+            } catch (error) {
+                Swal.fire({ icon: 'error', title: 'ERROR', text: 'Terjadi kesalahan saat mengunggah file banner.' });
+            } finally {
+                input.value = '';
+            }
+        }
+
+        // Simpan Banner dari Prompt URL
+        async function promptBannerUrl() {
+            const { value: url } = await Swal.fire({
+                title: 'URL BANNER PROFILE',
+                input: 'url',
+                inputLabel: 'Masukkan link URL gambar/video banner (MP4, GIF, PNG, JPG):',
+                inputPlaceholder: 'https://domain.com/banner.gif',
+                showCancelButton: true,
+                confirmButtonText: 'SIMPAN',
+                cancelButtonText: 'BATAL'
+            });
+
+            if (url) {
+                try {
+                    const response = await fetch('/api/user/update-banner-url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bannerUrl: url })
+                    });
+                    const result = await response.json();
+                    if (result.status) {
+                        renderProfileBanner(result.banner);
+                        Swal.fire({ icon: 'success', title: 'BERHASIL', text: 'Banner profil berhasil diperbarui!' });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'GAGAL', text: result.message || 'Gagal memperbarui URL banner.' });
+                    }
+                } catch (e) {
+                    Swal.fire({ icon: 'error', title: 'ERROR', text: 'Gagal terhubung ke server.' });
+                }
+            }
+        }
 
         // Toggle Tampilkan / Sembunyikan API Key
         function toggleShowApiKey() {
@@ -1211,6 +1215,8 @@
                         document.getElementById('userEmail').innerText = data.user.email || 'no-email@mail.com';
                         document.getElementById('detailUsername').innerText = data.user.username || 'User';
 
+                        renderProfileBanner(data.user.banner);
+
                         currentRawApiKey = data.user.apikey || '';
                         if (isApiKeyVisible) {
                             document.getElementById('userApiKeyInput').value = currentRawApiKey;
@@ -1457,42 +1463,6 @@
         });
         document.addEventListener('touchstart', playSidebarBannerVideo, { once: true });
         document.addEventListener('click', playSidebarBannerVideo, { once: true });
-
-        // Cyber Loader Overlay Animation Logic
-        let currentProgress = 0;
-        const progressFill = document.getElementById('loader-progress-fill');
-        const percentageText = document.getElementById('loader-percentage');
-        const loaderOverlay = document.getElementById('cyber-loader-overlay');
-
-        function updateProgress(targetVal) {
-            currentProgress = Math.min(Math.max(currentProgress, targetVal), 100);
-            if (progressFill) progressFill.style.width = currentProgress + '%';
-            if (percentageText) percentageText.innerText = Math.floor(currentProgress) + '%';
-        }
-
-        const progressInterval = setInterval(() => {
-            if (currentProgress < 85) {
-                const increment = Math.random() * 12 + 5;
-                updateProgress(currentProgress + increment);
-            }
-        }, 120);
-
-        window.addEventListener('load', () => {
-            clearInterval(progressInterval);
-            updateProgress(100);
-
-            setTimeout(() => {
-                if (loaderOverlay) loaderOverlay.classList.add('fade-out');
-            }, 400);
-        });
-
-        setTimeout(() => {
-            clearInterval(progressInterval);
-            updateProgress(100);
-            if (loaderOverlay && !loaderOverlay.classList.contains('fade-out')) {
-                loaderOverlay.classList.add('fade-out');
-            }
-        }, 3000);
     </script>
 </body>
 </html>
