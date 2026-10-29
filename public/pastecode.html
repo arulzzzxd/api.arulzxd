@@ -6,21 +6,36 @@
     <meta name="google-site-verification" content="eNTaoMJZvKtC9G_og25nfISOCS6_T5m0Z861_6o6T5s" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
+    <!-- Primary Meta Tags -->
     <title>ArulzXD API - Pastecode Snippet</title>
     <meta name="title" content="ArulzXD API - Pastecode Snippet" />
     <meta name="description" content="Layanan paste code snippet REST API resmi untuk dokumentasi dan integrasi pengembang aplikasi." />
 
+    <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://api.arulz.biz.id/pastecode" />
     <meta property="og:title" content="ArulzXD API - Pastecode Snippet" />
     <meta property="og:description" content="Layanan paste code snippet REST API resmi untuk dokumentasi dan integrasi pengembang aplikasi." />
-    <meta property="og:image" content="https://cdn.arulz.biz.id/files/1wh5do.png" />
+    <meta property="og:image" content="https://api.arulz.biz.id/og/pastecode" />
+    <meta property="og:image:secure_url" content="https://api.arulz.biz.id/og/pastecode" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="600" />
+    <meta property="og:image:height" content="300" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:url" content="https://api.arulz.biz.id/pastecode" />
+    <meta name="twitter:title" content="ArulzXD API - Pastecode Snippet" />
+    <meta name="twitter:description" content="Layanan paste code snippet REST API resmi untuk dokumentasi dan integrasi pengembang aplikasi." />
+    <meta name="twitter:image" content="https://api.arulz.biz.id/og/pastecode" />
 
     <link rel="icon" href="https://cdn.arulz.biz.id/files/1wh5do.png" type="image/png">
     
+    <!-- Tailwind CSS & Google Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     
+    <!-- Prism Syntax Highlighting CSS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css" rel="stylesheet" />
 
@@ -32,6 +47,7 @@
             --theme-accent: #fde047;
             --theme-text: #121212;
             --theme-light: #fef9c3;
+            --rgb-angle: 0deg;
         }
 
         * {
@@ -62,18 +78,37 @@
 
         header.header-translucent {
             background-color: rgba(250, 247, 239, 1) !important;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
             transition: background-color 0.3s ease, backdrop-filter 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        header.header-scrolled {
+            background-color: rgba(250, 247, 239, 0.25) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
         }
 
         #bioDropdown {
             width: 310px !important;
             max-width: 85vw !important;
             font-size: 14px !important;
+            -webkit-text-size-adjust: none !important;
         }
 
-        .brutal-border, .light-card, .dropdown-nav-card, .btn-brutalism-light, header,
-        #bioDropdown, #themeMenuDropdown,
-        .paste-card-light, .code-window-light, .raw-modal-content, .alert-modal-content, .create-modal-content {
+        .brutal-border,
+        .light-card,
+        .dropdown-nav-card,
+        .btn-brutalism-light,
+        header,
+        #bioDropdown,
+        #themeMenuDropdown,
+        .btn-filter-light,
+        .paste-card-light,
+        .code-window-light,
+        .raw-modal-content,
+        .alert-modal-content {
             border-color: var(--theme-border) !important;
             transition: border-color 0.15s ease;
         }
@@ -82,10 +117,78 @@
             background-color: var(--theme-accent) !important;
             color: var(--theme-text) !important;
             border-color: var(--theme-border) !important;
+            transition: all 0.15s ease;
         }
 
         .theme-text-accent {
             color: var(--theme-border) !important;
+            transition: color 0.15s ease;
+        }
+
+        .theme-light-bg {
+            background-color: var(--theme-light) !important;
+            border-color: var(--theme-border) !important;
+            transition: all 0.15s ease;
+        }
+
+        /* MODE RGB DYNAMIC ROTATING BORDER */
+        .rgb-mode-active .light-card,
+        .rgb-mode-active .dropdown-nav-card,
+        .rgb-mode-active .btn-brutalism-light,
+        .rgb-mode-active #themeMenuDropdown,
+        .rgb-mode-active .paste-card-light {
+            border-color: transparent !important;
+            background-image: linear-gradient(var(--card-bg), var(--card-bg)), 
+                              conic-gradient(from var(--rgb-angle), #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
+            background-origin: border-box !important;
+            background-clip: padding-box, border-box !important;
+        }
+
+        .rgb-mode-active .theme-bg-accent {
+            border-color: transparent !important;
+            background-image: linear-gradient(var(--theme-accent), var(--theme-accent)), 
+                              conic-gradient(from var(--rgb-angle), #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
+            background-origin: border-box !important;
+            background-clip: padding-box, border-box !important;
+            color: var(--theme-text) !important;
+        }
+
+        .rgb-mode-active header.header-translucent {
+            border-color: var(--theme-border) !important;
+            background-color: rgba(250, 247, 239, 1) !important;
+            background-image: none !important;
+        }
+
+        .rgb-mode-active header.header-scrolled {
+            border-color: var(--theme-border) !important;
+            background-color: rgba(250, 247, 239, 0.25) !important;
+            background-image: none !important;
+        }
+
+        .rgb-mode-active #bioDropdown {
+            border-color: transparent !important;
+            background-image: linear-gradient(var(--bg-cream), var(--bg-cream)), 
+                              conic-gradient(from var(--rgb-angle), #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
+            background-origin: border-box !important;
+            background-clip: padding-box, border-box !important;
+        }
+
+        /* Mode Gist RAW */
+        body.gist-raw-mode {
+            background: #0d1117 !important;
+            color: #e6edf3 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-family: 'JetBrains Mono', monospace !important;
+        }
+        .gist-raw-container {
+            padding: 16px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #e6edf3;
+            background: #0d1117;
         }
 
         .light-card {
@@ -107,6 +210,29 @@
             align-items: center !important;
             justify-content: space-between !important;
             text-transform: uppercase !important;
+            transition: all 0.15s ease !important;
+            box-shadow: 0 2px 0px rgba(18, 18, 18, 0.05) !important;
+        }
+        .dropdown-nav-card:active {
+            transform: translateY(1px) !important;
+            background-color: #FAF7EF !important;
+        }
+
+        .btn-filter-light {
+            background-color: #FAF7EF;
+            border: 2px solid var(--theme-border);
+            color: #121212;
+            border-radius: 9999px;
+            font-weight: 800;
+            font-size: 11px;
+            padding: 6px 16px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-transform: uppercase;
+        }
+        .btn-filter-light.active, .btn-filter-light:hover {
+            background-color: var(--theme-accent);
+            color: var(--theme-text);
         }
 
         .btn-brutalism-light {
@@ -124,6 +250,7 @@
             gap: 6px;
             cursor: pointer;
             text-decoration: none;
+            transition: all 0.15s ease;
             box-shadow: 2px 2px 0px rgba(18, 18, 18, 0.1);
         }
         .btn-brutalism-light:hover {
@@ -134,11 +261,6 @@
             background-color: var(--theme-accent);
             color: var(--theme-text);
         }
-        .btn-brutalism-light.red-accent {
-            background-color: #ef4444;
-            color: #ffffff;
-            border-color: #b91c1c !important;
-        }
 
         .paste-card-light {
             background: var(--card-bg);
@@ -146,7 +268,12 @@
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 4px 4px 0px rgba(18, 18, 18, 0.08);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
             cursor: pointer;
+        }
+        .paste-card-light:hover {
+            transform: translateY(-2px);
+            box-shadow: 6px 6px 0px rgba(18, 18, 18, 0.12);
         }
 
         .card-top-light {
@@ -170,6 +297,30 @@
             border: 2px solid var(--theme-border);
             border-radius: 10px;
             height: 88px;
+            box-sizing: border-box;
+        }
+
+        .page-btn-light {
+            background: #FFFDF8;
+            color: #121212;
+            border: 2px solid var(--theme-border);
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .page-btn-light:hover:not(:disabled) {
+            background: #FAF7EF;
+        }
+        .page-btn-light.active {
+            background: var(--theme-accent);
+            color: var(--theme-text);
+        }
+        .page-btn-light:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
 
         .modal {
@@ -182,28 +333,34 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            box-sizing: border-box;
         }
 
-        .raw-modal-content, .create-modal-content {
+        .raw-modal-content {
             background: var(--card-bg);
             border: 2.5px solid var(--theme-border);
             color: #121212;
             max-width: 650px;
             width: 100%;
+            overflow: hidden;
             border-radius: 20px;
             box-shadow: 8px 8px 0px rgba(18, 18, 18, 0.2);
         }
 
-        .create-textarea-box {
+        .raw-textarea-box {
             width: 100%;
+            height: 280px;
             background: #121212;
             color: #38bdf8;
             border: 2px solid var(--theme-border);
             border-radius: 10px;
+            box-sizing: border-box;
             padding: 14px;
             font-family: 'JetBrains Mono', monospace;
             font-size: 13.5px;
+            resize: none;
             outline: none;
+            line-height: 1.6;
         }
 
         .alert-modal-content {
@@ -215,6 +372,7 @@
             width: 100%;
             padding: 24px;
             text-align: center;
+            box-shadow: 8px 8px 0px rgba(18, 18, 18, 0.2);
         }
 
         .code-window-light {
@@ -231,13 +389,15 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 2.5px solid var(--theme-border);
+            color: #121212;
             font-size: 11px;
             font-weight: 800;
         }
 
         .code-window-light pre[class*="language-"] {
             max-height: 550px !important;
-            overflow: auto !important;
+            overflow-y: auto !important;
+            overflow-x: auto !important;
             margin: 0 !important;
             background: #121212 !important;
             font-family: 'JetBrains Mono', monospace !important;
@@ -262,7 +422,9 @@
                 </div>
             </div>
 
+            <!-- Tombol Aksi Kanan -->
             <div class="flex items-center gap-1.5 sm:gap-2 relative">
+                
                 <button id="themePickerBtn" title="Ubah Style Warna" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 theme-bg-accent flex items-center justify-center active:scale-95 shadow-sm transition-all">
                     <svg class="w-4 h-4 sm:w-5 sm:h-5 fill-current" viewBox="0 0 24 24">
                         <path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61.43.53 1.03.89 1.7.89h1.83c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.61-.38-1 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-4.97-4.03-9-9-9zm-6.5 9c-.83 0-1.5-.67-1.5-1.5S4.67 9 5.5 9s1.5.67 1.5 1.5S6.33 12 5.5 12zm3-4C7.67 8 7 7.33 7 6.5S7.67 5 8.5 5s1.5.67 1.5 1.5S9.33 8 8.5 8zm7 0c-.83 0-1.5-.67-1.5-1.5S14.67 5 15.5 5s1.5.67 1.5 1.5S16.33 8 15.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
@@ -277,113 +439,214 @@
 
                 <div id="themeMenuDropdown" class="hidden absolute top-12 right-0 w-44 bg-[#FFFDF8] border-2 brutal-border rounded-xl p-2 shadow-2xl z-50 flex flex-col gap-1.5">
                     <div class="text-[9px] font-black code-font uppercase text-zinc-500 px-2 py-0.5 border-b border-zinc-200">PILIH TEMA STYLE</div>
-                    <button onclick="setAppTheme('yellow')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-amber-600 bg-yellow-300 text-[11px] font-black text-zinc-900"><span>YELLOW</span><span class="w-3.5 h-3.5 rounded-full bg-yellow-400 border border-amber-700"></span></button>
-                    <button onclick="setAppTheme('red')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-red-700 bg-red-500 text-[11px] font-black text-white"><span>RED</span><span class="w-3.5 h-3.5 rounded-full bg-red-600 border border-red-800"></span></button>
-                    <button onclick="setAppTheme('blue')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-blue-700 bg-blue-500 text-[11px] font-black text-white"><span>BLUE</span><span class="w-3.5 h-3.5 rounded-full bg-blue-600 border border-blue-800"></span></button>
-                    <button onclick="setAppTheme('cyan')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-cyan-700 bg-cyan-400 text-[11px] font-black text-zinc-900"><span>CYAN</span><span class="w-3.5 h-3.5 rounded-full bg-cyan-500 border border-cyan-800"></span></button>
-                    <button onclick="setAppTheme('purple')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-purple-700 bg-purple-500 text-[11px] font-black text-white"><span>PURPLE</span><span class="w-3.5 h-3.5 rounded-full bg-purple-600 border border-purple-800"></span></button>
-                    <button onclick="setAppTheme('green')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-emerald-700 bg-emerald-400 text-[11px] font-black text-zinc-900"><span>GREEN</span><span class="w-3.5 h-3.5 rounded-full bg-emerald-500 border border-emerald-800"></span></button>
-                    <button onclick="setAppTheme('black')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-zinc-900 bg-zinc-900 text-[11px] font-black text-white"><span>BLACK</span><span class="w-3.5 h-3.5 rounded-full bg-black border border-white"></span></button>
+                    <button onclick="setAppTheme('yellow')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-amber-600 bg-yellow-300 text-[11px] font-black text-zinc-900 active:scale-95">
+                        <span>YELLOW</span><span class="w-3.5 h-3.5 rounded-full bg-yellow-400 border border-amber-700"></span>
+                    </button>
+                    <button onclick="setAppTheme('red')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-red-700 bg-red-500 text-[11px] font-black text-white active:scale-95">
+                        <span>RED</span><span class="w-3.5 h-3.5 rounded-full bg-red-600 border border-red-800"></span>
+                    </button>
+                    <button onclick="setAppTheme('blue')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-blue-700 bg-blue-500 text-[11px] font-black text-white active:scale-95">
+                        <span>BLUE</span><span class="w-3.5 h-3.5 rounded-full bg-blue-600 border border-blue-800"></span>
+                    </button>
+                    <button onclick="setAppTheme('cyan')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-cyan-700 bg-cyan-400 text-[11px] font-black text-zinc-900 active:scale-95">
+                        <span>CYAN</span><span class="w-3.5 h-3.5 rounded-full bg-cyan-500 border border-cyan-800"></span>
+                    </button>
+                    <button onclick="setAppTheme('purple')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-purple-700 bg-purple-500 text-[11px] font-black text-white active:scale-95">
+                        <span>PURPLE</span><span class="w-3.5 h-3.5 rounded-full bg-purple-600 border border-purple-800"></span>
+                    </button>
+                    <button onclick="setAppTheme('green')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-emerald-700 bg-emerald-400 text-[11px] font-black text-zinc-900 active:scale-95">
+                        <span>GREEN</span><span class="w-3.5 h-3.5 rounded-full bg-emerald-500 border border-emerald-800"></span>
+                    </button>
+                    <button onclick="setAppTheme('black')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-zinc-900 bg-zinc-900 text-[11px] font-black text-white active:scale-95">
+                        <span>BLACK</span><span class="w-3.5 h-3.5 rounded-full bg-black border border-white"></span>
+                    </button>
+                    <button onclick="setAppTheme('rgb')" class="flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg border-2 border-pink-600 bg-gradient-to-r from-red-400 via-emerald-400 to-blue-400 text-[11px] font-black text-zinc-900 active:scale-95 shadow-sm">
+                        <span>RGB DYNAMIC</span><span class="w-3.5 h-3.5 rounded-full bg-white border border-black animate-pulse"></span>
+                    </button>
                 </div>
+
             </div>
         </div>
     </header>
 
     <div id="menuOverlay" class="fixed inset-0 bg-black/60 hidden z-40"></div>
 
-    <!-- Sidebar Menu -->
+    <!-- Sidebar Dropdown Nav -->
     <div id="bioDropdown" class="fixed top-0 right-0 h-full bg-[#FAF7EF] border-l-2 brutal-border transform translate-x-full transition-transform duration-300 ease-in-out z-50 shadow-2xl flex flex-col p-4 text-zinc-900 overflow-y-auto scrollbar-hide">
+        
         <div class="flex items-center justify-between pb-3 mb-3 border-b-2 brutal-border">
-            <span class="px-2.5 py-1 theme-bg-accent border-2 brutal-border rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1">ARULZXD API</span>
-            <button id="closeMenuBtn" class="w-8 h-8 rounded-lg border-2 brutal-border bg-[#FAF7EF] flex items-center justify-center text-zinc-900 active:scale-95">✕</button>
+            <div class="flex items-center gap-2">
+                <span class="px-2.5 py-1 theme-bg-accent border-2 brutal-border rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    ARULZXD API
+                </span>
+            </div>
+
+            <button id="closeMenuBtn" class="w-8 h-8 rounded-lg border-2 brutal-border bg-[#FAF7EF] flex items-center justify-center text-zinc-900 active:scale-95">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <div class="mb-3.5 rounded-xl border-2 brutal-border overflow-hidden bg-black h-44 w-full relative shadow-sm">
+            <video id="sidebarBannerVideo" autoplay loop muted playsinline webkit-playsinline preload="auto" class="w-full h-full object-cover">
+                <source src="https://cdn.arulz.biz.id/files/MPzS.mp4" type="video/mp4">
+            </video>
         </div>
 
         <div id="sidebarAuthBtnContainer" class="mb-3">
             <div class="p-3 bg-amber-100 border-2 brutal-border rounded-xl shadow-xs">
                 <div class="flex items-center gap-1.5 text-amber-900 text-xs font-black mb-1">
+                    <svg class="w-4 h-4 text-amber-700 fill-current" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
                     <span>PERINGATAN!</span>
                 </div>
-                <p class="text-[10px] font-semibold text-zinc-700 leading-tight mb-2.5">Anda belum login.</p>
-                <a href="/login" class="w-full bg-zinc-900 text-white border-2 brutal-border rounded-xl py-2 px-3 text-[11px] font-black uppercase flex items-center justify-center gap-2 shadow-xs text-center">LOGIN / REGISTER</a>
+                <p class="text-[10px] font-semibold text-zinc-700 leading-tight mb-2.5">
+                    Anda belum login. Silakan login untuk membuka akses penuh fitur dan endpoint API.
+                </p>
+                <a href="/login" class="w-full bg-zinc-900 text-white border-2 brutal-border rounded-xl py-2 px-3 text-[11px] font-black uppercase flex items-center justify-center gap-2 shadow-xs active:scale-95 transition-all text-center">
+                    <svg class="w-3.5 h-3.5 fill-white shrink-0" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+                    <span>LOGIN / REGISTER</span>
+                </a>
             </div>
         </div>
 
         <nav class="space-y-2 flex-1 pb-4">
-            <a href="/" class="dropdown-nav-card">DASHBOARD</a>
-            <a href="/api" class="dropdown-nav-card">DOCS / ENDPOINTS</a>
-            <a href="/store" class="dropdown-nav-card">STORE</a>
-            <a href="/uploader" class="dropdown-nav-card">UPLOADER FILE</a>
-            <a href="/feedback" class="dropdown-nav-card">FEEDBACK</a>
-            <a href="/status" class="dropdown-nav-card">SERVER STATUS</a>
-            <a href="/support" class="dropdown-nav-card">SUPPORT / DONASI</a>
-            <a href="/privacy" class="dropdown-nav-card">PRIVACY POLICY</a>
+            <a href="/" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"/></svg>
+                    <span>DASHBOARD</span>
+                </div>
+            </a>
+            <a href="/api" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                    <span>DOCS / ENDPOINTS</span>
+                </div>
+            </a>
+            <a href="/store" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+                    <span>STORE</span>
+                </div>
+            </a>
+            <a href="/uploader" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+                    <span>UPLOADER FILE</span>
+                </div>
+            </a>
+            <a href="/feedback" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.255-3.883c.195-.29.515-.475.865-.501 1.153-.086 2.294-.213 3.423-.379 1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"/></svg>
+                    <span>FEEDBACK</span>
+                </div>
+            </a>
+            <a href="/status" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 3h13.5m-13.5 3h13.5M6 3h12a2.25 2.25 0 012.25 2.25v3.75A2.25 2.25 0 0118 11.25H6A2.25 2.25 0 013.75 9V5.25A2.25 2.25 0 016 3z"/></svg>
+                    <span>SERVER STATUS</span>
+                </div>
+            </a>
+            <a href="/support" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/></svg>
+                    <span>SUPPORT / DONASI</span>
+                </div>
+            </a>
+            <a href="/privacy" class="dropdown-nav-card">
+                <div class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+                    <span>PRIVACY POLICY</span>
+                </div>
+            </a>
         </nav>
     </div>
 
-    <!-- Content Area -->
+    <!-- Main Content Container -->
     <main class="max-w-4xl mx-auto px-3.5 sm:px-6 pt-20 pb-8 relative z-10 flex-1 w-full" id="page-content">
         <div class="text-center py-10 font-bold text-zinc-600 text-sm font-mono" id="loading-text">
             Mengambil data Server...
         </div>
     </main>
 
-    <!-- Modal Tambah Snippet Baru -->
-    <div class="modal" id="createModal">
-        <div class="create-modal-content p-5 relative">
+    <!-- Modal Tambah Snippet (SQL / Code Editor) -->
+    <div class="modal" id="addSnippetModal">
+        <div class="raw-modal-content p-5 relative max-w-xl">
             <div class="flex items-center justify-between pb-3 mb-4 border-b-2 brutal-border">
                 <div class="flex items-center gap-2">
-                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="w-5 h-5 text-zinc-900">
+                    <svg class="w-4 h-4 text-zinc-900" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                     </svg>
-                    <span class="text-xs font-black uppercase text-zinc-900 tracking-wider">BUAT SNIPPET / PASTEBIN BARU</span>
+                    <span class="text-xs font-black uppercase text-zinc-900 tracking-wider">TAMBAH SNIPPET BARU</span>
                 </div>
-                <button onclick="closeCreateModal()" class="w-7 h-7 rounded-lg border-2 brutal-border bg-[#FAF7EF] flex items-center justify-center text-zinc-900 active:scale-95 font-bold">✕</button>
+                <button onclick="closeAddSnippetModal()" class="w-7 h-7 rounded-lg border-2 brutal-border bg-[#FAF7EF] flex items-center justify-center text-zinc-900 active:scale-95 font-bold">✕</button>
             </div>
 
-            <form id="createSnippetForm" onsubmit="handleCreateSnippet(event)" class="space-y-3">
+            <form id="addSnippetForm" onsubmit="submitNewSnippet(event)" class="space-y-3">
                 <div>
-                    <label class="block text-[10px] font-black uppercase text-zinc-800 mb-1">Judul Snippet *</label>
-                    <input type="text" id="newTitle" required placeholder="Contoh: Express.js Auth Middleware" class="w-full bg-[#FFFDF8] border-2 brutal-border rounded-xl px-3 py-2 text-xs font-bold text-zinc-900 focus:outline-none">
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-[10px] font-black uppercase text-zinc-800 mb-1">Bahasa Pemrograman *</label>
-                        <select id="newLanguage" class="w-full bg-[#FFFDF8] border-2 brutal-border rounded-xl px-3 py-2 text-xs font-bold text-zinc-900 focus:outline-none uppercase">
-                            <option value="javascript">JavaScript</option>
-                            <option value="html">HTML</option>
-                            <option value="php">PHP</option>
-                            <option value="python">Python</option>
-                            <option value="scrape">Scrape</option>
-                            <option value="plaintext">Plaintext</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black uppercase text-zinc-800 mb-1">Pengembang / Author (Terkunci)</label>
-                        <div class="flex items-center gap-2 bg-zinc-100 border-2 brutal-border rounded-xl px-3 py-2">
-                            <img id="newAuthorAvatar" src="https://cdn.arulz.biz.id/files/1wh5do.png" class="w-6 h-6 rounded-full object-cover border border-zinc-900">
-                            <input type="text" id="newAuthor" readonly class="bg-transparent text-xs font-bold text-zinc-700 w-full focus:outline-none cursor-not-allowed">
-                        </div>
-                    </div>
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-zinc-800 mb-1">JUDUL SNIPPET *</label>
+                    <input type="text" id="snippetTitle" required placeholder="Contoh: Scraper TikTok Downloader" 
+                        class="w-full bg-white border-2 border-zinc-900 rounded-xl px-3 py-2 text-xs font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-black uppercase text-zinc-800 mb-1">Deskripsi Ringkas</label>
-                    <input type="text" id="newDesc" placeholder="Contoh: Middleware verifikasi token JWT" class="w-full bg-[#FFFDF8] border-2 brutal-border rounded-xl px-3 py-2 text-xs font-bold text-zinc-900 focus:outline-none">
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-zinc-800 mb-1">DESKRIPSI SNIPPET</label>
+                    <input type="text" id="snippetDesc" placeholder="Deskripsi singkat mengenai fungsi kode..." 
+                        class="w-full bg-white border-2 border-zinc-900 rounded-xl px-3 py-2 text-xs font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-400">
                 </div>
 
                 <div>
-                    <label class="block text-[10px] font-black uppercase text-zinc-800 mb-1">Isi Kode / Snippet *</label>
-                    <textarea id="newContent" required placeholder="Tempelkan/ketikkan kode Anda di sini..." class="create-textarea-box h-44"></textarea>
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-zinc-800 mb-1">BAHASA PEMROGRAMAN *</label>
+                    <select id="snippetLanguage" required class="w-full bg-white border-2 border-zinc-900 rounded-xl px-3 py-2 text-xs font-black text-zinc-900 focus:outline-none focus:ring-2 focus:ring-amber-400 uppercase">
+                        <option value="JavaScript">JavaScript</option>
+                        <option value="html">HTML</option>
+                        <option value="scrape">Scrape</option>
+                        <option value="text">Text / Plaintext</option>
+                        <option value="Python">Python</option>
+                    </select>
                 </div>
 
-                <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" class="btn-brutalism-light" onclick="closeCreateModal()">BATAL</button>
-                    <button type="submit" id="btnSubmitSnippet" class="btn-brutalism-light yellow-accent">
-                        🚀 UNGGAH SNIPPET
+                <div>
+                    <label class="block text-[10px] font-black uppercase tracking-wider text-zinc-800 mb-1">ISI KODE / SNIPPET * (SQL EDITOR)</label>
+                    <textarea id="snippetContent" required placeholder="// Tuliskan kode atau script Anda di sini..." 
+                        class="raw-textarea-box h-48 text-xs"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2 border-t-2 brutal-border">
+                    <button type="button" class="btn-brutalism-light" onclick="closeAddSnippetModal()">BATAL</button>
+                    <button type="submit" id="submitSnippetBtn" class="btn-brutalism-light yellow-accent">
+                        SIMPAN SNIPPET
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Raw Modal -->
+    <div class="modal" id="rawModal">
+        <div class="raw-modal-content p-5 relative">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b-2 brutal-border">
+                <div class="flex items-center gap-2">
+                    <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="w-4 h-4 text-zinc-900">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                    </svg>
+                    <span id="raw-modal-title-text" class="text-xs font-extrabold uppercase text-zinc-900 tracking-wider">RAW - PREVIEW</span>
+                </div>
+                <button onclick="closeRawModal()" class="w-7 h-7 rounded-lg border-2 brutal-border bg-[#FAF7EF] flex items-center justify-center text-zinc-900 active:scale-95 font-bold">✕</button>
+            </div>
+            
+            <textarea id="raw-textarea-display" class="raw-textarea-box mb-4" readonly></textarea>
+
+            <div class="flex justify-end gap-2">
+                <button class="btn-brutalism-light" onclick="closeRawModal()">TUTUP</button>
+                <button class="btn-brutalism-light yellow-accent" onclick="copyRawInsideModal()">
+                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="w-3.5 h-3.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376A8.965 8.965 0 0012 12.75c-.497 0-.982.04-1.455.12l-.179.032m5.884 4.348a8.974 8.974 0 01-2.228 3.931m0 0A8.92 8.92 0 017.5 21.75a9.06 9.06 0 01-1.5-.124m4.5-10.5a4.5 4.5 0 00-4.5 4.5v3m9.375-9a4.5 4.5 0 00-4.5-4.5v3" />
+                    </svg>
+                    SALIN RAW
+                </button>
+            </div>
         </div>
     </div>
 
@@ -396,19 +659,21 @@
         </div>
     </div>
 
-    <!-- Footer -->
+    <!-- Footer Halaman -->
     <footer class="w-full max-w-4xl mx-auto px-4 py-6 border-t-2 border-zinc-300 text-center text-[10px] font-mono font-bold text-zinc-500 uppercase tracking-widest relative z-10">
         &copy; 2026 ARULZ-XD API · DIBUAT UNTUK DEVELOPER INDONESIA
     </footer>
 
     <script>
         const API_PASTECODE_URL = "/api/pastecode";
-        const ADMIN_EMAIL = "haqqi.official13@gmail.com";
-        const DEFAULT_AVATAR = "https://cdn.arulz.biz.id/files/1wh5do.png";
 
         let pastes = [];
+        let currentPage = 1;
+        const itemsPerPage = 4;
         const urlParams = new URLSearchParams(window.location.search);
         const viewId = urlParams.get('id');
+        const isRawMode = urlParams.get('raw') === 'true';
+        let currentFilter = 'ALL';
         let currentUser = null;
 
         const THEME_PRESETS = {
@@ -421,16 +686,88 @@
             black:  { border: '#000000', accent: '#18181b', text: '#ffffff', light: '#e4e4e7' }
         };
 
+        let rgbInterval = null;
+
+        function playBannerVideo() {
+            const video = document.getElementById('sidebarBannerVideo');
+            if (!video) return;
+            video.muted = true;
+            video.defaultMuted = true;
+            video.playsInline = true;
+            video.setAttribute('muted', '');
+            video.setAttribute('playsinline', '');
+            video.setAttribute('webkit-playsinline', '');
+            video.setAttribute('autoplay', '');
+            
+            if (video.paused) {
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(err => {
+                        console.log("Autoplay banner handled:", err);
+                        setTimeout(() => { video.play().catch(e => console.log("Retry play failed:", e)); }, 250);
+                    });
+                }
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', playBannerVideo);
+        } else {
+            playBannerVideo();
+        }
+        window.addEventListener('load', playBannerVideo);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) playBannerVideo();
+        });
+        document.addEventListener('touchstart', playBannerVideo, { once: true });
+        document.addEventListener('click', playBannerVideo, { once: true });
+
         function setAppTheme(themeName) {
             const root = document.documentElement;
-            localStorage.setItem('selectedThemeStyle', themeName);
-            const t = THEME_PRESETS[themeName] || THEME_PRESETS.yellow;
-            root.style.setProperty('--theme-border', t.border);
-            root.style.setProperty('--theme-accent', t.accent);
-            root.style.setProperty('--theme-text', t.text);
-            root.style.setProperty('--theme-light', t.light);
             const dropdown = document.getElementById('themeMenuDropdown');
+
+            if (rgbInterval) {
+                clearInterval(rgbInterval);
+                rgbInterval = null;
+            }
+
+            localStorage.setItem('selectedThemeStyle', themeName);
+
+            if (themeName === 'rgb') {
+                document.body.classList.add('rgb-mode-active');
+                let angle = 0;
+                rgbInterval = setInterval(() => {
+                    angle = (angle + 3) % 360;
+                    root.style.setProperty('--rgb-angle', angle + 'deg');
+                }, 20);
+            } else {
+                document.body.classList.remove('rgb-mode-active');
+                const t = THEME_PRESETS[themeName] || THEME_PRESETS.yellow;
+                root.style.setProperty('--theme-border', t.border);
+                root.style.setProperty('--theme-accent', t.accent);
+                root.style.setProperty('--theme-text', t.text);
+                root.style.setProperty('--theme-light', t.light);
+            }
+
             if (dropdown) dropdown.classList.add('hidden');
+        }
+
+        function getLanguageStyle(lang) {
+            const l = String(lang).toLowerCase().trim();
+            switch(l) {
+                case 'javascript': case 'js':
+                    return 'background: var(--theme-accent); color: var(--theme-text); border: 1.5px solid var(--theme-border); font-weight: 900;';
+                case 'html':
+                    return 'background: #ffedd5; color: #121212; border: 1.5px solid var(--theme-border); font-weight: 900;';
+                case 'php':
+                    return 'background: #e0e7ff; color: #121212; border: 1.5px solid var(--theme-border); font-weight: 900;';
+                case 'python':
+                    return 'background: #dbeafe; color: #121212; border: 1.5px solid var(--theme-border); font-weight: 900;';
+                case 'scrape':
+                    return 'background: #ccfbf1; color: #121212; border: 1.5px solid var(--theme-border); font-weight: 900;';
+                default:
+                    return 'background: #FAF7EF; color: #121212; border: 1.5px solid var(--theme-border); font-weight: 900;';
+            }
         }
 
         function customAlert(message) {
@@ -442,93 +779,49 @@
             document.getElementById('alertModal').style.display = 'none';
         }
 
-        function openCreateModal() {
+        function openAddSnippetModal() {
             if (!currentUser) {
-                customAlert("Anda harus LOGIN terlebih dahulu untuk membuat snippet!");
-                setTimeout(() => { window.location.href = "/login"; }, 1500);
-                return;
+                return customAlert("Anda harus login terlebih dahulu untuk menambah snippet!");
             }
-
-            const authorName = currentUser.username || currentUser.name || "User";
-            const authorAvatar = currentUser.avatar || currentUser.profilePic || DEFAULT_AVATAR;
-
-            document.getElementById('newAuthor').value = authorName;
-            document.getElementById('newAuthorAvatar').src = authorAvatar;
-
-            document.getElementById('createModal').style.display = 'flex';
+            document.getElementById('addSnippetModal').style.display = 'flex';
         }
 
-        function closeCreateModal() {
-            document.getElementById('createModal').style.display = 'none';
+        function closeAddSnippetModal() {
+            document.getElementById('addSnippetModal').style.display = 'none';
         }
 
-        async function handleCreateSnippet(e) {
-            e.preventDefault();
-            if (!currentUser) {
-                customAlert("Sesi login berakhir. Silakan login kembali.");
-                return;
-            }
+        async function submitNewSnippet(event) {
+            event.preventDefault();
+            const submitBtn = document.getElementById('submitSnippetBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "MENYIMPAN...";
 
-            const btn = document.getElementById('btnSubmitSnippet');
-            btn.disabled = true;
-            btn.innerText = "MENGUNGGAH...";
-
-            const payload = {
-                title: document.getElementById('newTitle').value.trim(),
-                language: document.getElementById('newLanguage').value,
-                author: currentUser.username || currentUser.name || "User",
-                author_avatar: currentUser.avatar || currentUser.profilePic || DEFAULT_AVATAR,
-                desc: document.getElementById('newDesc').value.trim() || 'By ' + (currentUser.username || "User"),
-                content: document.getElementById('newContent').value
-            };
+            const title = document.getElementById('snippetTitle').value;
+            const desc = document.getElementById('snippetDesc').value;
+            const language = document.getElementById('snippetLanguage').value;
+            const content = document.getElementById('snippetContent').value;
 
             try {
-                const res = await fetch(API_PASTECODE_URL, {
+                const response = await fetch('/api/pastecode', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ title, desc, language, content })
                 });
-                const result = await res.json();
 
-                if (result.status || result.success) {
-                    closeCreateModal();
-                    document.getElementById('createSnippetForm').reset();
-                    customAlert("Snippet berhasil diunggah!");
+                const result = await response.json();
+                if (result.status) {
+                    customAlert("Snippet berhasil ditambahkan!");
+                    closeAddSnippetModal();
+                    document.getElementById('addSnippetForm').reset();
                     await loadPastesFromServer();
                 } else {
-                    customAlert(result.message || "Gagal mengunggah snippet!");
+                    customAlert(result.message || "Gagal menyimpan snippet.");
                 }
             } catch (err) {
-                customAlert("Terjadi kesalahan jaringan saat mengunggah snippet.");
+                customAlert("Terjadi kesalahan jaringan.");
             } finally {
-                btn.disabled = false;
-                btn.innerText = "🚀 UNGGAH SNIPPET";
-            }
-        }
-
-        async function deleteSnippet(id) {
-            if (!confirm("Apakah Anda yakin ingin menghapus snippet ini secara permanen?")) return;
-
-            try {
-                const res = await fetch(`${API_PASTECODE_URL}/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userEmail: currentUser ? currentUser.email : '' })
-                });
-
-                const result = await res.json();
-                if (result.status || result.success) {
-                    customAlert("Snippet berhasil dihapus!");
-                    if (viewId) {
-                        window.location.href = "/pastecode";
-                    } else {
-                        await loadPastesFromServer();
-                    }
-                } else {
-                    customAlert(result.message || "Gagal menghapus snippet.");
-                }
-            } catch (err) {
-                customAlert("Terjadi kesalahan saat menghapus snippet.");
+                submitBtn.disabled = false;
+                submitBtn.innerText = "SIMPAN SNIPPET";
             }
         }
 
@@ -536,59 +829,169 @@
             try {
                 const response = await fetch(API_PASTECODE_URL);
                 if (!response.ok) throw new Error(`HTTP status: ${response.status}`);
+
                 const result = await response.json();
                 if (result.status && Array.isArray(result.data)) {
                     pastes = result.data;
                 } else {
                     pastes = [];
                 }
+
+                localStorage.setItem('arulzxd_pastes', JSON.stringify(pastes));
             } catch (err) {
-                console.error("Gagal mengambil data dari API:", err);
-                pastes = [];
+                console.error("Gagal mengambil data dari Supabase API:", err);
+                const rawLocal = localStorage.getItem('arulzxd_pastes');
+                try { pastes = rawLocal ? JSON.parse(rawLocal) : []; } catch(e) { pastes = []; }
             }
+
+            if (!pastes || !Array.isArray(pastes)) pastes = [];
             renderPage();
+        }
+
+        function openRawModal() {
+            const idx = pastes.findIndex(p => p.id.toString() === viewId.toString());
+            if(idx !== -1) {
+                const current = pastes[idx];
+                document.getElementById('raw-modal-title-text').innerText = `RAW - ${current.title.toUpperCase()}`;
+                document.getElementById('raw-textarea-display').value = current.content;
+                document.getElementById('rawModal').style.display = 'flex';
+            }
+        }
+
+        function closeRawModal() {
+            document.getElementById('rawModal').style.display = 'none';
+        }
+
+        function copyRawInsideModal() {
+            const txt = document.getElementById('raw-textarea-display').value;
+            navigator.clipboard.writeText(txt).then(() => {
+                customAlert("Kode berhasil disalin!");
+                closeRawModal();
+            });
+        }
+
+        function downloadCode() {
+            const idx = pastes.findIndex(p => p.id.toString() === viewId.toString());
+            if(idx !== -1) {
+                const current = pastes[idx];
+                const element = document.createElement("a");
+                const file = new Blob([current.content], {type: 'text/plain'});
+                element.href = URL.createObjectURL(file);
+                element.download = `${current.title.replace(/\s+/g, '_').toLowerCase()}.js`;
+                document.body.appendChild(element);
+                element.click();
+                document.body.removeChild(element);
+            }
         }
 
         function renderPage() {
             const target = document.getElementById('page-content');
             if (!target) return;
 
-            const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+            if (viewId && isRawMode) {
+                const current = pastes.find(p => p.id.toString() === viewId.toString());
+                if (!current) { 
+                    document.body.innerHTML = "404 Not Found"; 
+                    return; 
+                }
+                
+                document.body.classList.add('gist-raw-mode');
+                
+                const mainHeader = document.querySelector('header');
+                const mainFooter = document.querySelector('footer');
+                if (mainHeader) mainHeader.style.display = 'none';
+                if (mainFooter) mainFooter.style.display = 'none';
+                
+                target.style.margin = "0";
+                target.style.padding = "0";
+                target.style.maxWidth = "none";
+                target.innerHTML = `<div class="gist-raw-container">${escapeHTML(current.content || '')}</div>`;
+                return;
+            }
+
+            if (pastes.length === 0 && !viewId) {
+                target.innerHTML = `
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-xs font-black uppercase text-zinc-800 tracking-wider">// SNIPPET & PASTEBIN</span>
+                        <button onclick="openAddSnippetModal()" class="btn-brutalism-light yellow-accent">
+                            + TAMBAH SNIPPET
+                        </button>
+                    </div>
+                    <div class="light-card p-8 text-center text-xs font-bold text-zinc-600 uppercase">Data tidak ditemukan.</div>`;
+                return;
+            }
 
             if (viewId) {
-                const current = pastes.find(p => p.id.toString() === viewId.toString());
-                if (!current) {
-                    target.innerHTML = `<div class="light-card p-6 text-center"><h2 class="text-base font-black mb-4">Data tidak ditemukan!</h2><a href="/pastecode" class="btn-brutalism-light inline-flex">Kembali ke Pastebin</a></div>`;
+                const idx = pastes.findIndex(p => p.id.toString() === viewId.toString());
+                if (idx === -1) {
+                    target.innerHTML = `
+                        <div class="light-card p-6 text-center">
+                            <h2 class="text-base font-black text-zinc-900 mb-4">Data tidak ditemukan!</h2>
+                            <a href="/pastecode" class="btn-brutalism-light inline-flex">Kembali ke Pastebin</a>
+                        </div>`;
                     return;
                 }
 
+                const current = pastes[idx];
                 const lineCount = current.content ? current.content.split('\n').length : 0;
-                const avatarUrl = current.author_avatar || DEFAULT_AVATAR;
+                const isHeavyCode = lineCount > 3000 || (current.content && current.content.length > 150000);
+                const authorAvatar = current.author_avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png';
+                const authorName = current.author || 'Pengembang';
 
                 target.innerHTML = `
-                    <div class="flex justify-between items-center mb-4">
-                        <a href="/pastecode" class="btn-brutalism-light inline-flex">← KEMBALI KE PASTEBIN</a>
-                        ${isAdmin ? `<button onclick="deleteSnippet('${current.id}')" class="btn-brutalism-light red-accent">🗑 HAPUS (ADMIN)</button>` : ''}
-                    </div>
+                    <a href="/pastecode" class="btn-brutalism-light inline-flex mb-4">
+                        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+                        KEMBALI KE PASTEBIN
+                    </a>
 
                     <div class="light-card p-5 mb-5">
+                        <!-- AVATAR & NAMA PENGEMBANG DI ATAS JUDUL -->
+                        <div class="flex items-center gap-2.5 pb-3 mb-3 border-b-2 brutal-border">
+                            <img src="${authorAvatar}" class="w-8 h-8 rounded-full border-2 brutal-border object-cover shadow-xs">
+                            <div>
+                                <span class="block text-xs font-black text-zinc-900 leading-none">${authorName}</span>
+                                <span class="block text-[9px] font-mono font-bold text-zinc-500 uppercase">PENGEMBANG / AUTHOR</span>
+                            </div>
+                        </div>
+
                         <div class="flex justify-between items-start gap-3">
                             <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2 mb-2 pb-2 border-b border-zinc-200">
-                                    <img src="${avatarUrl}" class="w-8 h-8 rounded-full object-cover border-2 brutal-border shadow-xs">
-                                    <div>
-                                        <span class="text-xs font-black text-zinc-900 uppercase block">${escapeHTML(current.author || 'Anonymous')}</span>
-                                        <span class="text-[9px] font-mono font-bold text-zinc-500">📅 ${current.date || 'Terbaru'}</span>
-                                    </div>
-                                </div>
-                                <h2 class="text-lg font-black text-zinc-900 mb-1 truncate">${escapeHTML(current.title)}</h2>
-                                <p class="text-xs font-semibold text-zinc-600 mb-3 whitespace-pre-wrap leading-relaxed">${escapeHTML(current.desc || 'Tidak ada deskripsi.')}</p>
+                                <h2 class="text-lg font-black text-zinc-900 mb-1 truncate">${current.title}</h2>
+                                <p class="text-xs font-semibold text-zinc-600 mb-3 whitespace-pre-wrap leading-relaxed">${current.desc || 'Tidak ada deskripsi.'}</p>
                             </div>
-                            <span class="px-3 py-1 text-xs rounded-lg code-font theme-bg-accent">${current.language}</span>
+                            <span class="px-3 py-1 text-xs rounded-lg code-font" style="${getLanguageStyle(current.language)}">${current.language}</span>
                         </div>
-                        <div class="flex items-center gap-3 text-[10px] font-mono font-extrabold text-zinc-500 pt-3 mt-3 border-t-2 brutal-border">
+
+                        <div class="flex items-center gap-3 text-[10px] font-mono font-extrabold text-zinc-500 pt-2 border-t-2 brutal-border">
+                            <span>📅 ${current.date}</span>
+                            <span>•</span>
                             <span>📄 ${lineCount.toLocaleString()} BARIS</span>
                         </div>
+                    </div>
+
+                    ${isHeavyCode ? `<div class="p-3 bg-red-100 border-2 brutal-border rounded-xl mb-4 text-xs font-bold text-red-600">⚠️ File besar terdeteksi (${lineCount.toLocaleString()} baris). Syntax highlighting dimatikan demi kelancaran rendering.</div>` : ''}
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+                        <button class="btn-brutalism-light yellow-accent" onclick="copyText()">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376A8.965 8.965 0 0012 12.75c-.497 0-.982.04-1.455.12l-.179.032m5.884 4.348a8.974 8.974 0 01-2.228 3.931m0 0A8.92 8.92 0 017.5 21.75a9.06 9.06 0 01-1.5-.124m4.5-10.5a4.5 4.5 0 00-4.5 4.5v3m9.375-9a4.5 4.5 0 00-4.5-4.5v3" /></svg>
+                            SALIN KODE
+                        </button>
+                        <button class="btn-brutalism-light" onclick="downloadCode()">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+                            DOWNLOAD
+                        </button>
+                        <button class="btn-brutalism-light" onclick="openRawModal()">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                            RAW
+                        </button>
+                        <button class="btn-brutalism-light" onclick="copyRawUrl()">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" /></svg>
+                            RAW URL
+                        </button>
+                        <button class="btn-brutalism-light border-2 brutal-border bg-zinc-900 text-white hover:bg-zinc-800" onclick="sharePaste()">
+                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" /></svg>
+                            BAGIKAN
+                        </button>
                     </div>
 
                     <div class="code-window-light">
@@ -596,172 +999,333 @@
                             <div class="flex gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-400 border border-zinc-900"></span><span class="w-2.5 h-2.5 rounded-full bg-amber-400 border border-zinc-900"></span><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 border border-zinc-900"></span></div>
                             <div class="code-font theme-text-accent font-bold">&lt;/&gt; ${current.language.toUpperCase()} MODE</div>
                         </div>
-                        <pre class="line-numbers language-${current.language}"><code id="code-block">${escapeHTML(current.content || '')}</code></pre>
+                        <pre class="${isHeavyCode ? '' : 'line-numbers'} language-${isHeavyCode ? 'plaintext' : current.language}"><code id="code-block"></code></pre>
                     </div>
                 `;
-                if (typeof Prism !== 'undefined') Prism.highlightAll();
-                return;
-            }
+                const codeEl = document.getElementById('code-block');
+                if (codeEl) {
+                    codeEl.textContent = current.content || '';
+                    if (!isHeavyCode && typeof Prism !== 'undefined') {
+                        Prism.highlightElement(codeEl);
+                    }
+                }
 
-            target.innerHTML = `
-                <div class="light-card p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <span class="px-3 py-1 theme-bg-accent border-2 brutal-border text-[10px] font-black uppercase rounded-full inline-block mb-2">Arulz-XD Pastebin</span>
-                        <h1 class="text-2xl sm:text-3xl font-black text-zinc-900 mb-1">Snippet & Kode</h1>
-                        <p class="text-xs sm:text-sm font-semibold text-zinc-600 leading-relaxed">Kumpulan snippet kode terbuka dari komunitas pengembang Arulz-XD.</p>
+            } else {
+                let totalLines = 0;
+                let langs = {};
+                pastes.forEach(p => {
+                    if(p.content) totalLines += p.content.split('\n').length;
+                    langs[p.language] = true;
+                });
+                let totalLanguagesCount = Object.keys(langs).length;
+                if (totalLanguagesCount < 1) totalLanguagesCount = 1;
+
+                target.innerHTML = `
+                    <div class="light-card p-6 mb-6">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
+                            <span class="px-3 py-1 theme-bg-accent border-2 brutal-border text-[10px] font-black uppercase rounded-full inline-block">Arulz-XD Pastebin</span>
+                            <button onclick="openAddSnippetModal()" class="btn-brutalism-light yellow-accent shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                                <span>TAMBAH SNIPPET</span>
+                            </button>
+                        </div>
+                        <h1 class="text-2xl sm:text-3xl font-black text-zinc-900 mb-2">Snippet &amp; Kode</h1>
+                        <p class="text-xs sm:text-sm font-semibold text-zinc-600 leading-relaxed max-w-2xl">Kumpulan kode, script, dan snippet dari tim Arulz-XD. Gratis, siap pakai untuk mendukung projek Anda.</p>
                     </div>
-                    <button onclick="openCreateModal()" class="btn-brutalism-light yellow-accent py-3 px-5 text-xs whitespace-nowrap shadow-md">
-                        ➕ TAMBAH SNIPPET BARU
-                    </button>
-                </div>
 
-                <div class="relative mb-4">
-                    <input type="text" id="search-bar" class="w-full py-3.5 pl-4 pr-4 text-xs font-extrabold rounded-xl border-2 brutal-border bg-[#FFFDF8] text-zinc-900 placeholder-zinc-500 focus:outline-none" placeholder="Cari paste berdasarkan judul, bahasa, atau pengembang..." oninput="handleSearch()">
-                </div>
+                    <div class="grid grid-cols-3 gap-3 mb-6">
+                        <div class="light-card p-4 text-center">
+                            <span class="text-2xl sm:text-3xl font-black text-zinc-900 font-mono block mb-1">${pastes.length}</span>
+                            <span class="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">Total Paste</span>
+                        </div>
+                        <div class="light-card p-4 text-center">
+                            <span class="text-2xl sm:text-3xl font-black theme-text-accent font-mono block mb-1">${totalLanguagesCount}</span>
+                            <span class="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">Bahasa</span>
+                        </div>
+                        <div class="light-card p-4 text-center">
+                            <span class="text-2xl sm:text-3xl font-black text-zinc-900 font-mono block mb-1">${totalLines.toLocaleString()}</span>
+                            <span class="text-[10px] font-black text-zinc-500 uppercase tracking-wider block">Total Baris</span>
+                        </div>
+                    </div>
 
-                <div class="grid grid-cols-1 gap-4 mb-6" id="grid-list"></div>
-            `;
-            applyFilterAndSearch();
+                    <div class="relative mb-4">
+                        <input type="text" id="search-bar" class="w-full py-3.5 pl-11 pr-4 text-xs font-extrabold rounded-xl border-2 brutal-border bg-[#FFFDF8] text-zinc-900 placeholder-zinc-500 focus:outline-none shadow-sm" placeholder="Cari paste berdasarkan judul, bahasa, atau deskripsi..." oninput="handleSearch()">
+                        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
+
+                    <div class="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
+                        <button class="btn-filter-light id-filter-all active" onclick="filterLanguage('ALL')">Semua</button>
+                        <button class="btn-filter-light id-filter-javascript" onclick="filterLanguage('javascript')">JavaScript</button>
+                        <button class="btn-filter-light id-filter-html" onclick="filterLanguage('html')">HTML</button>
+                        <button class="btn-filter-light id-filter-scrape" onclick="filterLanguage('scrape')">Scrape</button>
+                        <button class="btn-filter-light id-filter-text" onclick="filterLanguage('text')">Text</button>
+                        <button class="btn-filter-light id-filter-python" onclick="filterLanguage('python')">Python</button>
+                    </div>
+
+                    <div class="flex items-center gap-2 mb-4 text-xs font-black uppercase text-zinc-800 tracking-wider">
+                        <span class="theme-text-accent">//</span> Semua Paste (<span id="total-paste-text">${pastes.length}</span> Paste)
+                        <div class="flex-1 h-0.5 bg-zinc-300"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4 mb-6" id="grid-list"></div>
+                    <div class="flex justify-center items-center gap-2 my-6 flex-wrap" id="pagination-wrapper"></div>
+                `;
+                applyFilterAndSearch();
+            }
         }
 
         function renderGridItems(items) {
             const grid = document.getElementById('grid-list');
-            if (!grid) return;
+            if(!grid) return;
             grid.innerHTML = '';
-
-            if (items.length === 0) {
-                grid.innerHTML = `<div class="light-card p-8 text-center text-xs font-bold text-zinc-600 uppercase">Data snippet belum tersedia. Silakan buat baru!</div>`;
+            if(items.length === 0) {
+                grid.innerHTML = `<div class="light-card p-8 text-center text-xs font-bold text-zinc-600 uppercase">Data tidak ditemukan.</div>`;
+                document.getElementById('pagination-wrapper').innerHTML = '';
                 return;
             }
 
-            const isAdmin = currentUser && currentUser.email === ADMIN_EMAIL;
+            const totalPages = Math.ceil(items.length / itemsPerPage);
+            if (currentPage > totalPages) currentPage = totalPages || 1;
 
-            items.forEach(p => {
-                const avatarUrl = p.author_avatar || DEFAULT_AVATAR;
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedItems = items.slice(startIndex, endIndex);
 
-                grid.innerHTML += `
-                    <div class="paste-card-light relative" onclick="window.location.href='/pastecode?id=${p.id}'">
+            let htmlCards = '';
+            paginatedItems.forEach(p => {
+                const contentPreview = p.content ? p.content.substring(0, 140) : '';
+                const authorAvatar = p.author_avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png';
+                const authorName = p.author || 'Pengembang';
+
+                htmlCards += `
+                    <div class="paste-card-light" onclick="window.location.href='/pastecode?id=${p.id}'">
                         <div class="card-top-light">
                             <div class="flex gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-400 border border-zinc-900"></span><span class="w-2.5 h-2.5 rounded-full bg-amber-400 border border-zinc-900"></span><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 border border-zinc-900"></span></div>
-                            <div class="px-2.5 py-0.5 text-[10px] rounded code-font theme-bg-accent uppercase">${p.language}</div>
+                            <div class="px-2.5 py-0.5 text-[10px] rounded code-font" style="${getLanguageStyle(p.language)}">${p.language}</div>
                         </div>
                         <div class="p-4 bg-[#FFFDF8]">
-                            <!-- Avatar & Nama Pengembang di atas Judul Snippet -->
-                            <div class="flex items-center gap-2.5 mb-2.5 pb-2 border-b border-zinc-200">
-                                <img src="${avatarUrl}" class="w-8 h-8 rounded-full object-cover border-2 brutal-border shadow-xs shrink-0">
-                                <div class="min-w-0 flex-1">
-                                    <span class="font-mono text-xs font-black text-zinc-900 truncate block">${escapeHTML(p.author || 'Anonymous')}</span>
-                                    <span class="font-mono text-[9px] font-extrabold text-zinc-500 block">📅 ${p.date || 'Terbaru'}</span>
-                                </div>
+                            <!-- AVATAR & NAMA PENGEMBANG DI ATAS JUDUL -->
+                            <div class="flex items-center gap-2 pb-2.5 mb-2.5 border-b-2 brutal-border">
+                                <img src="${authorAvatar}" class="w-6 h-6 rounded-full border border-zinc-900 object-cover shadow-xs">
+                                <span class="text-[11px] font-black text-zinc-800 truncate">${authorName}</span>
                             </div>
 
-                            <h3 class="font-extrabold text-base text-zinc-900 mb-1 truncate">${escapeHTML(p.title)}</h3>
-                            <p class="text-[11px] font-semibold text-zinc-600 mb-3 line-clamp-2">${escapeHTML(p.desc || 'Tidak ada deskripsi.')}</p>
-                            <div class="preview-box-light">${escapeHTML(p.content ? p.content.substring(0, 140) : '')}</div>
+                            <h3 class="font-extrabold text-base text-zinc-900 mb-0.5 truncate">${p.title}</h3>
+                            <p class="text-[11px] font-semibold text-zinc-600 mb-2.5 line-clamp-2 leading-snug break-words">${p.desc || 'Tidak ada deskripsi.'}</p>
+                            
+                            <div class="preview-box-light">${escapeHTML(contentPreview)}</div>
                         </div>
-                        <div class="px-4 py-2 bg-[#FAF7EF] border-t-2 brutal-border flex justify-between items-center text-xs">
-                            <div class="flex items-center gap-2">
-                                <span class="font-mono text-[10px] font-bold text-zinc-600">ID: #${p.id}</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                ${isAdmin ? `<button onclick="event.stopPropagation(); deleteSnippet('${p.id}');" class="px-2.5 py-1 bg-red-500 text-white rounded-lg text-[10px] font-black border-2 border-red-800 shadow-xs">HAPUS</button>` : ''}
-                            </div>
+                        <div class="px-4 py-2.5 bg-[#FAF7EF] border-t-2 brutal-border flex justify-between items-center text-xs">
+                            <span class="font-mono text-[10px] font-extrabold text-zinc-500">📅 ${p.date}</span>
+                            <a href="/pastecode?id=${p.id}&raw=true" target="_blank" class="px-3 py-1 bg-zinc-900 text-white font-extrabold text-[10px] rounded-md border border-zinc-900 uppercase" onclick="event.stopPropagation();">
+                                RAW
+                            </a>
                         </div>
                     </div>
                 `;
             });
+            grid.innerHTML = htmlCards;
+            renderPaginationControls(totalPages, items);
         }
 
-        function handleSearch() {
+        function renderPaginationControls(totalPages, currentItems) {
+            const wrapper = document.getElementById('pagination-wrapper');
+            if (!wrapper) return;
+            wrapper.innerHTML = '';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'page-btn-light';
+            prevBtn.innerText = '← SEBELUMNYA';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderGridItems(currentItems);
+                    window.scrollTo({ top: 300, behavior: 'smooth' });
+                }
+            };
+            wrapper.appendChild(prevBtn);
+
+            const maxPagesToShow = Math.min(totalPages, 5);
+            for (let i = 1; i <= maxPagesToShow; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `page-btn-light ${currentPage === i ? 'active' : ''}`;
+                pageBtn.innerText = i;
+                pageBtn.onclick = () => {
+                    currentPage = i;
+                    renderGridItems(currentItems);
+                    window.scrollTo({ top: 300, behavior: 'smooth' });
+                };
+                wrapper.appendChild(pageBtn);
+            }
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'page-btn-light';
+            nextBtn.innerText = 'BERIKUTNYA →';
+            nextBtn.disabled = currentPage === totalPages || currentPage >= 5;
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages && currentPage < 5) {
+                    currentPage++;
+                    renderGridItems(currentItems);
+                    window.scrollTo({ top: 300, behavior: 'smooth' });
+                }
+            };
+            wrapper.appendChild(nextBtn);
+        }
+
+        function filterLanguage(lang) {
+            currentFilter = lang;
+            currentPage = 1;
+            document.querySelectorAll('.btn-filter-light').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.querySelector(`.id-filter-${lang.toLowerCase()}`);
+            if (activeBtn) activeBtn.classList.add('active');
             applyFilterAndSearch();
         }
 
+        function copyRawUrl() {
+            const rawUrl = window.location.origin + "/pastecode?id=" + viewId + "&raw=true";
+            navigator.clipboard.writeText(rawUrl).then(() => customAlert("Link RAW berhasil disalin ke clipboard!"));
+        }
+
+        function sharePaste() {
+            const currentViewId = new URLSearchParams(window.location.search).get('id');
+            if (!currentViewId) return;
+
+            const idx = pastes.findIndex(p => p.id.toString() === currentViewId.toString());
+            if (idx !== -1) {
+                const current = pastes[idx];
+                const shareUrl = window.location.origin + "/pastecode?id=" + currentViewId;
+                if (navigator.share) {
+                    navigator.share({ title: current.title, text: current.desc || `Lihat kode ${current.title}`, url: shareUrl });
+                } else {
+                    navigator.clipboard.writeText(shareUrl).then(() => customAlert("Link berhasil disalin ke clipboard!"));
+                }
+            }
+        }
+
+        function handleSearch() { currentPage = 1; applyFilterAndSearch(); }
+
         function applyFilterAndSearch() {
-            const query = document.getElementById('search-bar')?.value.toLowerCase() || "";
+            const searchBar = document.getElementById('search-bar');
+            const query = searchBar ? searchBar.value.toLowerCase() : "";
             let filtered = pastes;
+
+            if (currentFilter !== 'ALL') {
+                filtered = filtered.filter(p => p.language && p.language.toLowerCase() === currentFilter.toLowerCase());
+            }
             if (query) {
                 filtered = filtered.filter(p => 
-                    (p.title && p.title.toLowerCase().includes(query)) ||
+                    (p.title && p.title.toLowerCase().includes(query)) || 
                     (p.desc && p.desc.toLowerCase().includes(query)) ||
-                    (p.author && p.author.toLowerCase().includes(query)) ||
                     (p.language && p.language.toLowerCase().includes(query))
                 );
             }
+            const totalText = document.getElementById('total-paste-text');
+            if(totalText) totalText.innerText = filtered.length;
             renderGridItems(filtered);
         }
 
         function escapeHTML(text) { 
-            return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); 
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); 
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('selectedThemeStyle') || 'yellow';
-            setAppTheme(savedTheme);
+        function copyText() {
+            const idx = pastes.findIndex(p => p.id.toString() === viewId.toString());
+            if(idx !== -1) {
+                navigator.clipboard.writeText(pastes[idx].content).then(() => customAlert("Kode berhasil disalin!"));
+            }
+        }
 
-            // Handler Tombol Navigasi Menu Header & Theme
-            const themePickerBtn = document.getElementById('themePickerBtn');
-            const themeMenuDropdown = document.getElementById('themeMenuDropdown');
+        document.addEventListener('gesturestart', e => e.preventDefault());
+
+        window.addEventListener('scroll', () => {
+            const header = document.getElementById('mainHeader');
+            if (header) {
+                if (window.scrollY > 10) {
+                    header.classList.add('header-scrolled');
+                } else {
+                    header.classList.remove('header-scrolled');
+                }
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
             const bioMenuBtn = document.getElementById('bioMenuBtn');
             const bioDropdown = document.getElementById('bioDropdown');
             const closeMenuBtn = document.getElementById('closeMenuBtn');
             const menuOverlay = document.getElementById('menuOverlay');
 
-            if (themePickerBtn && themeMenuDropdown) {
-                themePickerBtn.addEventListener('click', (e) => {
+            const themeBtn = document.getElementById('themePickerBtn');
+            const themeDropdown = document.getElementById('themeMenuDropdown');
+
+            if (themeBtn && themeDropdown) {
+                themeBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    themeMenuDropdown.classList.toggle('hidden');
+                    themeDropdown.classList.toggle('hidden');
                 });
+
+                document.addEventListener('click', (e) => {
+                    if (!themeDropdown.contains(e.target) && e.target !== themeBtn) {
+                        themeDropdown.classList.add('hidden');
+                    }
+                });
+            }
+
+            const savedTheme = localStorage.getItem('selectedThemeStyle') || 'yellow';
+            setAppTheme(savedTheme);
+
+            function closeSidebarMenu() {
+                if (bioDropdown && menuOverlay) {
+                    bioDropdown.style.transform = 'translateX(100%)';
+                    menuOverlay.classList.add('hidden');
+                }
             }
 
             if (bioMenuBtn && bioDropdown && menuOverlay) {
-                bioMenuBtn.addEventListener('click', () => {
-                    bioDropdown.classList.remove('translate-x-full');
+                bioMenuBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    bioDropdown.style.transform = 'translateX(0)';
                     menuOverlay.classList.remove('hidden');
+                    playBannerVideo();
                 });
+                if (closeMenuBtn) closeMenuBtn.addEventListener('click', closeSidebarMenu);
+                menuOverlay.addEventListener('click', closeSidebarMenu);
+                bioDropdown.addEventListener('click', (e) => { e.stopPropagation(); });
             }
 
-            const closeSidebar = () => {
-                if (bioDropdown) bioDropdown.classList.add('translate-x-full');
-                if (menuOverlay) menuOverlay.classList.add('hidden');
-            };
+            playBannerVideo();
 
-            if (closeMenuBtn) closeMenuBtn.addEventListener('click', closeSidebar);
-            if (menuOverlay) menuOverlay.addEventListener('click', closeSidebar);
-
-            document.addEventListener('click', (e) => {
-                if (themeMenuDropdown && !themeMenuDropdown.contains(e.target) && e.target !== themePickerBtn) {
-                    themeMenuDropdown.classList.add('hidden');
-                }
-            });
-
-            // Status Auth Login User
             fetch('/api/user-status')
                 .then(res => res.json())
                 .then(data => {
                     if (data.loggedIn && data.user) {
                         currentUser = data.user;
-                        const authBox = document.getElementById('sidebarAuthBtnContainer');
-                        if (authBox) {
-                            authBox.innerHTML = `
-                                <div class="p-3 bg-emerald-100 border-2 brutal-border rounded-xl">
-                                    <div class="flex items-center gap-2">
-                                        <img src="${currentUser.avatar || currentUser.profilePic || DEFAULT_AVATAR}" class="w-8 h-8 rounded-full border-2 brutal-border object-cover">
-                                        <div>
-                                            <div class="text-xs font-black text-zinc-900">${currentUser.username || currentUser.name}</div>
-                                            <div class="text-[9px] font-semibold text-zinc-600 truncate">${currentUser.email}</div>
+                        const container = document.getElementById('sidebarAuthBtnContainer');
+                        if (container) {
+                            container.innerHTML = `
+                                <a href="/profile" class="w-full bg-blue-50 border-2 border-blue-600 rounded-xl p-2.5 flex items-center justify-between text-zinc-900 transition-all active:scale-95 shadow-xs">
+                                    <div class="flex items-center gap-2.5 truncate">
+                                        <img src="${data.user.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png'}" class="w-7 h-7 rounded-lg border-2 brutal-border object-cover">
+                                        <div class="truncate text-left leading-tight">
+                                            <span class="block text-xs font-black truncate">${data.user.username}</span>
+                                            <span class="block text-[9px] text-blue-600 font-bold">AKUN TERHUBUNG</span>
                                         </div>
                                     </div>
-                                </div>
+                                    <span class="text-[9px] bg-blue-600 text-white font-black px-2 py-1 rounded-md tracking-wider">PROFILE</span>
+                                </a>
                             `;
                         }
                     }
                 })
-                .catch(err => console.error(err));
-
-            loadPastesFromServer();
+                .catch(err => console.error("Gagal memuat status user:", err));
         });
+
+        window.onload = function() {
+            loadPastesFromServer(); 
+        };
     </script>
 
+    <!-- Prism Syntax Highlighting Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
