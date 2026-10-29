@@ -3,9 +3,14 @@ import express from 'express';
 
 const router = express.Router();
 
+// Fungsi untuk mengambil gambar anime nsfw secara acak (langsung buffer CDN)
 async function randomNsfw() {
     try {
-        const api = await axios.get("https://api.waifu.best/images?isNsfw=True&isAnimated=All&orderBy=UploadedAt&orientation=All&reviewStatus=Accepted&childrenReviewStatus=Accepted", {
+        // Pilih isAnimated secara acak (True atau False)
+        const isAnimated = Math.random() < 0.5 ? "True" : "False";
+
+        // Request API waifu.im dengan parameter isAnimated acak
+        const api = await axios.get(`https://api.waifu.best/images?isNsfw=True&isAnimated=${isAnimated}`, {
             headers: {
                 "User-Agent": "Mozilla/5.0",
                 "Accept": "application/json"
@@ -15,15 +20,14 @@ async function randomNsfw() {
 
         const data = api.data;
 
-        if (!data || !data.items || !Array.isArray(data.items) || data.items.length === 0) {
+        // Validasi data tetap dipertahankan
+        if (!data || !data.items || !Array.isArray(data.items) || !data.items[0]) {
             throw new Error("Gagal mengambil gambar nsfw");
         }
 
-        // Ambil url dari item acak
-        const randomIndex = Math.floor(Math.random() * data.items.length);
-        const imageUrl = data.items[randomIndex].url;
+        const imageUrl = data.items[0].url;
 
-        // Download gambar langsung dari URL CDN
+        // Download image CDN dengan responseType arraybuffer
         const image = await axios.get(imageUrl, {
             responseType: "arraybuffer",
             timeout: 15000,
@@ -34,6 +38,7 @@ async function randomNsfw() {
 
         const contentType = image.headers["content-type"] || "image/jpeg";
 
+        // Mengembalikan Buffer dan Content-Type secara dinamis
         return {
             buffer: Buffer.from(image.data),
             contentType: contentType
@@ -43,6 +48,7 @@ async function randomNsfw() {
     }
 }
 
+// Endpoint utama Router
 router.get('/', async (req, res) => {
     try {
         const nsfw = await randomNsfw();
@@ -56,6 +62,7 @@ router.get('/', async (req, res) => {
     } catch (error) {
         console.error(error);
         
+        // Response error dengan format JSON & data creator
         return res.status(500).json({
             status: false,
             creator: "Arulzxd",
