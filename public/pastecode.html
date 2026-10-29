@@ -72,7 +72,7 @@
         }
 
         .brutal-border, .light-card, .dropdown-nav-card, .btn-brutalism-light, header,
-        #bioDropdown, #themeMenuDropdown, .cyber-loader-box, .cyber-bar,
+        #bioDropdown, #themeMenuDropdown,
         .paste-card-light, .code-window-light, .raw-modal-content, .alert-modal-content, .create-modal-content {
             border-color: var(--theme-border) !important;
             transition: border-color 0.15s ease;
@@ -243,77 +243,11 @@
             font-family: 'JetBrains Mono', monospace !important;
         }
 
-        #cyber-loader-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 99999;
-            background-color: var(--bg-cream);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.4s ease, visibility 0.4s ease;
-        }
-        #cyber-loader-overlay.fade-out {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-        .cyber-loader-box {
-            background: var(--card-bg);
-            border: 2.5px solid var(--theme-border);
-            border-radius: 24px;
-            padding: 32px 28px;
-            width: min(320px, 90vw);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .cyber-avatar-wrap {
-            position: relative;
-            width: 76px;
-            height: 76px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .cyber-ring {
-            position: absolute;
-            inset: -6px;
-            border: 3.5px solid #e4e4e7;
-            border-top-color: var(--theme-border);
-            border-right-color: #3b82f6;
-            border-radius: 50%;
-            animation: spinCyber 1s linear infinite;
-        }
-        @keyframes spinCyber { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .cyber-text-glitch { font-weight: 900; font-size: 13px; letter-spacing: 2px; }
-        .cyber-bar { width: 100%; height: 10px; background: #e4e4e7; border: 2px solid var(--theme-border); border-radius: 9999px; overflow: hidden; }
-        .cyber-bar-fill { height: 100%; background: var(--theme-border); width: 100%; }
-
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="min-h-screen relative flex flex-col justify-between antialiased">
-
-    <!-- Loader Overlay -->
-    <div id="cyber-loader-overlay">
-        <div class="cyber-loader-box">
-            <div class="cyber-avatar-wrap mb-4">
-                <div class="cyber-ring"></div>
-                <img src="https://cdn.arulz.biz.id/files/1wh5do.png" alt="Logo" class="w-14 h-14 rounded-full object-cover brutal-border border-2 shadow-sm">
-            </div>
-            <div class="text-center">
-                <div class="cyber-text-glitch uppercase mb-0.5">INITIALIZING GATEWAY...</div>
-                <div class="text-[9px] font-mono text-zinc-600 font-bold uppercase tracking-widest">ARULZ-XD API REST CORE</div>
-            </div>
-            <div class="w-full mt-5">
-                <div class="cyber-bar">
-                    <div class="cyber-bar-fill"></div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Header Top Bar -->
     <header id="mainHeader" class="fixed top-0 left-0 right-0 w-full header-translucent border-b-2 brutal-border z-30">
@@ -427,7 +361,7 @@
                     <div>
                         <label class="block text-[10px] font-black uppercase text-zinc-800 mb-1">Pengembang / Author (Terkunci)</label>
                         <div class="flex items-center gap-2 bg-zinc-100 border-2 brutal-border rounded-xl px-3 py-2">
-                            <img id="newAuthorAvatar" src="https://cdn.arulz.biz.id/files/1wh5do.png" class="w-5 h-5 rounded-full object-cover border border-zinc-400">
+                            <img id="newAuthorAvatar" src="https://cdn.arulz.biz.id/files/1wh5do.png" class="w-6 h-6 rounded-full object-cover border border-zinc-900">
                             <input type="text" id="newAuthor" readonly class="bg-transparent text-xs font-bold text-zinc-700 w-full focus:outline-none cursor-not-allowed">
                         </div>
                     </div>
@@ -640,19 +574,19 @@
                     <div class="light-card p-5 mb-5">
                         <div class="flex justify-between items-start gap-3">
                             <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-2 pb-2 border-b border-zinc-200">
+                                    <img src="${avatarUrl}" class="w-8 h-8 rounded-full object-cover border-2 brutal-border shadow-xs">
+                                    <div>
+                                        <span class="text-xs font-black text-zinc-900 uppercase block">${escapeHTML(current.author || 'Anonymous')}</span>
+                                        <span class="text-[9px] font-mono font-bold text-zinc-500">📅 ${current.date || 'Terbaru'}</span>
+                                    </div>
+                                </div>
                                 <h2 class="text-lg font-black text-zinc-900 mb-1 truncate">${escapeHTML(current.title)}</h2>
                                 <p class="text-xs font-semibold text-zinc-600 mb-3 whitespace-pre-wrap leading-relaxed">${escapeHTML(current.desc || 'Tidak ada deskripsi.')}</p>
-                                
-                                <div class="inline-flex items-center gap-2 px-3 py-1 bg-amber-200 border-2 brutal-border rounded-xl">
-                                    <img src="${avatarUrl}" class="w-6 h-6 rounded-full object-cover border border-zinc-900">
-                                    <span class="text-xs font-black text-zinc-900 uppercase">👨‍💻 ${escapeHTML(current.author || 'Anonymous')}</span>
-                                </div>
                             </div>
                             <span class="px-3 py-1 text-xs rounded-lg code-font theme-bg-accent">${current.language}</span>
                         </div>
                         <div class="flex items-center gap-3 text-[10px] font-mono font-extrabold text-zinc-500 pt-3 mt-3 border-t-2 brutal-border">
-                            <span>📅 ${current.date || 'Terbaru'}</span>
-                            <span>•</span>
                             <span>📄 ${lineCount.toLocaleString()} BARIS</span>
                         </div>
                     </div>
@@ -712,18 +646,25 @@
                             <div class="px-2.5 py-0.5 text-[10px] rounded code-font theme-bg-accent uppercase">${p.language}</div>
                         </div>
                         <div class="p-4 bg-[#FFFDF8]">
-                            <h3 class="font-extrabold text-base text-zinc-900 mb-0.5 truncate">${escapeHTML(p.title)}</h3>
-                            <p class="text-[11px] font-semibold text-zinc-600 mb-2 line-clamp-2">${escapeHTML(p.desc || 'Tidak ada deskripsi.')}</p>
+                            <!-- Avatar & Nama Pengembang di atas Judul Snippet -->
+                            <div class="flex items-center gap-2.5 mb-2.5 pb-2 border-b border-zinc-200">
+                                <img src="${avatarUrl}" class="w-8 h-8 rounded-full object-cover border-2 brutal-border shadow-xs shrink-0">
+                                <div class="min-w-0 flex-1">
+                                    <span class="font-mono text-xs font-black text-zinc-900 truncate block">${escapeHTML(p.author || 'Anonymous')}</span>
+                                    <span class="font-mono text-[9px] font-extrabold text-zinc-500 block">📅 ${p.date || 'Terbaru'}</span>
+                                </div>
+                            </div>
+
+                            <h3 class="font-extrabold text-base text-zinc-900 mb-1 truncate">${escapeHTML(p.title)}</h3>
+                            <p class="text-[11px] font-semibold text-zinc-600 mb-3 line-clamp-2">${escapeHTML(p.desc || 'Tidak ada deskripsi.')}</p>
                             <div class="preview-box-light">${escapeHTML(p.content ? p.content.substring(0, 140) : '')}</div>
                         </div>
-                        <div class="px-4 py-2.5 bg-[#FAF7EF] border-t-2 brutal-border flex justify-between items-center text-xs">
+                        <div class="px-4 py-2 bg-[#FAF7EF] border-t-2 brutal-border flex justify-between items-center text-xs">
                             <div class="flex items-center gap-2">
-                                <img src="${avatarUrl}" class="w-5 h-5 rounded-full object-cover border border-zinc-900">
-                                <span class="font-mono text-[10px] font-black text-zinc-800">${escapeHTML(p.author || 'Anonymous')}</span>
+                                <span class="font-mono text-[10px] font-bold text-zinc-600">ID: #${p.id}</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <span class="font-mono text-[10px] font-extrabold text-zinc-500">📅 ${p.date || ''}</span>
-                                ${isAdmin ? `<button onclick="event.stopPropagation(); deleteSnippet('${p.id}');" class="px-2 py-0.5 bg-red-500 text-white rounded text-[9px] font-black border border-red-800">HAPUS</button>` : ''}
+                                ${isAdmin ? `<button onclick="event.stopPropagation(); deleteSnippet('${p.id}');" class="px-2.5 py-1 bg-red-500 text-white rounded-lg text-[10px] font-black border-2 border-red-800 shadow-xs">HAPUS</button>` : ''}
                             </div>
                         </div>
                     </div>
@@ -757,6 +698,43 @@
             const savedTheme = localStorage.getItem('selectedThemeStyle') || 'yellow';
             setAppTheme(savedTheme);
 
+            // Handler Tombol Navigasi Menu Header & Theme
+            const themePickerBtn = document.getElementById('themePickerBtn');
+            const themeMenuDropdown = document.getElementById('themeMenuDropdown');
+            const bioMenuBtn = document.getElementById('bioMenuBtn');
+            const bioDropdown = document.getElementById('bioDropdown');
+            const closeMenuBtn = document.getElementById('closeMenuBtn');
+            const menuOverlay = document.getElementById('menuOverlay');
+
+            if (themePickerBtn && themeMenuDropdown) {
+                themePickerBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    themeMenuDropdown.classList.toggle('hidden');
+                });
+            }
+
+            if (bioMenuBtn && bioDropdown && menuOverlay) {
+                bioMenuBtn.addEventListener('click', () => {
+                    bioDropdown.classList.remove('translate-x-full');
+                    menuOverlay.classList.remove('hidden');
+                });
+            }
+
+            const closeSidebar = () => {
+                if (bioDropdown) bioDropdown.classList.add('translate-x-full');
+                if (menuOverlay) menuOverlay.classList.add('hidden');
+            };
+
+            if (closeMenuBtn) closeMenuBtn.addEventListener('click', closeSidebar);
+            if (menuOverlay) menuOverlay.addEventListener('click', closeSidebar);
+
+            document.addEventListener('click', (e) => {
+                if (themeMenuDropdown && !themeMenuDropdown.contains(e.target) && e.target !== themePickerBtn) {
+                    themeMenuDropdown.classList.add('hidden');
+                }
+            });
+
+            // Status Auth Login User
             fetch('/api/user-status')
                 .then(res => res.json())
                 .then(data => {
@@ -781,7 +759,6 @@
                 .catch(err => console.error(err));
 
             loadPastesFromServer();
-            document.getElementById('cyber-loader-overlay').classList.add('fade-out');
         });
     </script>
 
