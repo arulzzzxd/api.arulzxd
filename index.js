@@ -1407,6 +1407,68 @@ app.post('/api/user/update-avatar', checkAuthSession, (req, res, next) => {
     }
 });
 
+const uploadBanner = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // Maksimal 10MB
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('File harus berupa gambar atau video MP4!'));
+        }
+    }
+});
+
+app.post('/api/user/update-banner', checkAuthSession, (req, res, next) => {
+    uploadBanner.single('banner')(req, res, (err) => {
+        if (err) {
+            return res.status(400).json({ status: false, message: 'File terlalu besar! Maksimal 10MB.' });
+        }
+        next();
+    });
+}, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ status: false, message: 'Anda belum login!' });
+        if (!req.file) return res.status(400).json({ status: false, message: 'Tidak ada file banner yang diunggah!' });
+
+        const base64Media = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id || req.user._id,
+            { $set: { banner: base64Media } },
+            { returnDocument: 'after', runValidators: true }
+        );
+
+        return res.json({ status: true, message: 'Banner berhasil diperbarui!', banner: updatedUser.banner });
+    } catch (error) {
+        console.error("Gagal update banner file:", error);
+        return res.status(500).json({ status: false, message: 'Gagal memproses unggah banner di server.' });
+    }
+});
+
+// 2. Update URL Banner (Link Eksternal)
+app.post('/api/user/update-banner-url', checkAuthSession, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ status: false, message: 'Anda belum login!' });
+
+        const { bannerUrl } = req.body;
+        if (!bannerUrl || !bannerUrl.trim()) {
+            return res.status(400).json({ status: false, message: 'URL banner tidak boleh kosong!' });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            req.user.id || req.user._id,
+            { $set: { banner: bannerUrl.trim() } },
+            { returnDocument: 'after', runValidators: true }
+        );
+
+        return res.json({ status: true, message: 'URL banner berhasil diperbarui!', banner: updatedUser.banner });
+    } catch (error) {
+        console.error("Gagal update banner URL:", error);
+        return res.status(500).json({ status: false, message: 'Terjadi kesalahan pada server saat menyimpan URL banner.' });
+    }
+});
+
 app.post('/api/user/custom-apikey', checkAuthSession, async (req, res) => {
     try {
         if (!req.user) return res.status(401).json({ status: false, message: 'Anda harus login terlebih dahulu!' });
@@ -1525,6 +1587,83 @@ app.post('/api/user/delete-account', checkAuthSession, async (req, res) => {
     }
 });
 
+app.post('/api/pastecode', async (req, res) => {
+    try {
+        if (!supabase) {
+            return res.status(500).json({ status: false, message: 'Supabase client belum terkonfigurasi.' });
+        }
+
+        const { title, desc, language, content, author, author_avatar } = req.body;
+
+        if (!title || !title.trim() || !content || !content.trim()) {
+            return res.status(400).json({ status: false, message: 'Judul dan isi kode wajib diisi!' });
+        }
+
+        const formattedDate = new Date().toLocaleDateString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            timeZone: 'Asia/Jakarta'
+        });
+
+        const safeAuthor = author && author.trim() ? author.trim() : 'Anonymous';
+        const safeAvatar = author_avatar || 'https://cdn.arulz.biz.id/files/1wh5do.png';
+
+        const { data, error } = await supabase
+            .from('pastes')
+            .insert([
+                {
+                    title: title.trim(),
+                    desc: desc ? desc.trim() : `By ${safeAuthor}`,
+                    language: language ? language.toLowerCase().trim() : 'plaintext',
+                    content: content,
+                    author: safeAuthor,
+                    author_avatar: safeAvatar,
+                    date: formattedDate
+                }
+            ])
+            .select();
+
+        if (error) throw error;
+
+        return res.status(201).json({ 
+            status: true, 
+            success: true, 
+            message: 'Snippet berhasil disimpan!', 
+            data: data[0] 
+        });
+
+    } catch (err) {
+        console.error("Gagal menyimpan snippet:", err.message);
+        return res.status(500).json({ status: false, message: err.message });
+    }
+});
+
+app.delete('/api/pastecode/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userEmail } = req.body;
+
+        if (userEmail !== ADMIN_EMAILS) {
+            return res.status(403).json({ 
+                status: false, 
+                message: 'Akses ditolak! Hanya Admin yang dapat menghapus snippet.' 
+            });
+        }
+
+        const { error } = await supabase
+            .from('pastes')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+
+        return res.json({ status: true, success: true, message: 'Snippet berhasil dihapus.' });
+    } catch (err) {
+        console.error("Gagal menghapus snippet:", err.message);
+        return res.status(500).json({ status: false, message: err.message });
+    }
+});
 // ====================================================
 // 7. ADMIN MIDDLEWARE & ADMIN ENDPOINTS
 // ====================================================
