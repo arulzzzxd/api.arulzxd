@@ -1324,6 +1324,7 @@ app.get('/api/user-status', checkAuthSession, async (req, res) => {
                 username: activeUser.username,
                 email: activeUser.email,
                 avatar: activeUser.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png',
+                banner: activeUser.banner || 'https://cdn.arulz.biz.id/files/MPzS.mp4',
                 apikey: activeUser.apikey,
                 role: activeUser.role,
                 roleExpiresAt: activeUser.roleExpiresAt || null,
@@ -1339,6 +1340,7 @@ app.get('/api/user-status', checkAuthSession, async (req, res) => {
                 username: req.user.username,
                 email: req.user.email,
                 avatar: req.user.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png',
+                banner: req.user.banner || 'https://cdn.arulz.biz.id/files/MPzS.mp4',
                 apikey: req.user.apikey,
                 role: req.user.role,
                 roleExpiresAt: req.user.roleExpiresAt || null,
@@ -1419,6 +1421,7 @@ const uploadBanner = multer({
     }
 });
 
+// 1. Update Banner via File (Image/MP4)
 app.post('/api/user/update-banner', checkAuthSession, (req, res, next) => {
     uploadBanner.single('banner')(req, res, (err) => {
         if (err) {
@@ -1436,8 +1439,21 @@ app.post('/api/user/update-banner', checkAuthSession, (req, res, next) => {
         const updatedUser = await User.findByIdAndUpdate(
             req.user.id || req.user._id,
             { $set: { banner: base64Media } },
-            { returnDocument: 'after', runValidators: true }
+            { new: true, runValidators: true }
         );
+
+        // Perbarui JWT Token agar banner baru langsung tersimpan di Session
+        const token = jwt.sign({
+            id: updatedUser._id,
+            username: updatedUser.username,
+            email: updatedUser.email,
+            avatar: updatedUser.avatar,
+            banner: updatedUser.banner,
+            role: updatedUser.role,
+            apikey: updatedUser.apikey
+        }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
 
         return res.json({ status: true, message: 'Banner berhasil diperbarui!', banner: updatedUser.banner });
     } catch (error) {
@@ -1446,7 +1462,7 @@ app.post('/api/user/update-banner', checkAuthSession, (req, res, next) => {
     }
 });
 
-// 2. Update URL Banner (Link Eksternal)
+// 2. Update Banner via URL Eksternal
 app.post('/api/user/update-banner-url', checkAuthSession, async (req, res) => {
     try {
         if (!req.user) return res.status(401).json({ status: false, message: 'Anda belum login!' });
@@ -1459,8 +1475,21 @@ app.post('/api/user/update-banner-url', checkAuthSession, async (req, res) => {
         const updatedUser = await User.findByIdAndUpdate(
             req.user.id || req.user._id,
             { $set: { banner: bannerUrl.trim() } },
-            { returnDocument: 'after', runValidators: true }
+            { new: true, runValidators: true }
         );
+
+        // Perbarui JWT Token
+        const token = jwt.sign({
+            id: updatedUser._id,
+            username: updatedUser.username,
+            email: updatedUser.email,
+            avatar: updatedUser.avatar,
+            banner: updatedUser.banner,
+            role: updatedUser.role,
+            apikey: updatedUser.apikey
+        }, JWT_SECRET, { expiresIn: '7d' });
+
+        res.cookie('auth_session', token, { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true, secure: true, sameSite: 'lax' });
 
         return res.json({ status: true, message: 'URL banner berhasil diperbarui!', banner: updatedUser.banner });
     } catch (error) {
@@ -1468,6 +1497,7 @@ app.post('/api/user/update-banner-url', checkAuthSession, async (req, res) => {
         return res.status(500).json({ status: false, message: 'Terjadi kesalahan pada server saat menyimpan URL banner.' });
     }
 });
+
 
 app.post('/api/user/custom-apikey', checkAuthSession, async (req, res) => {
     try {
