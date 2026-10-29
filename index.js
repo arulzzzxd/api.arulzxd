@@ -175,6 +175,7 @@ const userSchema = new mongoose.Schema({
     limit: { type: Number, default: 0 },
     lastLimitReset: { type: Date, default: Date.now },
     avatar: { type: String, default: 'https://cdn.arulz.biz.id/files/X1F0Cn.png' }, 
+    banner: { type: String, default: 'https://cdn.arulz.biz.id/files/MPzS.mp4' },
     createdAt: { type: Date, default: Date.now }
 });
 
