@@ -1586,87 +1586,60 @@ app.post('/api/user/delete-account', checkAuthSession, async (req, res) => {
         return res.status(500).json({ status: false, message: 'Terjadi kesalahan pada server saat menghapus akun.' });
     }
 });
-
-app.post('/api/pastecode', async (req, res) => {
+// --- ENDPOINT ADD PASTECODE SNIPPET ---
+app.post('/api/pastecode', checkAuthSession, async (req, res) => {
     try {
-        if (!supabase) {
-            return res.status(500).json({ status: false, message: 'Supabase client belum terkonfigurasi.' });
+        if (!req.user) {
+            return res.status(401).json({ status: false, message: 'Anda harus login terlebih dahulu untuk menambah snippet!' });
         }
 
-        const { title, desc, language, content, author, author_avatar } = req.body;
+        const { title, desc, language, content } = req.body;
 
-        if (!title || !title.trim() || !content || !content.trim()) {
-            return res.status(400).json({ status: false, message: 'Judul dan isi kode wajib diisi!' });
+        if (!title || !title.trim()) {
+            return res.status(400).json({ status: false, message: 'Judul snippet wajib diisi!' });
+        }
+        if (!content || !content.trim()) {
+            return res.status(400).json({ status: false, message: 'Isi kode/snippet wajib diisi!' });
         }
 
-        const formattedDate = new Date().toLocaleDateString('id-ID', {
+        const snippetId = generateId(20); // 20 Karakter Acak ID
+        const dateStr = new Date().toLocaleDateString('id-ID', {
             day: '2-digit',
             month: 'short',
             year: 'numeric',
             timeZone: 'Asia/Jakarta'
         });
 
-        const safeAuthor = author && author.trim() ? author.trim() : 'Anonymous';
-        const safeAvatar = author_avatar || 'https://cdn.arulz.biz.id/files/1wh5do.png';
+        const newPaste = {
+            id: snippetId,
+            title: title.trim(),
+            desc: desc ? desc.trim() : '',
+            language: (language || 'JavaScript').trim(),
+            content: content.trim(),
+            author: req.user.username || 'Pengembang',
+            author_avatar: req.user.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png',
+            date: dateStr,
+            created_at: new Date().toISOString()
+        };
 
         const { data, error } = await supabase
             .from('pastes')
-            .insert([
-                {
-                    title: title.trim(),
-                    desc: desc ? desc.trim() : `By ${safeAuthor}`,
-                    language: language ? language.toLowerCase().trim() : 'plaintext',
-                    content: content,
-                    author: safeAuthor,
-                    author_avatar: safeAvatar,
-                    date: formattedDate
-                }
-            ])
-            .select();
+            .insert([newPaste])
+            .select()
+            .single();
 
-        if (error) throw error;
-
-        return res.status(201).json({ 
-            status: true, 
-            success: true, 
-            message: 'Snippet berhasil disimpan!', 
-            data: data[0] 
-        });
-
-    } catch (err) {
-        console.error("Gagal menyimpan snippet:", err.message);
-        return res.status(500).json({ status: false, message: err.message });
-    }
-});
-
-app.delete('/api/pastecode/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { userEmail } = req.body;
-
-        const cleanUserEmail = (userEmail || '').toLowerCase().trim();
-        const isAdmin = ADMIN_EMAILS.includes(cleanUserEmail) || cleanUserEmail === "haqqi.official13@gmail.com";
-
-        if (!isAdmin) {
-            return res.status(403).json({ 
-                status: false, 
-                message: 'Akses ditolak! Hanya Admin  yang dapat menghapus snippet.' 
-            });
+        if (error) {
+            console.error("Gagal simpan snippet ke Supabase:", error.message);
+            return res.status(500).json({ status: false, message: 'Gagal menyimpan snippet ke database.' });
         }
 
-        const { error } = await supabase
-            .from('pastes')
-            .delete()
-            .eq('id', id);
-
-        if (error) throw error;
-
-        return res.json({ status: true, success: true, message: 'Snippet berhasil dihapus.' });
+        return res.json({ status: true, message: 'Snippet berhasil ditambahkan!', data });
     } catch (err) {
-        console.error("Gagal menghapus snippet:", err.message);
-        return res.status(500).json({ status: false, message: err.message });
+        console.error("Error add pastecode:", err.message);
+        return res.status(500).json({ status: false, message: 'Terjadi kesalahan pada server.' });
     }
 });
+
 // ====================================================
 // 7. ADMIN MIDDLEWARE & ADMIN ENDPOINTS
 // ====================================================
