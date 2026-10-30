@@ -383,17 +383,22 @@ async function executeRequest(e, catIdx, epIdx, method, path, endpointType) {
 
     responseDiv.classList.remove('hidden');
 
-        responseContent.innerHTML = `
-        <div class="flex flex-col items-center justify-center p-8 bg-zinc-900 rounded-xl border-2 border-zinc-900 text-white font-mono shadow-inner my-2">
-            <!-- Teks Animasi Loading / Please Wait -->
-            <div class="text-sm font-black tracking-widest uppercase mb-3 flex items-center gap-1">
+            responseContent.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-8 bg-black rounded-xl border-2 border-zinc-800 text-white font-mono shadow-xl my-2">
+            <!-- Teks Loading & Please wait + Titik Gelombang Naik-Turun -->
+            <div class="text-xl font-extrabold tracking-wider text-white mb-4 flex items-center gap-1 select-none">
                 <span>Please wait</span>
-                <span class="animate-pulse">. . . .</span>
+                <span class="inline-flex gap-1 ml-1 text-2xl font-black leading-none">
+                    <span class="wave-dot">.</span>
+                    <span class="wave-dot">.</span>
+                    <span class="wave-dot">.</span>
+                    <span class="wave-dot">.</span>
+                </span>
             </div>
             
-            <!-- Loading Progress Bar Box -->
-            <div class="w-full max-w-xs h-6 border-2 border-white p-0.5 bg-black relative overflow-hidden">
-                <div class="h-full bg-cyan-400 animate-pixel-bar"></div>
+            <!-- Bingkai & Bar Loading Retro Blue -->
+            <div class="pixel-loading-box">
+                <div class="pixel-loading-fill"></div>
             </div>
         </div>
     `;
