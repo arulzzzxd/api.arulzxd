@@ -626,3 +626,22 @@ textarea,
     -ms-user-select: text !important;
     user-select: text !important;
 }
+
+@keyframes pixelBar {
+    0% {
+        width: 0%;
+    }
+    50% {
+        width: 100%;
+    }
+    51% {
+        width: 0%;
+    }
+    100% {
+        width: 100%;
+    }
+}
+
+.animate-pixel-bar {
+    animation: pixelBar 2s steps(10, end) infinite;
+}

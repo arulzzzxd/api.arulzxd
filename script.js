@@ -383,13 +383,18 @@ async function executeRequest(e, catIdx, epIdx, method, path, endpointType) {
 
     responseDiv.classList.remove('hidden');
 
-    responseContent.innerHTML = `
-        <div class="flex flex-col items-center justify-center p-12 text-sm font-mono tracking-wider text-cyan-600 gap-3">
-            <div class="relative flex h-4 w-4">
-                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-500 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-4 w-4 bg-cyan-600"></span>
+        responseContent.innerHTML = `
+        <div class="flex flex-col items-center justify-center p-8 bg-zinc-900 rounded-xl border-2 border-zinc-900 text-white font-mono shadow-inner my-2">
+            <!-- Teks Animasi Loading / Please Wait -->
+            <div class="text-sm font-black tracking-widest uppercase mb-3 flex items-center gap-1">
+                <span>Please wait</span>
+                <span class="animate-pulse">. . . .</span>
             </div>
-            <span class="animate-pulse text-xs uppercase tracking-widest font-semibold text-slate-600">Fetching Response...</span>
+            
+            <!-- Loading Progress Bar Box -->
+            <div class="w-full max-w-xs h-6 border-2 border-white p-0.5 bg-black relative overflow-hidden">
+                <div class="h-full bg-cyan-400 animate-pixel-bar"></div>
+            </div>
         </div>
     `;
 
