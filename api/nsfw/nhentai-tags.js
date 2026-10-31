@@ -72,7 +72,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.title = "nHentai Tags Explorer";
+router.title = "Hentai Tags Explorer";
 router.desc = "nHentai Tag Explorer API.";
 router.paramsConfig = {
   type: {
