@@ -3735,6 +3735,34 @@ app.get('/store/:productId', async (req, res) => {
     }
 });
 
+app.get('/sitemap.xml', (req, res) => {
+    res.header('Content-Type', 'application/xml');
+    const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://api.arulz.biz.id/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://api.arulz.biz.id/api</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://api.arulz.biz.id/pastecode</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://api.arulz.biz.id/login</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>`;
+    res.send(xmlContent);
+});
+
 app.get('/api/script.js', (req, res) => res.sendFile(path.join(__dirname, 'script.js')));
 app.get('/api/styles.css', (req, res) => res.sendFile(path.join(__dirname, 'styles.css')));
 
