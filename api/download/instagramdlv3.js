@@ -1,190 +1,204 @@
 import express from 'express';
 import axios from 'axios';
+import * as cheerio from 'cheerio';
+import vm from 'node:vm';
 
 const router = express.Router();
 
-const BASE_URL = 'https://indown.ai';
-const API_URL = `${BASE_URL}/api/ajaxSearch`;
-const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-const K_EXP = '1787641966';
-const K_TOKEN = 'bb2880d13bafb6db4ba7276410c1f73faf64cf64d34f252264c8837b76ffd58a';
+const headers = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+};
 
-function getContentType(url) {
-  if (url.includes('/reel/')) return 'reel';
-  if (url.includes('/p/')) return 'post';
-  if (url.includes('/stories/')) return 'story';
-  if (url.includes('/tv/')) return 'igtv';
-  return 'unknown';
-}
-
-function extractQuality(url, html) {
-  if (url.includes('1080') || url.includes('1080p')) return '1080p';
-  if (url.includes('720') || url.includes('720p')) return '720p';
-  if (url.includes('480') || url.includes('480p')) return '480p';
-  if (url.toLowerCase().includes('hd')) return 'HD';
-  if (url.toLowerCase().includes('sd')) return 'SD';
-  if (html.includes('HD') || html.includes('1080')) return 'HD';
-  return 'original';
-}
-
-function determineType(url) {
-  const urlLower = url.toLowerCase();
-  if (/\.(mp4|mov|avi)/.test(urlLower)) return 'video';
-  if (/\.(jpg|jpeg|png|webp)/.test(urlLower)) return 'image';
-  return 'unknown';
-}
-
-function parseDownloadLinks(html) {
-  const links = [];
-
-  const downloadPatterns = [
-    /href="([^"]+)"[^>]*class="[^"]*download[^"]*"/gi,
-    /href="([^"]+)"[^>]*>.*?Download/gi,
-    /data-url="([^"]+)"/gi,
-    /<a[^>]+href="(https?:\/\/[^"]+\.(?:mp4|jpg|jpeg|png)[^"]*)"/gi,
-  ];
-
-  for (const pattern of downloadPatterns) {
-    let match;
-    while ((match = pattern.exec(html)) !== null) {
-      const url = match[1];
-      if (url && !links.find((l) => l.url === url)) {
-        const quality = extractQuality(url, html);
-        links.push({ url: url, quality: quality, type: determineType(url) });
-      }
-    }
-  }
-
-  const videoSourcePattern = /<source[^>]+src="([^"]+)"[^>]*>/gi;
-  let match;
-  while ((match = videoSourcePattern.exec(html)) !== null) {
-    const src = match[1];
-    if (!links.find((l) => l.url === src)) {
-      const quality = extractQuality(src, html);
-      links.push({ url: src, quality: quality, type: 'video' });
-    }
-  }
-
-  const imgSourcePattern = /<img[^>]+src="([^"]+)"[^>]*>/gi;
-  while ((match = imgSourcePattern.exec(html)) !== null) {
-    const src = match[1];
-    if (/\.(jpg|jpeg|png|webp)/i.test(src)) {
-      if (!links.find((l) => l.url === src)) {
-        links.push({ url: src, quality: 'original', type: 'image' });
-      }
-    }
-  }
-
-  return links;
-}
-
-async function fetchInDown(instagramUrl) {
-  const contentType = getContentType(instagramUrl);
-
-  const data = new URLSearchParams({
-    k_exp: K_EXP,
-    k_token: K_TOKEN,
-    q: instagramUrl,
-    t: contentType,
-    lang: 'id',
-    v: 'v2',
-    html: '',
-  });
-
+async function getMetadata(url) {
   try {
-    const response = await axios.post(API_URL, data.toString(), {
-      headers: {
-        'User-Agent': USER_AGENT,
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Referer': `${BASE_URL}/id`,
-        'Origin': BASE_URL,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      timeout: 30000,
+    const { data } = await axios.get(url, { headers, timeout: 10000 });
+    const $ = cheerio.load(data);
+
+    const username =
+      $('meta[property="instapp:owner_user_name"]').attr('content') ||
+      $('meta[property="og:title"]').attr('content')?.split('•')[0]?.trim() ||
+      '-';
+
+    const caption =
+      $('meta[property="og:description"]').attr('content') ||
+      $('meta[name="description"]').attr('content') ||
+      '-';
+
+    return { username, caption };
+  } catch {
+    return { username: '-', caption: '-' };
+  }
+}
+
+async function indown(url) {
+  try {
+    const { data: pageData, headers: resHeaders } = await axios.get(
+      'https://indown.io/en1',
+      { headers, timeout: 10000 }
+    );
+
+    const $ = cheerio.load(pageData);
+    const token = $('input[name="_token"]').val();
+
+    const cookies = resHeaders['set-cookie']
+      ?.map(v => v.split(';')[0])
+      .join('; ');
+
+    if (!token) throw new Error('Token tidak ditemukan');
+
+    const params = new URLSearchParams();
+    params.append('referer', 'https://indown.io/en1');
+    params.append('locale', 'en');
+    params.append('_token', token);
+    params.append('link', url);
+    params.append('p', 'i');
+
+    const { data: result } = await axios.post(
+      'https://indown.io/download',
+      params,
+      {
+        headers: {
+          ...headers,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Cookie: cookies || ''
+        },
+        timeout: 15000
+      }
+    );
+
+    const $$ = cheerio.load(result);
+    const results = [];
+
+    $$('video source[src], a[href]').each((_, el) => {
+      let link = $$(el).attr('src') || $$(el).attr('href');
+      if (!link) return;
+
+      if (link.includes('/fetch?')) {
+        try {
+          link = decodeURIComponent(
+            new URL(link).searchParams.get('url')
+          );
+        } catch {}
+      }
+
+      if (/cdninstagram\.com|fbcdn\.net/.test(link)) {
+        results.push(link.replace(/&dl=1$/, ''));
+      }
     });
 
-    if (response.status !== 200) {
-      return { status: false, message: `HTTP ${response.status} - API request failed` };
-    }
+    const unique = [...new Set(results)];
+    if (!unique.length) throw new Error('Media kosong');
 
-    const result = response.data;
-
-    if (result.status !== 'ok') {
-      return { status: false, message: result.mess || 'Gagal mengekstrak video.' };
-    }
-
-    const mess = result.mess || '';
-    if (mess.includes('Kesalahan') || mess.includes('Error')) {
-      return { status: false, message: mess };
-    }
-
-    const htmlContent = result.html || '';
-    if (!htmlContent) {
-      return { status: false, message: 'Tidak ada konten HTML pada respons server.' };
-    }
-
-    const downloadLinks = parseDownloadLinks(htmlContent);
-
-    if (!downloadLinks || downloadLinks.length === 0) {
-      return { status: false, message: 'Tautan unduhan tidak ditemukan dalam HTML.' };
-    }
-
-    return {
-      status: true,
-      content_type: contentType,
-      downloads: downloadLinks,
-    };
-  } catch (error) {
-    return { status: false, message: error.message || 'Terjadi kesalahan saat menghubungi API InDown.' };
+    return unique;
+  } catch {
+    return [];
   }
+}
+
+async function snapsave(url) {
+  try {
+    const form = new URLSearchParams();
+    form.append('url', url);
+
+    const { data } = await axios.post(
+      'https://snapsave.app/id/action.php?lang=id',
+      form,
+      {
+        headers: {
+          ...headers,
+          origin: 'https://snapsave.app',
+          referer: 'https://snapsave.app/id/download-video-instagram'
+        },
+        timeout: 15000
+      }
+    );
+
+    const ctx = {
+      window: {},
+      document: {
+        getElementById: () => ({ value: '' })
+      },
+      console,
+      eval: (res) => res
+    };
+
+    vm.createContext(ctx);
+    const decoded = vm.runInContext(data, ctx);
+
+    const matches = decoded.match(
+      /https:\/\/d\.rapidcdn\.app\/v2\?[^"]+/g
+    );
+
+    if (!matches?.length) throw new Error('Media kosong');
+
+    return [
+      ...new Set(
+        matches.map(u => u.replace(/&amp;/g, '&'))
+      )
+    ];
+  } catch {
+    return [];
+  }
+}
+
+async function igdl(url) {
+  if (!url.includes('instagram.com'))
+    throw new Error('URL harus berasal dari instagram.com');
+
+  const meta = await getMetadata(url);
+
+  let media = await indown(url);
+  if (!media.length) media = await snapsave(url);
+  if (!media.length) throw new Error('Media tidak ditemukan atau gagal mengunduh.');
+
+  const formatted = media.map(u => ({
+    type: u.includes('.mp4') ? 'video' : 'image',
+    url: u
+  }));
+
+  return {
+    author: meta,
+    media: formatted
+  };
 }
 
 router.get('/', async (req, res) => {
+  const url = req.query.url?.trim() || req.query.link?.trim();
+
+  if (!url) {
+    return res.status(400).json({
+      status: false,
+      creator: "Arulzxd",
+      message: "Parameter 'url' wajib diisi!"
+    });
+  }
+
   try {
-    const url = req.query.url?.trim();
+    const result = await igdl(url);
 
-    if (!url || !url.includes('instagram.com')) {
-      return res.status(400).json({
-        status: false,
-        creator: 'ArulzXD',
-        message: 'Masukkan parameter url Instagram yang valid (contoh: ?url=https://www.instagram.com/reel/...)',
-      });
-    }
-
-    const resData = await fetchInDown(url);
-
-    if (!resData.status) {
-      return res.status(400).json({
-        status: false,
-        creator: 'ArulzXD',
-        message: resData.message,
-      });
-    }
-
-    return res.json({
+    return res.status(200).json({
       status: true,
-      creator: 'ArulzXD',
-      result: {
-        content_type: resData.content_type,
-        downloads: resData.downloads,
-      },
+      creator: "Arulzxd",
+      result
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
       status: false,
-      creator: 'ArulzXD',
-      message: err.message || 'Terjadi kesalahan pada server saat memproses unduhan Instagram.',
+      creator: "Arulzxd",
+      message: "Internal Server Error saat mengunduh media Instagram",
+      error: err.message
     });
   }
 });
 
-router.desc = 'InDown Instagram Downloader (mendukung Post, Reel, Story, & IGTV).';
+router.title = "Instagram Downloader";
+router.desc = "Mengunduh foto/video/reel dari postingan Instagram.";
 router.paramsConfig = {
-  url: 'contoh: https://www.instagram.com/reel/... atau https://www.instagram.com/p/...',
+  url: "contoh: https://www.instagram.com/p/C..."
 };
-router.status = 'ready';
-router.type = 'free';
+
+router.status = "ready";
+router.type = "free";
 
 export default router;
