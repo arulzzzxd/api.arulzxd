@@ -61,11 +61,11 @@ try {
 // OAuth Credentials
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
-const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || "https://api.arulz.biz.id/auth/github/callback";
+const GITHUB_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || "https://api.larasxd.my.id/auth/github/callback";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "https://api.arulz.biz.id/auth/google/callback";
+const GOOGLE_CALLBACK_URL = process.env.GOOGLE_CALLBACK_URL || "https://api.larasxd.my.id/auth/google/callback";
 
 // Cloudflare Turnstile Verification Config
 const CLOUDFLARE_TURNSTILE_SECRET_KEY = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY || '';
@@ -174,8 +174,8 @@ const userSchema = new mongoose.Schema({
     roleExpiresAt: { type: Date, default: null },
     limit: { type: Number, default: 0 },
     lastLimitReset: { type: Date, default: Date.now },
-    avatar: { type: String, default: 'https://cdn.arulz.biz.id/files/X1F0Cn.png' }, 
-    banner: { type: String, default: 'https://cdn.arulz.biz.id/files/MPzS.mp4' },
+    avatar: { type: String, default: 'https://cdn.larasxd.my.id/files/X1F0Cn.png' }, 
+    banner: { type: String, default: 'https://cdn.larasxd.my.id/files/MPzS.mp4' },
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -206,7 +206,7 @@ const reviewSchema = new mongoose.Schema({
     productId: { type: String, required: true, index: true },
     userId: { type: String, default: null, index: true },
     username: { type: String, required: true },
-    userAvatar: { type: String, default: 'https://cdn.arulz.biz.id/files/X1F0Cn.png' },
+    userAvatar: { type: String, default: 'https://cdn.larasxd.my.id/files/X1F0Cn.png' },
     rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String, required: true, trim: true },
     media: [{
@@ -249,7 +249,7 @@ const productSchema = new mongoose.Schema({
     stok: { type: Number, default: 0 },
     gambar: { 
         type: [String], 
-        default: ["https://cdn.arulz.biz.id/files/X1F0Cn.png"] 
+        default: ["https://cdn.larasxd.my.id/files/X1F0Cn.png"] 
     },    
     deskripsi: { type: String, default: "" },
     link: { type: String, required: true },
@@ -349,7 +349,7 @@ app.use(async (req, res, next) => {
             let desc = req.query.desc || baseConfig.desc;
 
             // Gunakan req.headers.host agar domain dinamis sesuai domain aktif di Cloudflare
-            const hostDomain = req.headers['x-forwarded-host'] || req.headers.host || 'api.arulz.biz.id';
+            const hostDomain = req.headers['x-forwarded-host'] || req.headers.host || 'api.larasxd.my.id';
             const protocol = req.headers['x-forwarded-proto'] || 'https';
             let ogImageUrl = `${protocol}://${hostDomain}/og/${pathKey}`;
 
@@ -755,7 +755,7 @@ function getFeedbackUserEmailHtml({ email, type }) {
                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                 <tr>
                                     <td align="center">
-                                        <a href="https://api.arulz.biz.id/api" target="_blank" style="display: inline-block; padding: 14px 28px; background-color: #FACC15; color: #121212; font-size: 12px; font-weight: 900; text-decoration: none; text-transform: uppercase; border-radius: 12px; border: 2.5px solid #121212; letter-spacing: 1px; box-shadow: 4px 4px 0px #121212;">
+                                        <a href="https://api.larasxd.my.id/api" target="_blank" style="display: inline-block; padding: 14px 28px; background-color: #FACC15; color: #121212; font-size: 12px; font-weight: 900; text-decoration: none; text-transform: uppercase; border-radius: 12px; border: 2.5px solid #121212; letter-spacing: 1px; box-shadow: 4px 4px 0px #121212;">
                                             KEMBALI KE DOCUMENTATION
                                         </a>
                                     </td>
@@ -955,7 +955,7 @@ app.post('/auth/login', async (req, res, next) => {
                     username: user.username,
                     email: user.email,
                     name: user.username,
-                    avatar: user.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png',
+                    avatar: user.avatar || 'https://cdn.larasxd.my.id/files/X1F0Cn.png',
                     role: user.role,     
                     apikey: user.apikey   
                 };
@@ -1003,7 +1003,7 @@ app.post('/auth/register', emailLimiter, async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const defaultAvatar = 'https://cdn.arulz.biz.id/files/X1F0Cn.png';
+        const defaultAvatar = 'https://cdn.larasxd.my.id/files/X1F0Cn.png';
         const otpCode = generateOtpCode();
 
         const newUser = new User({
@@ -1094,7 +1094,7 @@ app.get('/auth/github/callback', async (req, res) => {
                 providerId: String(userData.id),
                 apikey: generateFreeApiKey(),
                 role: 'Free User',
-                avatar: userData.avatar_url || 'https://cdn.arulz.biz.id/files/X1F0Cn.png'
+                avatar: userData.avatar_url || 'https://cdn.larasxd.my.id/files/X1F0Cn.png'
             });
             await dbUser.save();
         } else if (userData.avatar_url && dbUser.avatar !== userData.avatar_url) {
@@ -1156,7 +1156,7 @@ app.get('/auth/google/callback', async (req, res) => {
                 providerId: String(userData.id),
                 apikey: generateFreeApiKey(),
                 role: 'Free User',
-                avatar: userData.picture || 'https://cdn.arulz.biz.id/files/X1F0Cn.png'
+                avatar: userData.picture || 'https://cdn.larasxd.my.id/files/X1F0Cn.png'
             });
             await dbUser.save();
         } else if (userData.picture && dbUser.avatar !== userData.picture) {
@@ -1323,8 +1323,8 @@ app.get('/api/user-status', checkAuthSession, async (req, res) => {
                 name: activeUser.username,
                 username: activeUser.username,
                 email: activeUser.email,
-                avatar: activeUser.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png',
-                banner: activeUser.banner || 'https://cdn.arulz.biz.id/files/MPzS.mp4',
+                avatar: activeUser.avatar || 'https://cdn.larasxd.my.id/files/X1F0Cn.png',
+                banner: activeUser.banner || 'https://cdn.larasxd.my.id/files/MPzS.mp4',
                 apikey: activeUser.apikey,
                 role: activeUser.role,
                 roleExpiresAt: activeUser.roleExpiresAt || null,
@@ -1339,8 +1339,8 @@ app.get('/api/user-status', checkAuthSession, async (req, res) => {
                 name: req.user.username,
                 username: req.user.username,
                 email: req.user.email,
-                avatar: req.user.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png',
-                banner: req.user.banner || 'https://cdn.arulz.biz.id/files/MPzS.mp4',
+                avatar: req.user.avatar || 'https://cdn.larasxd.my.id/files/X1F0Cn.png',
+                banner: req.user.banner || 'https://cdn.larasxd.my.id/files/MPzS.mp4',
                 apikey: req.user.apikey,
                 role: req.user.role,
                 roleExpiresAt: req.user.roleExpiresAt || null,
@@ -1712,7 +1712,7 @@ app.post('/api/admin/test-push', checkAdminAccess, async (req, res) => {
         await sendBackgroundPushNotification({
             title: 'TES NOTIFIKASI WEB PUSH',
             body: 'Notifikasi latar belakang berhasil dikonfigurasi!',
-            icon: 'https://cdn.arulz.biz.id/files/1wh5do.png',
+            icon: 'https://cdn.larasxd.my.id/files/1wh5do.png',
             orderId: 'TRX-TEST-' + Math.floor(1000 + Math.random() * 9000)
         });
         return res.json({ status: true, message: 'Push notification tes berhasil dikirim!' });
@@ -1741,7 +1741,7 @@ app.post('/api/admin/transactions/:orderId/approve', checkAdminAccess, async (re
         await trx.save();
 
         const targetUser = await User.findById(trx.userId) || await User.findOne({ username: trx.username });
-        const buyerAvatar = targetUser?.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png';
+        const buyerAvatar = targetUser?.avatar || 'https://cdn.larasxd.my.id/files/X1F0Cn.png';
 
         if (targetUser) {
             const daysToAdd = Number(trx.itemDetails?.qty) || 3;
@@ -1831,7 +1831,7 @@ app.post('/api/reviews', checkAuthSession, (req, res) => {
             if (!comment || !comment.trim()) return res.status(400).json({ status: false, message: 'Anda diwajibkan menuliskan ulasan/penilaian!' });
 
             let username = 'Anonim';
-            let userAvatar = 'https://cdn.arulz.biz.id/files/X1F0Cn.png';
+            let userAvatar = 'https://cdn.larasxd.my.id/files/X1F0Cn.png';
             let userId = getUserIdentifier(req);
 
             if (req.user) {
@@ -2036,7 +2036,7 @@ app.post('/api/transactions/upload-proof', async (req, res) => {
         await trx.save();
 
         const buyer = await User.findOne({ $or: [{ email: trx.email }, { username: trx.username }] });
-        const buyerAvatar = buyer?.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png';
+        const buyerAvatar = buyer?.avatar || 'https://cdn.larasxd.my.id/files/X1F0Cn.png';
 
         sendBackgroundPushNotification({
             title: 'BUKTI TRANSAKSI BARU',
@@ -2272,7 +2272,7 @@ app.post('/uploadfile', localFileUploader, async (req, res) => {
                 userId: req.user.id || req.user._id,
                 username: req.user.username,
                 fileName: fileName,
-                url: `https://cdn.arulz.biz.id/files/${fileName}`,
+                url: `https://cdn.larasxd.my.id/files/${fileName}`,
                 contentType: uploadedFile.mimetype || mime.lookup(originalName) || 'application/octet-stream',
                 folder: folder,
                 size: uploadedFile.size
@@ -2285,7 +2285,7 @@ app.post('/uploadfile', localFileUploader, async (req, res) => {
     return res.json({
       status: true,
       message: 'Unggahan Berhasil!',
-      url: `https://cdn.arulz.biz.id/files/${fileName}`,
+      url: `https://cdn.larasxd.my.id/files/${fileName}`,
       fileName,
       folder,
       size: uploadedFile.size
@@ -3021,7 +3021,7 @@ app.get(['/og', '/og/:page'], async (req, res) => {
             accent: req.query.accent || baseConfig.accent || '#FACC15'
         };
 
-        const customImageUrl = req.query.img || 'https://cdn.arulz.biz.id/files/1wh5do.png';
+        const customImageUrl = req.query.img || 'https://cdn.larasxd.my.id/files/1wh5do.png';
         const displayPath = pageKey === 'home' ? '' : `/${pageKey}`;
         const pageUrl = `api.arulzzxd.my.id${displayPath}`;
 
@@ -3492,7 +3492,7 @@ app.get('/sw.js', (req, res) => {
             }
 
             const title = data.title || 'NOTIFIKASI TRANSAKSI';
-            const userAvatar = data.icon || 'https://cdn.arulz.biz.id/files/X1F0Cn.png';
+            const userAvatar = data.icon || 'https://cdn.larasxd.my.id/files/X1F0Cn.png';
 
             const options = {
                 body: data.body || 'Ada transaksi baru atau pembaruan status.',
@@ -3524,7 +3524,7 @@ app.get('/sw.js', (req, res) => {
                         .then(() => {
                             self.registration.showNotification('TRANSAKSI LUNAS', {
                                 body: 'Order ' + data.orderId + ' berhasil dikonfirmasi LUNAS!',
-                                icon: event.notification.icon || 'https://cdn.arulz.biz.id/files/X1F0Cn.png'
+                                icon: event.notification.icon || 'https://cdn.larasxd.my.id/files/X1F0Cn.png'
                             });
                         })
                 );
@@ -3725,7 +3725,7 @@ app.get('/store/:productId', async (req, res) => {
                 <meta property="og:title" content="${product.nama} - ArulzXD Store" />
                 <meta property="og:description" content="${product.deskripsi ? product.deskripsi.slice(0, 150) : ''}... | Harga: ${hargaFormatted}" />
                 <meta property="og:image" content="${product.gambar}" />
-                <meta property="og:url" content="https://api.arulz.biz.id/store/${product.Id}" />
+                <meta property="og:url" content="https://api.larasxd.my.id/store/${product.Id}" />
             `;
             htmlContent = htmlContent.replace('<head>', `<head>${metaTags}`);
         }
@@ -3740,22 +3740,22 @@ app.get('/sitemap.xml', (req, res) => {
     const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://api.arulz.biz.id/</loc>
+    <loc>https://api.larasxd.my.id/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://api.arulz.biz.id/api</loc>
+    <loc>https://api.larasxd.my.id/api</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://api.arulz.biz.id/pastecode</loc>
+    <loc>https://api.larasxd.my.id/pastecode</loc>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://api.arulz.biz.id/login</loc>
+    <loc>https://api.larasxd.my.id/login</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
