@@ -14,23 +14,23 @@
 
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://api.arulz.biz.id/pastecode" />
+    <meta property="og:url" content="https://api.larasxd.my.id/pastecode" />
     <meta property="og:title" content="ArulzXD API - Pastecode Snippet" />
     <meta property="og:description" content="Layanan paste code snippet REST API resmi untuk dokumentasi dan integrasi pengembang aplikasi." />
-    <meta property="og:image" content="https://api.arulz.biz.id/og/pastecode" />
-    <meta property="og:image:secure_url" content="https://api.arulz.biz.id/og/pastecode" />
+    <meta property="og:image" content="https://api.larasxd.my.id/og/pastecode" />
+    <meta property="og:image:secure_url" content="https://api.larasxd.my.id/og/pastecode" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="600" />
     <meta property="og:image:height" content="300" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:url" content="https://api.arulz.biz.id/pastecode" />
+    <meta name="twitter:url" content="https://api.larasxd.my.id/pastecode" />
     <meta name="twitter:title" content="ArulzXD API - Pastecode Snippet" />
     <meta name="twitter:description" content="Layanan paste code snippet REST API resmi untuk dokumentasi dan integrasi pengembang aplikasi." />
-    <meta name="twitter:image" content="https://api.arulz.biz.id/og/pastecode" />
+    <meta name="twitter:image" content="https://api.larasxd.my.id/og/pastecode" />
 
-    <link rel="icon" href="https://cdn.arulz.biz.id/files/1wh5do.png" type="image/png">
+    <link rel="icon" href="https://cdn.larasxd.my.id/files/1wh5do.png" type="image/png">
     
     <!-- Tailwind CSS & Google Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -415,7 +415,7 @@
         <div class="max-w-4xl mx-auto px-3.5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between">
             <div class="flex items-center gap-2.5 sm:gap-3">
                 <a href="/" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border-2 brutal-border bg-black flex items-center justify-center shadow-sm shrink-0">
-                    <img src="https://cdn.arulz.biz.id/files/1wh5do.png" alt="Logo" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover">
+                    <img src="https://cdn.larasxd.my.id/files/1wh5do.png" alt="Logo" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-cover">
                 </a>
                 <div>
                     <span class="text-sm sm:text-base font-black text-zinc-900 tracking-tight block leading-none">Arulzxd API</span>
@@ -490,7 +490,7 @@
 
         <div class="mb-3.5 rounded-xl border-2 brutal-border overflow-hidden bg-black h-44 w-full relative shadow-sm">
             <video id="sidebarBannerVideo" autoplay loop muted playsinline webkit-playsinline preload="auto" class="w-full h-full object-cover">
-                <source src="https://cdn.arulz.biz.id/files/Tk4GavOaHEEP2ykm.mp4" type="video/mp4">
+                <source src="https://cdn.larasxd.my.id/files/Tk4GavOaHEEP2ykm.mp4" type="video/mp4">
             </video>
         </div>
 
@@ -936,7 +936,7 @@
                 const current = pastes[idx];
                 const lineCount = current.content ? current.content.split('\n').length : 0;
                 const isHeavyCode = lineCount > 3000 || (current.content && current.content.length > 150000);
-                const authorAvatar = current.author_avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png';
+                const authorAvatar = current.author_avatar || 'https://cdn.larasxd.my.id/files/X1F0Cn.png';
                 const authorName = current.author || 'Pengembang';
 
                 target.innerHTML = `
@@ -1095,7 +1095,7 @@
             let htmlCards = '';
             paginatedItems.forEach(p => {
                 const contentPreview = p.content ? p.content.substring(0, 140) : '';
-                const authorAvatar = p.author_avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png';
+                const authorAvatar = p.author_avatar || 'https://cdn.larasxd.my.id/files/X1F0Cn.png';
                 const authorName = p.author || 'Pengembang';
 
                 htmlCards += `
@@ -1306,7 +1306,7 @@
                             container.innerHTML = `
                                 <a href="/profile" class="w-full bg-blue-50 border-2 border-blue-600 rounded-xl p-2.5 flex items-center justify-between text-zinc-900 transition-all active:scale-95 shadow-xs">
                                     <div class="flex items-center gap-2.5 truncate">
-                                        <img src="${data.user.avatar || 'https://cdn.arulz.biz.id/files/X1F0Cn.png'}" class="w-7 h-7 rounded-lg border-2 brutal-border object-cover">
+                                        <img src="${data.user.avatar || 'https://cdn.larasxd.my.id/files/X1F0Cn.png'}" class="w-7 h-7 rounded-lg border-2 brutal-border object-cover">
                                         <div class="truncate text-left leading-tight">
                                             <span class="block text-xs font-black truncate">${data.user.username}</span>
                                             <span class="block text-[9px] text-blue-600 font-bold">AKUN TERHUBUNG</span>
